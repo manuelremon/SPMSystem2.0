@@ -905,7 +905,8 @@ export default function AdminUsuarios() {
   // ============================================================================
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.50" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* HEADER */}
       <Box
         component="header"
@@ -1458,6 +1459,7 @@ export default function AdminUsuarios() {
           </Button>
         </Box>
       </Drawer>
+      </Box>
     </Box>
   );
 }

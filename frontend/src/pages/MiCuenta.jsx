@@ -304,12 +304,13 @@ export default function MiCuenta() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mi Cuenta</Typography>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
         </Box>
         <Grid container spacing={2}>
           {[...Array(6)].map((_, i) => (
@@ -325,18 +326,20 @@ export default function MiCuenta() {
             </Grid>
           ))}
         </Grid>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mi Cuenta</Typography>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
       </Box>
 
       {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
@@ -588,6 +591,7 @@ export default function MiCuenta() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

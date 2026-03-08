@@ -158,9 +158,10 @@ ${formData.mensaje}
   const handleFaqChange = (panel) => (event, isExpanded) => setExpandedFaq(isExpanded ? panel : false);
 
   return (
-    <Stack spacing={3}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t("ayuda_centro_title", "Centro de Ayuda")}
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -400,6 +401,7 @@ ${formData.mensaje}
           </Grid>
         )}
       </Grid>
-    </Stack>
+      </Box>
+    </Box>
   );
 }

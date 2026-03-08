@@ -186,21 +186,25 @@ export default function RecallDetail() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-        <Skeleton variant="rectangular" height={40} width={300} />
-        <Skeleton variant="rectangular" height={180} />
-        <Skeleton variant="rectangular" height={300} />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Skeleton variant="rectangular" height={40} width={300} />
+          <Skeleton variant="rectangular" height={180} />
+          <Skeleton variant="rectangular" height={300} />
+        </Box>
       </Box>
     );
   }
 
   if (!recall) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error">{t('recall_not_found', 'Recall no encontrado')}</Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} sx={{ mt: 2 }}>
-          {t('common_volver', 'Volver')}
-        </Button>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 4 }}>
+          <Alert severity="error">{t('recall_not_found', 'Recall no encontrado')}</Alert>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} sx={{ mt: 2 }}>
+            {t('common_volver', 'Volver')}
+          </Button>
+        </Box>
       </Box>
     );
   }
@@ -213,7 +217,8 @@ export default function RecallDetail() {
   const recoveredCount = recall.recovered_count ?? lotesAfectados.filter((l) => ['recovered', 'retrieved'].includes(l.estado_recuperacion)).length;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Back */}
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
         {t('common_volver', 'Volver')}
@@ -333,6 +338,7 @@ export default function RecallDetail() {
           </Typography>
         </Paper>
       )}
+      </Box>
     </Box>
   );
 }

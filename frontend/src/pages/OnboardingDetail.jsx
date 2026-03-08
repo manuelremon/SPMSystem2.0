@@ -402,7 +402,8 @@ export default function OnboardingDetail() {
   const canApprove = ['submitted', 'under_review'].includes(onboarding.estado);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
         <Stack direction="row" alignItems="center" gap={1}>
@@ -410,7 +411,7 @@ export default function OnboardingDetail() {
             <ArrowBackIcon />
           </IconButton>
           <BusinessIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} color="text.primary">
             {onboarding.razon_social}
           </Typography>
           <Chip label={ESTADO_LABELS[onboarding.estado] || onboarding.estado} color={ESTADO_COLORS[onboarding.estado] || 'default'} />
@@ -846,6 +847,7 @@ export default function OnboardingDetail() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

@@ -198,7 +198,7 @@ export default function RFQDetail() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100", display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress />
       </Box>
     );
@@ -206,11 +206,13 @@ export default function RFQDetail() {
 
   if (!rfq) {
     return (
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 4 }}>
         <Alert severity="error">{t('rfq_no_encontrada', 'RFQ no encontrada')}</Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/procurement/rfq')} startIcon={<ArrowBackIcon />}>
           {t('common_volver', 'Volver')}
         </Button>
+        </Box>
       </Box>
     );
   }
@@ -218,7 +220,8 @@ export default function RFQDetail() {
   const estado = rfq.estado || 'draft';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" gap={1}>
         <IconButton onClick={() => navigate('/procurement/rfq')} aria-label={t('common_volver', 'Volver')}>
@@ -434,6 +437,7 @@ export default function RFQDetail() {
           fetchRFQ();
         }}
       />
+      </Box>
     </Box>
   );
 }

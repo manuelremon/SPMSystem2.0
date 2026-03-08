@@ -10,7 +10,8 @@ import { Button } from '../components/ui/Button';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
-import Layout from '../components/Layout';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
@@ -255,17 +256,14 @@ const ABCAnalysis = () => {
   };
 
   return (
-    <Layout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('abc_title', 'Análisis ABC de Materiales')}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {t('abc_subtitle', 'Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)')}
-          </p>
-        </div>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+          {t('abc_title', 'Análisis ABC de Materiales')}
+        </Typography>
+        <p className="text-gray-600">
+          {t('abc_subtitle', 'Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)')}
+        </p>
 
         {/* Filters */}
         <Card className="p-4">
@@ -382,8 +380,8 @@ const ABCAnalysis = () => {
             <p className="text-gray-500">{t('abc_empty', 'No hay datos disponibles para el período seleccionado')}</p>
           </Card>
         )}
-      </div>
-    </Layout>
+      </Box>
+    </Box>
   );
 };
 

@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import { useI18n } from '../context/i18n'
 import { getAnomalias } from '../services/ai'
 import api from '../services/api'
@@ -57,10 +59,11 @@ export default function AnomaliaDetection() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
         {t('anomalias_title', 'Deteccion de Anomalias')}
-      </h1>
+      </Typography>
       <p style={{ color: 'var(--fg-muted)', marginBottom: 24, fontSize: 14 }}>
         {t('anomalias_desc', 'Identifica patrones inusuales de consumo usando Isolation Forest (ML).')}
       </p>
@@ -177,6 +180,7 @@ export default function AnomaliaDetection() {
           )}
         </div>
       )}
-    </div>
+      </Box>
+    </Box>
   )
 }

@@ -240,12 +240,13 @@ export default function CurrencyManagement() {
   const totalExposure = dashboard?.total_exposure_ars;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Stack direction="row" alignItems="center" gap={1}>
           <CurrencyExchangeIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('currency_title', 'Gestion de Monedas')}
           </Typography>
         </Stack>
@@ -507,6 +508,7 @@ export default function CurrencyManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

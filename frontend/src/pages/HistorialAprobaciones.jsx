@@ -19,18 +19,17 @@ export default function HistorialAprobaciones() {
   const { t } = useI18n();
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Page Header */}
       <Box sx={{ position: "relative" }}>
         <Typography
           variant="h5"
           component="h1"
-          sx={{
-            fontWeight: 700,
-            color: "text.primary",
-            textTransform: "uppercase",
-            letterSpacing: "-0.025em",
-          }}
+          fontWeight={700}
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="text.primary"
         >
           {t("historial_aprobaciones_page_title", "Historial de Aprobaciones")}
         </Typography>
@@ -100,6 +99,7 @@ export default function HistorialAprobaciones() {
           </Box>
         </Box>
       </Paper>
+    </Box>
     </Box>
   );
 }

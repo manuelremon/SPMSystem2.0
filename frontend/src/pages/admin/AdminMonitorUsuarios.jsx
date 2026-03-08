@@ -791,7 +791,8 @@ export default function AdminMonitorUsuarios() {
   ], []);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.50" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* ================================================================== */}
       {/* HEADER */}
       {/* ================================================================== */}
@@ -1001,6 +1002,7 @@ export default function AdminMonitorUsuarios() {
           )}
 
         </Paper>
+      </Box>
       </Box>
     </Box>
   );

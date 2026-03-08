@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -103,7 +105,8 @@ export default function CAPADetail() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <div className="flex items-center justify-between">
         <div>
           <button onClick={() => navigate('/quality/capa')} className="text-sm text-blue-600 hover:underline mb-1">
@@ -226,6 +229,7 @@ export default function CAPADetail() {
           <button onClick={handleVerify} disabled={!efectividad.trim()} className="px-4 py-2 bg-green-600 text-white rounded text-sm disabled:opacity-50">{t('capa_verify_btn', 'Verificar')}</button>
         </DialogActions>
       </Dialog>
-    </div>
+      </Box>
+    </Box>
   );
 }

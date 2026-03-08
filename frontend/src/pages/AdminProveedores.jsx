@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useI18n } from "../context/i18n";
 import {
-  Container,
   Paper,
   Typography,
   Box,
@@ -424,15 +423,15 @@ export default function AdminProveedores() {
 
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, maxWidth: 1600 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton onClick={() => navigate("/admin")} size="small" sx={{ color: "text.secondary" }}>
               <ArrowBack />
             </IconButton>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
               {t('admin_prov_title', 'Proveedores')}
             </Typography>
           </Box>
@@ -443,7 +442,6 @@ export default function AdminProveedores() {
           >
             {t('admin_prov_nuevo', 'Nuevo')}
           </Button>
-        </Box>
       </Box>
 
       {/* Alertas */}
@@ -794,6 +792,7 @@ export default function AdminProveedores() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+      </Box>
+    </Box>
   );
 }

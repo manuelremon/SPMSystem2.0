@@ -197,8 +197,10 @@ const PackingDetail = () => {
 
   if (!packing) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography>{t('common_loading', 'Cargando...')}</Typography>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+          <Typography>{t('common_loading', 'Cargando...')}</Typography>
+        </Box>
       </Box>
     );
   }
@@ -263,7 +265,8 @@ const PackingDetail = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -579,6 +582,7 @@ const PackingDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 };

@@ -111,8 +111,10 @@ export default function ShipmentDetail() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
       </Box>
     )
   }
@@ -120,8 +122,10 @@ export default function ShipmentDetail() {
   const shipment = currentShipment
   if (!shipment) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{t('tms_shipment_not_found', 'Envio no encontrado')}</Alert>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+          <Alert severity="error">{t('tms_shipment_not_found', 'Envio no encontrado')}</Alert>
+        </Box>
       </Box>
     )
   }
@@ -130,7 +134,8 @@ export default function ShipmentDetail() {
   const totalCosts = costs.reduce((sum, c) => sum + (parseFloat(c.monto) || 0), 0)
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <IconButton onClick={() => navigate('/tms/shipments')}>
@@ -421,6 +426,7 @@ export default function ShipmentDetail() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   )
 }

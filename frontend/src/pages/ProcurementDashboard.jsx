@@ -450,25 +450,28 @@ export default function ProcurementDashboard() {
 
   if (loading && !kpis) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Box>
-          <Skeleton variant="text" width={300} height={40} />
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} variant="rectangular" height={120} />
-          ))}
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 3 }}>
-          <Skeleton variant="rectangular" height={300} />
-          <Skeleton variant="rectangular" height={300} />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box>
+            <Skeleton variant="text" width={300} height={40} />
+          </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} variant="rectangular" height={120} />
+            ))}
+          </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 3 }}>
+            <Skeleton variant="rectangular" height={300} />
+            <Skeleton variant="rectangular" height={300} />
+          </Box>
         </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header con filtros */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -692,6 +695,7 @@ export default function ProcurementDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

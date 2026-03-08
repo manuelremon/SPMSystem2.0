@@ -112,7 +112,8 @@ export default function Materials() {
   // ═══════════════════════════════════════════════════════════════════
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="h5" component="h1" fontWeight={600} color="text.primary">
@@ -356,6 +357,7 @@ export default function Materials() {
           m.setShowScanner && m.setShowScanner(false);
         }}
       />
+    </Box>
     </Box>
   );
 }

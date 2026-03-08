@@ -94,12 +94,13 @@ export default function ContractCreate() {
   }, [form, navigate, t, toast]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 700, mx: 'auto' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Stack direction="row" alignItems="center" gap={1}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/procurement/contracts')} color="inherit">
           {t('common_volver', 'Volver')}
         </Button>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('contracts_create_title', 'Nuevo Contrato')}
         </Typography>
       </Stack>
@@ -143,6 +144,7 @@ export default function ContractCreate() {
           {t('contracts_create_btn', 'Crear Contrato')}
         </Button>
       </Stack>
+      </Box>
     </Box>
   );
 }

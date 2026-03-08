@@ -261,8 +261,9 @@ const ProductionPlanning = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.primary', mb: 2 }}>
         {t('prod_planning_title', 'Production Planning (MPS)')}
       </Typography>
 
@@ -539,6 +540,7 @@ const ProductionPlanning = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 };

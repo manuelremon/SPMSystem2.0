@@ -69,8 +69,9 @@ export default function CashflowSimulator() {
       : 30;
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
         {t('finance_cashflow_title')}
       </Typography>
 
@@ -276,6 +277,7 @@ export default function CashflowSimulator() {
           )}
         </Grid>
       </Grid>
+      </Box>
     </Box>
   );
 }

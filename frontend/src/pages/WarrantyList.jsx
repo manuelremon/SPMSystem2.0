@@ -288,10 +288,11 @@ const WarrantyList = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.primary' }}>
           {t('warranty_title', 'Garantías y Reclamos')}
         </Typography>
         <Box>
@@ -569,6 +570,7 @@ const WarrantyList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 };

@@ -14,7 +14,6 @@ import { TempDataBanner } from "../../components/ui/TempDataBanner";
 import { ImportExcelModal } from "../../components/admin/ImportExcelModal";
 
 // MUI Components
-import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -42,17 +41,16 @@ export default function AnalisisPuntualHome() {
   }, []);
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
         <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
           <ArrowBackIcon />
         </IconButton>
-        <Box>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {t("admin_ap_titulo", "ANÁLISIS PUNTUAL")}
-          </Typography>
-        </Box>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+          {t("admin_ap_titulo", "ANÁLISIS PUNTUAL")}
+        </Typography>
       </Box>
 
       {/* Banner de estado */}
@@ -140,6 +138,7 @@ export default function AnalisisPuntualHome() {
         onClose={() => setShowImportModal(false)}
         onSuccess={handleImportSuccess}
       />
-    </Container>
+      </Box>
+    </Box>
   );
 }

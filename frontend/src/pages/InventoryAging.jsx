@@ -171,10 +171,11 @@ export default function InventoryAging() {
     (val || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('slob_title', 'Inventario Aging & SLOB')}
         </Typography>
         <Tooltip title={t('slob_refresh', 'Actualizar snapshot')}>
@@ -431,6 +432,7 @@ export default function InventoryAging() {
         item={selectedItem}
         onCreated={handleDispositionCreated}
       />
+    </Box>
     </Box>
   );
 }

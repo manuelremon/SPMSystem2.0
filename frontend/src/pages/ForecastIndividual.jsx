@@ -28,7 +28,6 @@ import api from '../services/api';
 import { FONT_SIZES } from '../components/ui/SPMChartJS';
 
 // MUI Components
-import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -243,7 +242,8 @@ const ForecastIndividual = () => {
   );
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: { xs: 2, md: "75px" } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Stack direction="row" alignItems="center" gap={1.5}>
@@ -1165,7 +1165,8 @@ const ForecastIndividual = () => {
           </Box>
         </Fade>
       </Modal>
-    </Container>
+    </Box>
+    </Box>
   );
 };
 

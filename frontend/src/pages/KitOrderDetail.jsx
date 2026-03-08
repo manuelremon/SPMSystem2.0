@@ -228,7 +228,8 @@ export default function KitOrderDetail() {
   const componentes = order.asignaciones || order.componentes || order.items || [];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Back */}
       <Button
         startIcon={<ArrowBackIcon />}
@@ -384,6 +385,7 @@ export default function KitOrderDetail() {
           getRowId={(params) => String(params.data.id || params.data.material_codigo)}
         />
       </Paper>
+      </Box>
     </Box>
   );
 }

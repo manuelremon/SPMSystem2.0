@@ -275,7 +275,8 @@ export default function ProcurementCopilot() {
   const activeSuggestions = suggestions.filter((s) => s.estado === 'active' || s.estado === 'pending');
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" gap={1}>
         <SmartToyIcon sx={{ color: 'primary.main' }} />
@@ -590,6 +591,7 @@ export default function ProcurementCopilot() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

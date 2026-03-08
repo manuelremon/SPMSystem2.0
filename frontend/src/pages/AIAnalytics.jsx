@@ -235,32 +235,33 @@ export default function AIAnalytics() {
 
   if (isLoading) {
     return (
-      <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
-        <Box sx={{ mb: 3 }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Skeleton variant="text" width={300} height={40} />
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} variant="rectangular" height={100} />
+            ))}
+          </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+            <Skeleton variant="rectangular" height={350} />
+            <Skeleton variant="rectangular" height={350} />
+          </Box>
         </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3 }}>
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} variant="rectangular" height={100} />
-          ))}
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
-          <Skeleton variant="rectangular" height={350} />
-          <Skeleton variant="rectangular" height={350} />
-        </Box>
-      </Container>
+      </Box>
     )
   }
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('ai_dashboard', 'IA ANALYTICS')}
           </Typography>
         </Box>
@@ -792,6 +793,7 @@ export default function AIAnalytics() {
           </Box>
         </Box>
       </Paper>
-    </Container>
+      </Box>
+    </Box>
   )
 }

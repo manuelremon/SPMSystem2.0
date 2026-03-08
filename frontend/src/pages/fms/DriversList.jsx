@@ -144,11 +144,12 @@ export default function DriversList() {
   const updateField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('fms_drivers_title', 'Conductores')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -362,6 +363,7 @@ export default function DriversList() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   )
 }

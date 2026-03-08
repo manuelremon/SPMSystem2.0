@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../../context/i18n";
 
 // MUI Components
-import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -101,27 +100,27 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
  */
 function LoadingState({ t, navigate }) {
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Box>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
+            <ArrowBackIcon />
+          </IconButton>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {t("admin_estado", "ESTADO DEL SISTEMA")}
           </Typography>
         </Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} variant="rounded" height={96} />
+          ))}
+        </Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
+          <Skeleton variant="rounded" height={256} />
+          <Skeleton variant="rounded" height={256} />
+        </Box>
       </Box>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} variant="rounded" height={96} />
-        ))}
-      </Box>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
-        <Skeleton variant="rounded" height={256} />
-        <Skeleton variant="rounded" height={256} />
-      </Box>
-    </Container>
+    </Box>
   );
 }
 
@@ -175,7 +174,8 @@ export default function AdminEstado() {
   }
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header con ultimo update */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -282,6 +282,7 @@ export default function AdminEstado() {
         loading={loading}
         resetting={resetting}
       />
-    </Container>
+      </Box>
+    </Box>
   );
 }

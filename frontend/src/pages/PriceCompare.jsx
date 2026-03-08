@@ -85,7 +85,8 @@ export default function PriceCompare() {
   const mejorPrecio = precios.length > 0 ? Math.min(...precios.map((p) => p.precio_final)) : 0;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" gap={1}>
         <CompareArrowsIcon sx={{ color: 'primary.main' }} />
@@ -326,6 +327,7 @@ export default function PriceCompare() {
           </Alert>
         </Box>
       ) : null}
+      </Box>
     </Box>
   );
 }

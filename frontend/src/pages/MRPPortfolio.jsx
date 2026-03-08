@@ -372,7 +372,8 @@ export default function MRPPortfolio() {
   const hasActiveFilters = search || centro || almacen || sector;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.50" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box
         component="header"
@@ -384,9 +385,10 @@ export default function MRPPortfolio() {
           borderBottom: 1,
           borderColor: "grey.200",
           boxShadow: 1,
+          mx: -4,
         }}
       >
-        <Box sx={{ maxWidth: 1600, mx: "auto", px: 3 }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 3 }}>
           <Stack
             direction="row"
             alignItems="center"
@@ -487,7 +489,7 @@ export default function MRPPortfolio() {
       </Box>
 
       {/* Main */}
-      <Box component="main" sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
+      <Box component="main">
         {error && (
           <Box sx={{ mb: 3 }}>
             <AlertMessage type="error" onDismiss={() => setError("")}>
@@ -654,6 +656,7 @@ export default function MRPPortfolio() {
           )}
         </Paper>
       </Box>
+    </Box>
     </Box>
   );
 }

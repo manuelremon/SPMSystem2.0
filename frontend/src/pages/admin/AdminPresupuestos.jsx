@@ -313,7 +313,7 @@ const [centro, sector] = id.split("|");
   // ─── Render ───────────────────────────────────────────────
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1280, mx: "auto", px: 2, py: 3 }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
 
         {/* Header */}
         <Stack

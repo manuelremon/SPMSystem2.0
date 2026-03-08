@@ -488,7 +488,7 @@ export default function AdminPlanificadores() {
 
 return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: 2, py: 3 }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
         {/* Header */}
         <Stack
           direction="row"

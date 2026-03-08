@@ -86,12 +86,13 @@ export default function TMSKPIs() {
   }, [fetchKpis])
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Gauge sx={{ fontSize: 28, color: 'primary.main' }} />
-          <Typography variant="h5" fontWeight={600}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('tms_kpis_title', 'KPIs de Transporte')}
           </Typography>
         </Box>
@@ -223,6 +224,7 @@ export default function TMSKPIs() {
           )}
         </>
       )}
+      </Box>
     </Box>
   )
 }

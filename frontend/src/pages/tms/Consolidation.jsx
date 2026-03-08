@@ -105,8 +105,10 @@ export default function Consolidation() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
       </Box>
     )
   }
@@ -114,12 +116,13 @@ export default function Consolidation() {
   const confirmedShipments = (shipments || []).filter(s => s.estado === 'confirmed')
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Boxes sx={{ fontSize: 28, color: 'primary.main' }} />
-          <Typography variant="h5" fontWeight={600}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('tms_consolidation_title', 'Consolidacion LTL')}
           </Typography>
         </Box>
@@ -279,6 +282,7 @@ export default function Consolidation() {
           </Paper>
         </Grid>
       </Grid>
+      </Box>
     </Box>
   )
 }

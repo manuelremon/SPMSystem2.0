@@ -145,7 +145,8 @@ export default function RFQCreate() {
   }, [form, items, proveedores, navigate, t, toast]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 960, mx: 'auto' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 960, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" gap={1}>
         <IconButton onClick={() => navigate('/procurement/rfq')} aria-label={t('common_volver', 'Volver')}>
@@ -332,6 +333,7 @@ export default function RFQCreate() {
           {saving ? t('rfq_guardando', 'Guardando...') : t('rfq_crear_btn', 'Crear RFQ')}
         </Button>
       </Stack>
+      </Box>
     </Box>
   );
 }

@@ -321,7 +321,8 @@ export default function MRPParametrizar() {
   // ============================================================================
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -335,7 +336,7 @@ export default function MRPParametrizar() {
               fontWeight: 700,
               color: "text.primary",
               textTransform: "uppercase",
-              letterSpacing: "0.5px"
+              letterSpacing: "0.05em"
             }}
           >
             {t("nav_mrp_parametrizar", "Parametrizar MRP")}
@@ -525,6 +526,7 @@ export default function MRPParametrizar() {
           </Stack>
         </Paper>
       )}
+      </Box>
     </Box>
   );
 }

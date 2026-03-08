@@ -712,7 +712,8 @@ export default function MisSolicitudes() {
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -842,6 +843,7 @@ export default function MisSolicitudes() {
         }}
         t={t}
       />
+      </Box>
     </Box>
   );
 }

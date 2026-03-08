@@ -264,8 +264,10 @@ const ProductionDetail = () => {
 
   if (loading || !plan) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography>{t('common_loading', 'Loading...')}</Typography>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+          <Typography>{t('common_loading', 'Loading...')}</Typography>
+        </Box>
       </Box>
     );
   }
@@ -283,9 +285,10 @@ const ProductionDetail = () => {
   const canComplete = plan.estado === 'publicado' || plan.estado === 'en_ejecucion';
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">{plan.nombre}</Typography>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.primary' }}>{plan.nombre}</Typography>
         <Button onClick={() => navigate('/production')}>{t('common_back', 'Back')}</Button>
       </Box>
 
@@ -528,6 +531,7 @@ const ProductionDetail = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 };

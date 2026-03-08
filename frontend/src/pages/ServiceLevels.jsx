@@ -138,7 +138,8 @@ export default function ServiceLevels() {
   ], [t]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Stack direction="row" alignItems="center" gap={1}>
@@ -179,6 +180,7 @@ export default function ServiceLevels() {
           gridOptions={{ onCellValueChanged: handleCellValueChanged }}
         />
       </Paper>
+      </Box>
     </Box>
   );
 }

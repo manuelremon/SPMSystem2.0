@@ -410,7 +410,8 @@ export default function PriceManagement() {
   ], [t]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" gap={1}>
         <PriceCheckIcon sx={{ color: 'primary.main' }} />
@@ -733,6 +734,7 @@ export default function PriceManagement() {
           <Button onClick={() => setDetalleOpen(false)}>{t('common_cerrar', 'Cerrar')}</Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

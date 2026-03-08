@@ -166,7 +166,8 @@ export default function Foro() {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Header con busqueda */}
       <Box sx={{
         display: "flex",
@@ -702,6 +703,7 @@ export default function Foro() {
             </Box>
           )}
         </Box>
+      </Box>
       </Box>
     </Box>
   );

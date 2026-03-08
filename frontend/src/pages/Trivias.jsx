@@ -869,7 +869,8 @@ export default function Trivias() {
   // Menu principal de juegos
   if (!activeGame) {
     return (
-      <Box sx={{ maxWidth: 1024, mx: 'auto' }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1024, mx: 'auto', px: 4, py: 3 }}>
         <Stack spacing={3}>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -1118,13 +1119,15 @@ export default function Trivias() {
             )}
           </Paper>
         </Stack>
+        </Box>
       </Box>
     );
   }
 
   // Pantalla de juego activo
   return (
-    <Box sx={{ maxWidth: 672, mx: 'auto' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 672, mx: 'auto', px: 4, py: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1152,6 +1155,7 @@ export default function Trivias() {
           </Button>
         </Box>
       )}
+      </Box>
     </Box>
   );
 }

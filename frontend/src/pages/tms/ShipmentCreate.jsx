@@ -114,14 +114,15 @@ export default function ShipmentCreate() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <IconButton onClick={() => navigate('/tms/shipments')}>
           <ArrowLeft />
         </IconButton>
         <Truck sx={{ fontSize: 28, color: 'primary.main' }} />
-        <Typography variant="h5" fontWeight={600}>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('tms_create_shipment', 'Nuevo Envio')}
         </Typography>
       </Box>
@@ -357,6 +358,7 @@ export default function ShipmentCreate() {
         >
           {saving ? t('common_saving', 'Guardando...') : t('tms_create_shipment', 'Crear Envio')}
         </Button>
+      </Box>
       </Box>
     </Box>
   )

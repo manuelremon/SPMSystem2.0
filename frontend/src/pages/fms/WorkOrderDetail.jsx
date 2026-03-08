@@ -205,19 +205,23 @@ export default function WorkOrderDetail() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
       </Box>
     )
   }
 
   if (!wo) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{t('fms_wo_not_found', 'Orden de trabajo no encontrada')}</Alert>
-        <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/work-orders')} sx={{ mt: 2 }}>
-          Volver
-        </Button>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+          <Alert severity="error">{t('fms_wo_not_found', 'Orden de trabajo no encontrada')}</Alert>
+          <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/work-orders')} sx={{ mt: 2 }}>
+            Volver
+          </Button>
+        </Box>
       </Box>
     )
   }
@@ -225,7 +229,8 @@ export default function WorkOrderDetail() {
   const availableTransitions = TRANSITIONS[wo.estado] || []
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <IconButton onClick={() => navigate('/fms/work-orders')}>
@@ -535,6 +540,7 @@ export default function WorkOrderDetail() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   )
 }

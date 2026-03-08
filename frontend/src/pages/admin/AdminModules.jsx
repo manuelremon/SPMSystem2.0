@@ -52,15 +52,18 @@ export default function AdminModules() {
 
   if (!isLoaded) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
       </Box>
     )
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4, px: 2 }}>
-      <Typography variant="h5" fontWeight={700} gutterBottom>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary" gutterBottom>
         {t('admin_modules_title', 'Modulos del Sistema')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -119,6 +122,7 @@ export default function AdminModules() {
         >
           {saving ? <CircularProgress size={20} /> : t('common_save', 'Guardar')}
         </Button>
+      </Box>
       </Box>
     </Box>
   )

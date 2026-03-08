@@ -334,29 +334,35 @@ export default function SolicitudDetalle() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <PageHeader title={t("detalle_loading", "Cargando solicitud...")} />
-        <LoadingSkeleton />
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+          <PageHeader title={t("detalle_loading", "Cargando solicitud...")} />
+          <LoadingSkeleton />
+        </Box>
       </Box>
     );
   }
 
   if (error && !solicitud) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <PageHeader title={t("detalle_error_title", "Error")} />
-        <Alert severity="error">{error}</Alert>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+          <PageHeader title={t("detalle_error_title", "Error")} />
+          <Alert severity="error">{error}</Alert>
+        </Box>
       </Box>
     );
   }
 
   if (!solicitud) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <PageHeader title={t("detalle_not_found", "Solicitud no encontrada")} />
-        <Alert severity="warning">
-          {t("detalle_not_found_msg", "La solicitud solicitada no existe o fue eliminada.")}
-        </Alert>
+      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+          <PageHeader title={t("detalle_not_found", "Solicitud no encontrada")} />
+          <Alert severity="warning">
+            {t("detalle_not_found_msg", "La solicitud solicitada no existe o fue eliminada.")}
+          </Alert>
+        </Box>
       </Box>
     );
   }
@@ -380,7 +386,8 @@ export default function SolicitudDetalle() {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Header */}
       <PageHeader
         title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
@@ -573,6 +580,7 @@ export default function SolicitudDetalle() {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 }

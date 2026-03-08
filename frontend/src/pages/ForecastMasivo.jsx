@@ -14,7 +14,6 @@ import { TempDataBanner } from '../components/ui/TempDataBanner';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 // MUI Components
-import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -348,7 +347,8 @@ const ForecastMasivo = () => {
   }, []);
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
         <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
@@ -651,7 +651,8 @@ const ForecastMasivo = () => {
           </Box>
         </Paper>
       )}
-    </Container>
+    </Box>
+    </Box>
   );
 };
 

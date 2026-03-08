@@ -519,7 +519,8 @@ export default function BudgetRequests() {
   }, [items, approveDrawer.id]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -541,12 +542,10 @@ export default function BudgetRequests() {
             <Typography
               variant="h5"
               component="h1"
-              sx={{
-                fontWeight: 700,
-                color: 'text.primary',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
+              fontWeight={700}
+              textTransform="uppercase"
+              letterSpacing="0.05em"
+              color="text.primary"
             >
               {t("bur_title", "Gestión de Presupuestos")}
             </Typography>
@@ -874,6 +873,7 @@ export default function BudgetRequests() {
             </Stack>
           </Box>
       </Drawer>
+      </Box>
     </Box>
   );
 }

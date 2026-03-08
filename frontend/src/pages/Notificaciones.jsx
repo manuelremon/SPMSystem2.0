@@ -175,6 +175,8 @@ export default function Notificaciones() {
   };
 
   return (
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
     <Stack spacing={3}>
       <PageHeader title={t("notif_title", "NOTIFICACIONES").toUpperCase()} />
       {connectionError && <Alert severity="error">{connectionError}</Alert>}
@@ -224,5 +226,7 @@ export default function Notificaciones() {
         </Box>
       </Paper>
     </Stack>
+      </Box>
+    </Box>
   );
 }

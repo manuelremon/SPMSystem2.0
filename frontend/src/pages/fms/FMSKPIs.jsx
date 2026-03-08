@@ -127,11 +127,12 @@ export default function FMSKPIs() {
   const avgFuel = data.avg_fuel_efficiency || 0
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('fms_kpis_title', 'Dashboard FMS')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -344,6 +345,7 @@ export default function FMSKPIs() {
           </Stack>
         </Paper>
       )}
+      </Box>
     </Box>
   )
 }

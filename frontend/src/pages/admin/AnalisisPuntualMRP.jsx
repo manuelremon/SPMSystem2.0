@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import Layout from '../../components/Layout'
 import { TempDataBanner } from '../../components/ui/TempDataBanner'
 import { useI18n } from '../../context/i18n'
 import { useNavigate } from 'react-router-dom'
@@ -180,8 +179,8 @@ export default function AnalisisPuntualMRP() {
   }
 
   return (
-    <Layout>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Banner siempre visible */}
         <TempDataBanner onStatusChange={setTempActive} />
 
@@ -329,6 +328,6 @@ export default function AnalisisPuntualMRP() {
           </>
         )}
       </Box>
-    </Layout>
+    </Box>
   )
 }

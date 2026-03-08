@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import { useI18n } from '../context/i18n'
 import { getClustering } from '../services/ai'
 
@@ -26,10 +28,11 @@ export default function MaterialClusters() {
   const clusterColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
 
   return (
-    <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary" sx={{ mb: 1 }}>
         {t('clusters_title', 'Clustering de Materiales')}
-      </h1>
+      </Typography>
       <p style={{ color: 'var(--fg-muted)', marginBottom: 24, fontSize: 14 }}>
         Agrupa materiales por similitud (consumo, stock, precio) usando K-Means para identificar patrones de compra.
       </p>
@@ -119,6 +122,7 @@ export default function MaterialClusters() {
           </div>
         </div>
       )}
-    </div>
+      </Box>
+    </Box>
   )
 }

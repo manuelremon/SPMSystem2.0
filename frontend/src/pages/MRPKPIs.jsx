@@ -455,7 +455,8 @@ export default function MRPKPIs() {
   };
 
   return (
-    <Container maxWidth={false} sx={{ py: 2, px: "75px" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
         <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
@@ -823,6 +824,7 @@ export default function MRPKPIs() {
           </Paper>
         </>
       ) : null}
-    </Container>
+    </Box>
+    </Box>
   );
 }

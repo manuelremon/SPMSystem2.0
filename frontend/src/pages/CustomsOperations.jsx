@@ -327,12 +327,11 @@ const CustomsOperations = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">
-          {t('customs_title', 'Aduanas y Comercio Exterior')}
-        </Typography>
-      </Box>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+        {t('customs_title', 'Aduanas y Comercio Exterior')}
+      </Typography>
 
       {kpis && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -749,6 +748,7 @@ const CustomsOperations = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Box>
   );
 };
