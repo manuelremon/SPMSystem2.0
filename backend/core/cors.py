@@ -58,7 +58,7 @@ def init_cors(app: Flask) -> None:
         origin = request.headers.get("Origin")
         if origin:
             is_allowed = is_origin_allowed(origin)
-            app.logger.info(f"CORS DEBUG (After): Origin={origin} Allowed={is_allowed}")
+            app.logger.debug(f"CORS DEBUG (After): Origin={origin} Allowed={is_allowed}")
             
             if is_allowed:
                 response.headers["Access-Control-Allow-Origin"] = origin
@@ -79,7 +79,7 @@ def init_cors(app: Flask) -> None:
             origin = request.headers.get("Origin")
             if origin:
                 is_allowed = is_origin_allowed(origin)
-                app.logger.info(f"CORS DEBUG (Preflight): Origin={origin} Allowed={is_allowed}")
+                app.logger.debug(f"CORS DEBUG (Preflight): Origin={origin} Allowed={is_allowed}")
                 if is_allowed:
                     response = make_response()
                     response.headers["Access-Control-Allow-Origin"] = origin

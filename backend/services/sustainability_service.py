@@ -508,30 +508,18 @@ def registrar_huella_material(
         True si se registró exitosamente
     """
     try:
-        placeholder = '%s' if is_using_postgresql() else '?'
-
         with get_db_transaction() as (conn, cursor):
-            if is_using_postgresql():
-                cursor.execute(f"""
-                    INSERT INTO material_huella_carbono
-                    (material_codigo, huella_base, unidad_base, fuente_dato, fecha_actualizacion)
-                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-                    ON CONFLICT (material_codigo)
-                    DO UPDATE SET
-                        huella_base = {placeholder},
-                        unidad_base = {placeholder},
-                        fuente_dato = {placeholder},
-                        fecha_actualizacion = {placeholder}
-                """, (
-                    material_codigo, huella_base, unidad_base, fuente_dato, datetime.utcnow(),
-                    huella_base, unidad_base, fuente_dato, datetime.utcnow()
-                ))
-            else:
-                cursor.execute(f"""
-                    INSERT OR REPLACE INTO material_huella_carbono
-                    (material_codigo, huella_base, unidad_base, fuente_dato, fecha_actualizacion)
-                    VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
-                """, (material_codigo, huella_base, unidad_base, fuente_dato, datetime.utcnow()))
+            cursor.execute("""
+                INSERT INTO material_huella_carbono
+                (material_codigo, huella_base, unidad_base, fuente_dato, fecha_actualizacion)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (material_codigo)
+                DO UPDATE SET
+                    huella_base = EXCLUDED.huella_base,
+                    unidad_base = EXCLUDED.unidad_base,
+                    fuente_dato = EXCLUDED.fuente_dato,
+                    fecha_actualizacion = EXCLUDED.fecha_actualizacion
+            """, (material_codigo, huella_base, unidad_base, fuente_dato, datetime.utcnow()))
 
             logger.info(f"Huella de carbono registrada para material {material_codigo}")
             return True

@@ -160,26 +160,16 @@ def clasificar_material(material_codigo: str, hs_code_id: int, pais_origen: str 
     Returns:
         ID de la clasificación creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO material_clasificacion_aduanera
-                (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen, created_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (material_codigo, pais_origen, pais_destino) DO UPDATE
-                SET hs_code_id = EXCLUDED.hs_code_id, certificado_origen = EXCLUDED.certificado_origen
-                RETURNING id
-            """, (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen))
-            clasificacion_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT OR REPLACE INTO material_clasificacion_aduanera
-                (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            """, (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen))
-            clasificacion_id = cursor.lastrowid
+        cursor.execute("""
+            INSERT INTO material_clasificacion_aduanera
+            (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+            ON CONFLICT (material_codigo, pais_origen, pais_destino) DO UPDATE
+            SET hs_code_id = EXCLUDED.hs_code_id, certificado_origen = EXCLUDED.certificado_origen
+            RETURNING id
+        """, (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen))
+        clasificacion_id = cursor.fetchone()[0]
 
         conn.commit()
         logger.info(f"Material clasificado: {material_codigo} con HS code {hs_code_id}")

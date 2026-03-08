@@ -38,13 +38,13 @@ class ProcurementService:
                              AND p.cantidad_recepcionada >= p.cantidad_pedida
                             THEN 1 ELSE 0
                         END) as otif_count,
-                        ROUND(100.0 * SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_a_tiempo,
-                        ROUND(100.0 * SUM(CASE WHEN p.cantidad_recepcionada >= p.cantidad_pedida THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_completas,
-                        ROUND(100.0 * SUM(CASE
+                        ROUND((100.0 * SUM(CASE WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada THEN 1 ELSE 0 END) / COUNT(*))::numeric, 1) as pct_a_tiempo,
+                        ROUND((100.0 * SUM(CASE WHEN p.cantidad_recepcionada >= p.cantidad_pedida THEN 1 ELSE 0 END) / COUNT(*))::numeric, 1) as pct_completas,
+                        ROUND((100.0 * SUM(CASE
                             WHEN p.fecha_recepcion <= s.fecha_entrega_solicitada
                              AND p.cantidad_recepcionada >= p.cantidad_pedida
                             THEN 1 ELSE 0
-                        END) / COUNT(*), 1) as pct_otif,
+                        END) / COUNT(*))::numeric, 1) as pct_otif,
                         SUM(p.valor_pedido) as valor_total_pedido,
                         SUM(p.valor_recibido) as valor_total_recibido
                     FROM sap_purchase_orders p
@@ -105,7 +105,7 @@ class ProcurementService:
                     CREATE OR REPLACE VIEW v_sap_pipeline AS
                     SELECT
                         etapa, cantidad,
-                        ROUND(100.0 * cantidad / NULLIF(SUM(cantidad) OVER(), 0), 1) as porcentaje,
+                        ROUND((100.0 * cantidad / NULLIF(SUM(cantidad) OVER(), 0))::numeric, 1) as porcentaje,
                         orden
                     FROM (
                         SELECT 'Requisiciones' as etapa, COUNT(DISTINCT solped_id) as cantidad, 1 as orden FROM sap_solpeds

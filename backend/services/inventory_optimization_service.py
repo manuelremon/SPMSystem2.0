@@ -386,29 +386,20 @@ def calcular_niveles_servicio(material_codigo: str, almacen: str) -> dict:
         reorder_point = (promedio * lead_time_days) + safety_stock
 
         # Upsert nivel_servicio_objetivo using actual schema columns
-        if is_using_postgresql():
-            cur.execute("""
-                INSERT INTO nivel_servicio_objetivo
-                    (material_codigo, almacen, nivel_servicio,
-                     stock_seguridad_calculado, punto_reorden_calculado,
-                     ultimo_calculo, updated_at)
-                VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
-                ON CONFLICT (material_codigo, almacen)
-                DO UPDATE SET
-                    nivel_servicio = EXCLUDED.nivel_servicio,
-                    stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
-                    punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
-                    ultimo_calculo = NOW(),
-                    updated_at = NOW()
-            """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
-        else:
-            cur.execute("""
-                INSERT OR REPLACE INTO nivel_servicio_objetivo
-                    (material_codigo, almacen, nivel_servicio,
-                     stock_seguridad_calculado, punto_reorden_calculado,
-                     ultimo_calculo, updated_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
+        cur.execute("""
+            INSERT INTO nivel_servicio_objetivo
+                (material_codigo, almacen, nivel_servicio,
+                 stock_seguridad_calculado, punto_reorden_calculado,
+                 ultimo_calculo, updated_at)
+            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+            ON CONFLICT (material_codigo, almacen)
+            DO UPDATE SET
+                nivel_servicio = EXCLUDED.nivel_servicio,
+                stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
+                punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
+                ultimo_calculo = NOW(),
+                updated_at = NOW()
+        """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
 
         conn.commit()
 

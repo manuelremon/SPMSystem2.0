@@ -277,35 +277,21 @@ def crear_meta(data: Dict[str, Any], user_id: int) -> int:
     with get_db_transaction() as (conn, cursor):
         buyer_id = data.get('buyer_id')
 
-        if is_using_postgresql():
-            # Upsert en PostgreSQL
-            cursor.execute("""
-                INSERT INTO meta_ahorro (categoria, periodo, meta_monto, buyer_id)
-                VALUES (%(categoria)s, %(periodo)s, %(meta_monto)s, %(buyer_id)s)
-                ON CONFLICT (categoria, periodo, buyer_id)
-                DO UPDATE SET
-                    meta_monto = EXCLUDED.meta_monto,
-                    updated_at = CURRENT_TIMESTAMP
-                RETURNING id
-            """, {
-                'categoria': data['categoria'],
-                'periodo': data['periodo'],
-                'meta_monto': data['meta_monto'],
-                'buyer_id': buyer_id
-            })
-            meta_id = cursor.fetchone()[0]
-        else:
-            # Upsert en SQLite (INSERT OR REPLACE)
-            cursor.execute("""
-                INSERT OR REPLACE INTO meta_ahorro (categoria, periodo, meta_monto, buyer_id, updated_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (
-                data['categoria'],
-                data['periodo'],
-                data['meta_monto'],
-                buyer_id
-            ))
-            meta_id = cursor.lastrowid
+        cursor.execute("""
+            INSERT INTO meta_ahorro (categoria, periodo, meta_monto, buyer_id)
+            VALUES (%(categoria)s, %(periodo)s, %(meta_monto)s, %(buyer_id)s)
+            ON CONFLICT (categoria, periodo, buyer_id)
+            DO UPDATE SET
+                meta_monto = EXCLUDED.meta_monto,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id
+        """, {
+            'categoria': data['categoria'],
+            'periodo': data['periodo'],
+            'meta_monto': data['meta_monto'],
+            'buyer_id': buyer_id
+        })
+        meta_id = cursor.fetchone()[0]
 
         conn.commit()
         return meta_id

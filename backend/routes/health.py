@@ -97,11 +97,11 @@ def _check_database(db_name: str = "spm") -> dict:
         }
 
     except sqlite3.OperationalError as e:
-        return {"status": "unhealthy", "error": str(e)}
+        logger.warning(f"Database check failed ({db_name}): {e}")
+        return {"status": "unhealthy", "error": "database check failed"}
     except Exception as e:
-        # Log the full exception for debugging
-        logger.debug(f"Unexpected error in _check_database({db_name}): {type(e).__name__}: {e}")
-        return {"status": "error", "error": f"{type(e).__name__}: {str(e)[:100]}"}
+        logger.warning(f"Unexpected error in _check_database({db_name}): {type(e).__name__}: {e}")
+        return {"status": "error", "error": "database check failed"}
 
 
 def _check_postgresql() -> dict:
@@ -129,9 +129,11 @@ def _check_postgresql() -> dict:
         }
 
     except ImportError:
-        return {"status": "error", "error": "psycopg2 not installed"}
+        logger.warning("psycopg2 not installed for health check")
+        return {"status": "error", "error": "database driver not available"}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        logger.warning(f"PostgreSQL health check failed: {type(e).__name__}: {e}")
+        return {"status": "unhealthy", "error": "database check failed"}
 
 
 def _check_cache() -> dict:

@@ -8,6 +8,7 @@ Refactorizado para mejor legibilidad y testabilidad.
 from __future__ import annotations
 
 import logging
+import logging.handlers
 import os
 import sys
 from pathlib import Path
@@ -240,7 +241,9 @@ def _configure_logging(app: Flask) -> None:
         log_file = Path(settings.LOG_FILE)
         log_file.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=3
+        )
         file_handler.setFormatter(formatter)
         file_handler.setLevel(log_level)
         app.logger.addHandler(file_handler)

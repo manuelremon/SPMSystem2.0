@@ -572,21 +572,14 @@ def calcular_consenso(plan_id: int) -> dict:
             cantidad_consenso = suma_ponderada / suma_pesos if suma_pesos > 0 else 0
 
             # Upsert consenso
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO plan_demanda_consenso
-                    (plan_id, material_codigo, cantidad_consenso, created_at)
-                    VALUES (%s, %s, %s, NOW())
-                    ON CONFLICT (plan_id, material_codigo) DO UPDATE SET
-                        cantidad_consenso = EXCLUDED.cantidad_consenso,
-                        created_at = NOW()
-                """, (plan_id, material_codigo, cantidad_consenso))
-            else:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO plan_demanda_consenso
-                    (plan_id, material_codigo, cantidad_consenso, created_at)
-                    VALUES (?, ?, ?, datetime('now'))
-                """, (plan_id, material_codigo, cantidad_consenso))
+            cursor.execute("""
+                INSERT INTO plan_demanda_consenso
+                (plan_id, material_codigo, cantidad_consenso, created_at)
+                VALUES (%s, %s, %s, NOW())
+                ON CONFLICT (plan_id, material_codigo) DO UPDATE SET
+                    cantidad_consenso = EXCLUDED.cantidad_consenso,
+                    created_at = NOW()
+            """, (plan_id, material_codigo, cantidad_consenso))
 
             materiales_procesados += 1
 

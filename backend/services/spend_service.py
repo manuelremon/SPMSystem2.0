@@ -380,29 +380,20 @@ def tomar_snapshot_periodo(periodo: str) -> dict:
             gasto_maverick = gasto_total - gasto_contrato
 
             # Insertar snapshot
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO spend_snapshot
-                    (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
-                     num_ordenes, num_proveedores, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (periodo, categoria) DO UPDATE SET
-                        gasto_total = EXCLUDED.gasto_total,
-                        gasto_contrato = EXCLUDED.gasto_contrato,
-                        gasto_maverick = EXCLUDED.gasto_maverick,
-                        num_ordenes = EXCLUDED.num_ordenes,
-                        num_proveedores = EXCLUDED.num_proveedores,
-                        created_at = NOW()
-                """, (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
-                      num_ordenes, num_proveedores))
-            else:
-                cursor.execute("""
-                    INSERT OR REPLACE INTO spend_snapshot
-                    (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
-                     num_ordenes, num_proveedores, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
-                      num_ordenes, num_proveedores))
+            cursor.execute("""
+                INSERT INTO spend_snapshot
+                (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
+                 num_ordenes, num_proveedores, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (periodo, categoria) DO UPDATE SET
+                    gasto_total = EXCLUDED.gasto_total,
+                    gasto_contrato = EXCLUDED.gasto_contrato,
+                    gasto_maverick = EXCLUDED.gasto_maverick,
+                    num_ordenes = EXCLUDED.num_ordenes,
+                    num_proveedores = EXCLUDED.num_proveedores,
+                    created_at = NOW()
+            """, (periodo, categoria, gasto_total, gasto_contrato, gasto_maverick,
+                  num_ordenes, num_proveedores))
 
             inserted_count += 1
 

@@ -1,10 +1,9 @@
 /**
- * Hook para notificaciones en tiempo real via WebSocket + SSE fallback
+ * Hook para notificaciones en tiempo real via SSE + polling fallback
  *
  * Características:
- * - WebSocket como canal principal (entrega instantánea)
- * - Fallback automático a SSE si WS no conecta
- * - Fallback final a polling HTTP
+ * - SSE como canal principal (entrega en tiempo real)
+ * - Fallback automático a polling HTTP si SSE falla
  * - Reconexión automática con backoff exponencial
  * - Limpieza automática al desmontar
  */
@@ -15,8 +14,6 @@ import api from '../services/api'
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 // Configuración
-const WS_RECONNECT_BASE_DELAY = 1000
-const WS_RECONNECT_MAX_DELAY = 30000
 const SSE_RECONNECT_BASE_DELAY = 1000
 const SSE_RECONNECT_MAX_DELAY = 30000
 const POLLING_INTERVAL = 30000
@@ -38,7 +35,6 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const [isLoading, setIsLoading] = useState(false)
 
   // Refs para manejar reconexión y cleanup
-  const wsRef = useRef(null)
   const eventSourceRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const reconnectAttempts = useRef(0)
@@ -46,7 +42,7 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   const isMountedRef = useRef(true)
   const heartbeatTimeoutRef = useRef(null)
   const lastHeartbeatRef = useRef(Date.now())
-  const transportRef = useRef('none') // 'ws', 'sse', 'polling'
+  const transportRef = useRef('none') // 'sse', 'polling'
 
   /**
    * Obtener notificaciones del servidor (polling/inicial)
@@ -148,91 +144,6 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
   }, [onNotification])
 
   /**
-   * Conectar via WebSocket (skip si ya falló antes — fallback directo a SSE)
-   */
-  const wsFailedRef = useRef(false)
-
-  const connectWS = useCallback(() => {
-    if (!enabled || wsRef.current) return false
-
-    // Si WS ya falló en esta sesión, ir directo a SSE
-    if (wsFailedRef.current) return false
-
-    try {
-      // Construir URL WS desde API URL
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsHost = API_BASE_URL.startsWith('http')
-        ? new URL(API_BASE_URL).host
-        : window.location.host
-      const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications`
-
-      const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        if (isMountedRef.current) {
-          transportRef.current = 'ws'
-          setIsConnected(true)
-          setError(null)
-          reconnectAttempts.current = 0
-          lastHeartbeatRef.current = Date.now()
-
-          // Detener SSE y polling
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close()
-            eventSourceRef.current = null
-          }
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current)
-            pollingIntervalRef.current = null
-          }
-
-          // Iniciar heartbeat check
-          startHeartbeatCheck()
-        }
-      }
-
-      ws.onmessage = (event) => {
-        if (!isMountedRef.current) return
-        lastHeartbeatRef.current = Date.now()
-
-        try {
-          const data = JSON.parse(event.data)
-
-          if (data.type === 'pong' || data.event === 'pong') return
-
-          if (data.event === 'notification' && data.data) {
-            handleIncomingNotification(data.data)
-          }
-        } catch {
-          // Ignorar mensajes no parseables
-        }
-      }
-
-      ws.onclose = () => {
-        wsRef.current = null
-        if (isMountedRef.current && enabled) {
-          setIsConnected(false)
-          clearHeartbeatCheck()
-          // Marcar WS como no disponible para no reintentar
-          wsFailedRef.current = true
-          // Fallback a SSE
-          connectSSE()
-        }
-      }
-
-      ws.onerror = () => {
-        ws.close()
-      }
-
-      return true
-    } catch {
-      wsFailedRef.current = true
-      return false
-    }
-  }, [enabled, handleIncomingNotification])
-
-  /**
    * Iniciar verificación de heartbeat
    */
   const startHeartbeatCheck = useCallback(() => {
@@ -240,29 +151,17 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
     heartbeatTimeoutRef.current = setInterval(() => {
       const timeSince = Date.now() - lastHeartbeatRef.current
       if (timeSince > HEARTBEAT_TIMEOUT) {
-        // Conexión estancada
-        if (wsRef.current) {
-          wsRef.current.close()
-          wsRef.current = null
-        }
         if (eventSourceRef.current) {
           eventSourceRef.current.close()
           eventSourceRef.current = null
         }
         clearHeartbeatCheck()
         if (isMountedRef.current && enabled) {
-          setTimeout(connectWS, WS_RECONNECT_BASE_DELAY)
-        }
-      } else if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        // Send ping to keep alive
-        try {
-          wsRef.current.send(JSON.stringify({ type: 'ping' }))
-        } catch {
-          // Ignore
+          connectSSE()
         }
       }
     }, 15000)
-  }, [enabled, connectWS])
+  }, [enabled])
 
   const clearHeartbeatCheck = useCallback(() => {
     if (heartbeatTimeoutRef.current) {
@@ -275,7 +174,7 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
    * Conectar a SSE stream (fallback de WS)
    */
   const connectSSE = useCallback(() => {
-    if (!enabled || eventSourceRef.current || wsRef.current) return
+    if (!enabled || eventSourceRef.current) return
 
     try {
       const streamUrl = `${API_BASE_URL}/notificaciones/stream`
@@ -369,10 +268,6 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
    * Desconectar todo
    */
   const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
@@ -400,15 +295,8 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
       const isCrossOrigin = API_BASE_URL.startsWith('http') &&
         !API_BASE_URL.includes(window.location.host)
 
-      if (!isCrossOrigin) {
-        // Intentar WS primero, si falla cae a SSE, luego polling
-        if (!connectWS()) {
-          if (typeof EventSource !== 'undefined') {
-            connectSSE()
-          } else {
-            startPolling()
-          }
-        }
+      if (!isCrossOrigin && typeof EventSource !== 'undefined') {
+        connectSSE()
       } else {
         startPolling()
       }
@@ -418,7 +306,7 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
       isMountedRef.current = false
       disconnect()
     }
-  }, [enabled, fetchNotifications, connectWS, connectSSE, startPolling, disconnect])
+  }, [enabled, fetchNotifications, connectSSE, startPolling, disconnect])
 
   return {
     notifications,
@@ -430,7 +318,7 @@ export function useNotifications({ enabled = true, onNotification } = {}) {
     markAllAsRead,
     deleteNotification,
     refresh: fetchNotifications,
-    connect: connectWS,
+    connect: connectSSE,
     disconnect
   }
 }
