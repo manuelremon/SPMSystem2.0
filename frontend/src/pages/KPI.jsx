@@ -185,7 +185,8 @@ export default function KPI() {
   const totalSolicitudes = kpiData.solicitudes.aprobadas + kpiData.solicitudes.rechazadas + kpiData.solicitudes.pendientes;
 
   return (
-    <Stack spacing={3}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <ScrollReveal>
         <PageHeader
           title="KPI's"
@@ -767,6 +768,7 @@ export default function KPI() {
           </Box>
         </Paper>
       </ScrollReveal>
-    </Stack>
+    </Box>
+    </Box>
   );
 }

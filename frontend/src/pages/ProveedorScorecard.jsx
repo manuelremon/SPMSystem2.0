@@ -320,7 +320,8 @@ export default function ProveedorScorecard() {
   const selectedProvider = ranking.find(r => r.proveedor_id === selectedId);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
         {t('scorecard_title', 'Scorecard de Proveedores')}
       </Typography>
@@ -580,6 +581,7 @@ export default function ProveedorScorecard() {
           <Button onClick={handleCloseCompare}>{t('common_close', 'Cerrar')}</Button>
         </DialogActions>
       </Dialog>
+    </Box>
     </Box>
   );
 }

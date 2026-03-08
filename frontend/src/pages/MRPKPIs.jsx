@@ -4,7 +4,6 @@ import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import { TempDataBanner } from "../components/ui/TempDataBanner";
 // MUI Components
-import Container from "@mui/material/Container";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
