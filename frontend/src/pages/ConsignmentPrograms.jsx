@@ -173,7 +173,7 @@ export default function ConsignmentPrograms() {
       field: 'estado',
       width: 140,
       sortable: true,
-      filter: 'agSetColumnFilter',
+      filter: true,
       cellRenderer: (params) => {
         if (!params.value) return '';
         return (

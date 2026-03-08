@@ -273,11 +273,7 @@ export default function Stock() {
       width: 120,
       cellRenderer: BooleanCellRenderer,
       cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
-      filter: "agSetColumnFilter",
-      filterParams: {
-        values: [true, false],
-        valueFormatter: ({ value }) => value ? "Sí" : "No",
-      },
+      filter: true,
     },
     {
       headerName: "MRP",
@@ -285,11 +281,7 @@ export default function Stock() {
       width: 100,
       cellRenderer: BooleanCellRenderer,
       cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
-      filter: "agSetColumnFilter",
-      filterParams: {
-        values: [true, false],
-        valueFormatter: ({ value }) => value ? "Sí" : "No",
-      },
+      filter: true,
     },
     {
       headerName: "Días s/Mov",

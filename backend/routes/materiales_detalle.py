@@ -288,7 +288,14 @@ def detalle_material(codigo):
         )
 
     # Luego obtenemos stock filtrado por centro/almacen para stock_detalle
+    # Fallback: si el almacén del catálogo no matchea con almacenes SAP,
+    # buscar solo por centro (los códigos de almacén pueden diferir entre sistemas)
     stock_rows = _get_stock_filtrado(codigo, centro_param or None, almacen_param or None)
+    if not stock_rows and almacen_param and centro_param:
+        # Fallback: solo filtrar por centro
+        stock_rows = _get_stock_filtrado(codigo, centro_param, None)
+        almacen_norm = None  # No filtrar por almacén en el cálculo de stock_total
+
     for row in stock_rows:
         row_almacen_norm = _normalize_code(row.get("almacen", ""))
         stock_val = float(row.get("stock") or 0)
