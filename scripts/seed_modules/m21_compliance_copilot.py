@@ -14,7 +14,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -106,7 +105,7 @@ class ComplianceCopilotSeed(SeedModule):
                 "cantidad": round(random.uniform(1, 500), 2),
                 "es_compliant": 1 if es_compliant else 0,
                 "desviacion_porcentaje": desviacion,
-                "razon_desviacion": f"{SEED_TAG} {pick(razones_desviacion)}" if not es_compliant else None,
+                "razon_desviacion": f"{pick(razones_desviacion)}" if not es_compliant else None,
                 "created_at": rand_datetime(days_back=90),
             }
             try:
@@ -138,7 +137,7 @@ class ComplianceCopilotSeed(SeedModule):
         for titulo, contexto in conversaciones:
             row = {
                 "usuario_id": int(self.refs.rand_user()),
-                "titulo": f"{SEED_TAG} {titulo}",
+                "titulo": f"{titulo}",
                 "contexto_tipo": contexto,
                 "created_at": rand_datetime(days_back=30),
                 "updated_at": rand_datetime(days_back=7),
@@ -206,7 +205,7 @@ class ComplianceCopilotSeed(SeedModule):
                 row = {
                     "conversacion_id": conv_id,
                     "rol": rol,
-                    "contenido": f"{SEED_TAG} {contenido}",
+                    "contenido": f"{contenido}",
                     "metadata": json.dumps({"model": "claude-3", "temperature": 0.3}) if rol == "assistant" else None,
                     "tokens_used": tokens,
                     "created_at": rand_datetime(days_back=30),
@@ -269,8 +268,8 @@ class ComplianceCopilotSeed(SeedModule):
             row = {
                 "conversacion_id": conv_id,
                 "tipo": tipo,
-                "titulo": f"{SEED_TAG} {titulo}",
-                "contenido": f"{SEED_TAG} {contenido}",
+                "titulo": f"{titulo}",
+                "contenido": f"{contenido}",
                 "datos_soporte": json.dumps({
                     "fuente": "analisis_automatico",
                     "confianza": round(random.uniform(0.7, 0.95), 2),
@@ -279,7 +278,7 @@ class ComplianceCopilotSeed(SeedModule):
                 "estado": estado,
                 "material_codigo": self.refs.rand_material() if tipo in ("reorder", "slow_moving", "forecast_adjust") else None,
                 "proveedor_cuit": self.refs.rand_proveedor() if tipo in ("supplier_change", "risk_mitigation") else None,
-                "feedback_usuario": f"{SEED_TAG} Implementado" if estado in ("accepted", "implemented") else None,
+                "feedback_usuario": f"Implementado" if estado in ("accepted", "implemented") else None,
                 "created_at": rand_datetime(days_back=30),
             }
             try:
@@ -290,23 +289,11 @@ class ComplianceCopilotSeed(SeedModule):
 
         self.log(f"copilot_sugerencia: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "copilot_sugerencia": "titulo",
-            "copilot_mensaje": "contenido",
-            "copilot_conversacion": "titulo",
-            "compliance_check": "razon_desviacion",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

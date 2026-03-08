@@ -19,8 +19,6 @@ Tablas reales en PG:
 import random
 
 from ._base import (
-    SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -155,7 +153,7 @@ class InventorySeed(SeedModule):
                     "cantidad": cantidad,
                     "almacen_origen": almacen_o if tipo != "recepcion" else None,
                     "almacen_destino": almacen_d if tipo != "despacho" else None,
-                    "referencia": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                    "referencia": f"{fake.sentence(nb_words=6)}",
                     "usuario_id": self.refs.rand_user(),
                     "created_at": rand_datetime(days_back=90),
                 }
@@ -189,7 +187,7 @@ class InventorySeed(SeedModule):
                 "fecha_inicio": fecha_inicio,
                 "fecha_cierre": fecha_cierre,
                 "asignado_a": self.refs.rand_user(),
-                "notas": f"{SEED_TAG} Conteo {i:02d} - {fake.sentence(nb_words=6)}",
+                "notas": f"Conteo {i:02d} - {fake.sentence(nb_words=6)}",
                 "created_at": rand_datetime(days_back=120),
             }
             try:
@@ -224,7 +222,7 @@ class InventorySeed(SeedModule):
                     "stock_fisico": stock_fisico,
                     "diferencia": diferencia,
                     "ajustado": ajustado,
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=5)}",
+                    "notas": f"{fake.sentence(nb_words=5)}",
                 }
                 try:
                     self.insert_no_return("cycle_count_item", row)
@@ -256,7 +254,7 @@ class InventorySeed(SeedModule):
                 "cantidad_contenedor": round(random.uniform(5, 200), 2),
                 "punto_reorden": random.randint(10, 100),
                 "lead_time_horas": random.randint(1, 720),
-                "ubicacion_supermarket": f"{SEED_TAG} SM-{pick(['A', 'B', 'C'])}{random.randint(1, 20):02d}",
+                "ubicacion_supermarket": f"SM-{pick(['A', 'B', 'C'])}{random.randint(1, 20):02d}",
                 "proveedor_cuit": proveedor,
                 "ciclos_totales": random.randint(0, 50),
                 "ultimo_ciclo_at": rand_datetime(days_back=30) if random.random() > 0.4 else None,
@@ -318,7 +316,7 @@ class InventorySeed(SeedModule):
 
             row = {
                 "proveedor_cuit": self.refs.rand_proveedor(),
-                "nombre": f"{SEED_TAG} VMI Programa {i:02d}",
+                "nombre": f"VMI Programa {i:02d}",
                 "material_codigo": self.refs.rand_material(),
                 "centro_id": random.randint(1, 10),
                 "almacen_id": random.randint(1, 10),
@@ -365,7 +363,7 @@ class InventorySeed(SeedModule):
                 )
                 aprobado_por = self.refs.rand_admin() if cantidad_apr else None
                 razon_rechazo = (
-                    f"{SEED_TAG} {fake.sentence(nb_words=8)}"
+                    f"{fake.sentence(nb_words=8)}"
                     if estado == "rejected"
                     else None
                 )
@@ -514,7 +512,7 @@ class InventorySeed(SeedModule):
                 "cantidad": round(random.uniform(1, 500), 2),
                 "estado": estado,
                 "prioridad": pick(TRANSFERENCIA_PRIORIDADES),
-                "razon": f"{SEED_TAG} {pick(razones)}",
+                "razon": f"{pick(razones)}",
                 "propuesto_por": self.refs.rand_user(),
                 "aprobado_por": aprobado_por,
                 "fecha_envio": fecha_envio,
@@ -530,34 +528,13 @@ class InventorySeed(SeedModule):
 
         self.log(f"transferencia_inventario: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean() - delete seed data by SEED_PREFIX / SEED_TAG markers
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        # Tables in reverse dependency order, with the column containing SEED markers
-        clean_map = {
-            "transferencia_inventario": "razon",
-            "vmi_kpi_snapshot": None,
-            "vmi_inventario_compartido": None,
-            "vmi_reposicion": None,
-            "vmi_programa": "nombre",
-            "consignment_stock": None,
-            "kanban_tarjeta": "ubicacion_supermarket",
-            "cycle_count_item": "notas",
-            "cycle_count": "notas",
-            "lote_movimiento": "referencia",
-            "lote": "numero_lote",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

@@ -15,7 +15,6 @@ import json
 import random
 
 from ._base import (
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -109,7 +108,7 @@ class SolicitudesWorkflowSeed(SeedModule):
                     "codigo_equivalente": codigo_equiv,
                     "proveedor_sugerido": proveedor_sug,
                     "precio_unitario_estimado": precio_est,
-                    "comentario": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "comentario": f"{fake.sentence(nb_words=8)}",
                     "updated_by": self.refs.rand_planner(),
                     "updated_at": rand_datetime(days_back=90),
                 }
@@ -134,7 +133,7 @@ class SolicitudesWorkflowSeed(SeedModule):
                     "solicitud_id": solicitud_id,
                     "item_index": random.randint(0, 4),
                     "decision": pick(DECISIONES),
-                    "nota": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                    "nota": f"{fake.sentence(nb_words=6)}",
                 }
                 row = {
                     "solicitud_id": solicitud_id,
@@ -166,7 +165,7 @@ class SolicitudesWorkflowSeed(SeedModule):
                     "item_index": item_idx,
                     "valor_anterior": fake.word(),
                     "valor_nuevo": fake.word(),
-                    "nota": f"{SEED_TAG} {fake.sentence(nb_words=5)}",
+                    "nota": f"{fake.sentence(nb_words=5)}",
                 }
                 row = {
                     "solicitud_id": solicitud_id,
@@ -204,7 +203,7 @@ class SolicitudesWorkflowSeed(SeedModule):
                     "cantidad_solicitada": cantidad_sol,
                     "cantidad_total_asignada": cantidad_asig,
                     "estado": estado,
-                    "comentario": f"{SEED_TAG} {fake.sentence(nb_words=7)}",
+                    "comentario": f"{fake.sentence(nb_words=7)}",
                     "planner_id": self.refs.rand_planner(),
                     "created_at": rand_datetime(days_back=60),
                     "updated_at": rand_datetime(days_back=30),
@@ -267,7 +266,7 @@ class SolicitudesWorkflowSeed(SeedModule):
                     "plazo_dias": random.randint(1, 60) if tipo_fuente == "proveedor" else None,
                     "score_opcion": round(rand_pct(50, 100), 1),
                     "orden_prioridad": orden,
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=5)}",
+                    "notas": f"{fake.sentence(nb_words=5)}",
                     "created_at": rand_datetime(days_back=30),
                 }
                 try:
@@ -291,11 +290,11 @@ class SolicitudesWorkflowSeed(SeedModule):
                 destinatario = self.refs.rand_user()
 
                 mensaje_templates = [
-                    f"{SEED_TAG} Su solicitud #{solicitud_id} fue actualizada.",
-                    f"{SEED_TAG} Hay una decision pendiente en la solicitud #{solicitud_id}.",
-                    f"{SEED_TAG} El tratamiento de la solicitud #{solicitud_id} fue completado.",
-                    f"{SEED_TAG} Se requiere su aprobacion en la solicitud #{solicitud_id}.",
-                    f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                    f"Su solicitud #{solicitud_id} fue actualizada.",
+                    f"Hay una decision pendiente en la solicitud #{solicitud_id}.",
+                    f"El tratamiento de la solicitud #{solicitud_id} fue completado.",
+                    f"Se requiere su aprobacion en la solicitud #{solicitud_id}.",
+                    f"{fake.sentence(nb_words=10)}",
                 ]
                 row = {
                     "destinatario_id": destinatario,
@@ -314,42 +313,11 @@ class SolicitudesWorkflowSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        tables_ordered = [
-            "notificaciones",
-            "decision_abastecimiento_fuentes",
-            "decision_abastecimiento",
-            "solicitud_tratamiento_log",
-            "solicitud_tratamiento_eventos",
-            "solicitud_items_tratamiento",
-        ]
-        for table in tables_ordered:
+        for table in self.tables:
             try:
-                if table == "notificaciones":
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE mensaje LIKE ?",
-                        (f"%{SEED_TAG}%",),
-                    )
-                elif table == "decision_abastecimiento":
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE comentario LIKE ?",
-                        (f"%{SEED_TAG}%",),
-                    )
-                elif table in ("solicitud_items_tratamiento",):
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE comentario LIKE ?",
-                        (f"%{SEED_TAG}%",),
-                    )
-                elif table in (
-                    "solicitud_tratamiento_log",
-                    "solicitud_tratamiento_eventos",
-                    "decision_abastecimiento_fuentes",
-                ):
-                    # These tables reference decisions/solicitudes cleaned above;
-                    # cascade should handle it. Try payload_json as fallback.
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE payload_json LIKE ?",
-                        (f"%{SEED_TAG}%",),
-                    )
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

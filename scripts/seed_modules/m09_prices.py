@@ -14,8 +14,6 @@ Tablas:
 import random
 
 from ._base import (
-    SEED_PREFIX,
-    SEED_TAG,
     UNIDADES,
     SeedModule,
     fake,
@@ -91,13 +89,13 @@ class PricesSeed(SeedModule):
             created_at = rand_datetime(days_back=400)
 
             row = {
-                "nombre": f"{SEED_TAG} {nombre} {i + 1:02d}",
+                "nombre": f"{nombre} {i + 1:02d}",
                 "proveedor_cuit": cuit,
                 "moneda": moneda,
                 "fecha_vigencia_desde": vigencia_desde,
                 "fecha_vigencia_hasta": vigencia_hasta,
                 "estado": estado,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "created_by": int(self.refs.rand_user()),
                 "created_at": created_at,
             }
@@ -218,7 +216,7 @@ class PricesSeed(SeedModule):
                 "descuento_negociado_pct": descuento_negociado,
                 "negociado_por": int(self.refs.rand_user()),
                 "fecha": fecha,
-                "notas": f"{SEED_TAG} Negociación {seed_code('NEG', i + 1)}",
+                "notas": f"Negociación {seed_code('NEG', i + 1)}",
                 "estado": estado,
                 "aprobado_por": aprobado_por,
                 "created_at": created_at,
@@ -262,7 +260,7 @@ class PricesSeed(SeedModule):
 
             row = {
                 "contrato_id": random.randint(1, 50) if random.random() > 0.3 else None,
-                "nombre": f"{SEED_TAG} {nombres_programa[i]}",
+                "nombre": f"{nombres_programa[i]}",
                 "tipo": tipo,
                 "umbral_cantidad": round(random.uniform(100, 10000), 2),
                 "umbral_monto": rand_money(100000, 5000000),
@@ -326,32 +324,11 @@ class PricesSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "rebate_calculo": None,
-            "rebate_programa": "nombre",
-            "precio_negociacion": "notas",
-            "precio_item": None,
-            "lista_precios": "nombre",
-        }
-
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
-                else:
-                    # precio_item: cascade delete via lista_precios FK,
-                    # or delete items whose lista_id no longer exists
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE lista_id NOT IN "
-                        f"(SELECT id FROM lista_precios)"
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} orphan rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

@@ -12,7 +12,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -108,8 +107,8 @@ class CommunicationSeed(SeedModule):
                 else None
             )
 
-            asunto = f"{SEED_TAG} {pick(ASUNTO_TEMPLATES)}"
-            mensaje_body = f"{SEED_TAG} {fake.paragraph(nb_sentences=random.randint(2, 5))}"
+            asunto = f"{pick(ASUNTO_TEMPLATES)}"
+            mensaje_body = f"{fake.paragraph(nb_sentences=random.randint(2, 5))}"
 
             created_ts = rand_datetime(days_back=180)
             updated_ts = rand_datetime(days_back=30)
@@ -150,8 +149,8 @@ class CommunicationSeed(SeedModule):
                 "remitente_id": remitente,
                 "destinatario_id": destinatario,
                 "solicitud_id": None,
-                "asunto": f"{SEED_TAG} Re: {pick(ASUNTO_TEMPLATES)}",
-                "mensaje": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "asunto": f"Re: {pick(ASUNTO_TEMPLATES)}",
+                "mensaje": f"{fake.paragraph(nb_sentences=2)}",
                 "parent_id": parent_id,
                 "leido": random.randint(0, 1),
                 "tipo": "comentario",
@@ -196,14 +195,13 @@ class CommunicationSeed(SeedModule):
                 )
 
             body_html = (
-                f"<p>{SEED_TAG}</p>"
                 f"<p>{fake.paragraph(nb_sentences=3)}</p>"
                 f"<p>Este es un correo generado por SPM System 2.0.</p>"
             )
 
             row = {
                 "to_email": fake.email(),
-                "subject": f"{SEED_TAG} {pick(EMAIL_SUBJECTS)}",
+                "subject": f"{pick(EMAIL_SUBJECTS)}",
                 "body": body_html,
                 "attachments_json": attachments,
                 "status": status,
@@ -221,19 +219,11 @@ class CommunicationSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "outbox_emails": "subject",
-            "mensajes": "asunto",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

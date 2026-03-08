@@ -21,7 +21,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -173,7 +172,7 @@ class CustomsEcoSeed(SeedModule):
                 "capitulo": capitulo,
                 "partida": partida,
                 "subpartida": subpartida,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}" if random.random() > 0.5 else None,
+                "notas": f"{fake.sentence(nb_words=8)}" if random.random() > 0.5 else None,
                 "created_at": rand_datetime(days_back=730),
             }
             try:
@@ -272,7 +271,7 @@ class CustomsEcoSeed(SeedModule):
                 "total_tributos": total_tributos,
                 "moneda": "USD",
                 "orden_compra_id": random.randint(1, 50) if random.random() > 0.4 else None,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=9)}",
+                "notas": f"{fake.sentence(nb_words=9)}",
                 "created_at": rand_datetime(days_back=270),
             }
             try:
@@ -316,8 +315,8 @@ class CustomsEcoSeed(SeedModule):
                 "moneda": "USD",
                 "arancel": arancel_val,
                 "impuestos": impuestos_val,
-                "agente_aduanero": f"{SEED_TAG} {fake.company()}",
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "agente_aduanero": f"{fake.company()}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "created_at": rand_datetime(days_back=180),
                 "updated_at": rand_datetime(days_back=30),
             }
@@ -383,14 +382,14 @@ class CustomsEcoSeed(SeedModule):
                 fecha_hasta = rand_past_date(days_min=30, days_max=365)
 
             row = {
-                "nombre": f"{SEED_TAG} {nombre}",
+                "nombre": f"{nombre}",
                 "tipo": tipo,
                 "pais_socio": pais_socio,
                 "preferencia_arancelaria_pct": preferencia,
                 "fecha_vigencia_desde": fecha_desde,
                 "fecha_vigencia_hasta": fecha_hasta,
                 "estado": estado,
-                "requisitos_origen": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "requisitos_origen": f"{fake.paragraph(nb_sentences=2)}",
                 "created_at": rand_datetime(days_back=1825),
             }
             try:
@@ -438,8 +437,8 @@ class CustomsEcoSeed(SeedModule):
 
             row = {
                 "numero_eco": seed_code("ECO", i),
-                "titulo": f"{SEED_TAG} {titulo_base}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=3)}",
+                "titulo": f"{titulo_base}",
+                "descripcion": f"{fake.paragraph(nb_sentences=3)}",
                 "tipo": pick(ECO_TIPOS),
                 "prioridad": pick(ECO_PRIORIDADES),
                 "estado": estado,
@@ -448,9 +447,9 @@ class CustomsEcoSeed(SeedModule):
                 "aprobador_id": aprobador_id,
                 "fecha_efectividad": fecha_efectividad,
                 "costo_estimado": rand_money(1000, 500000),
-                "impacto_inventario": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
-                "impacto_proveedores": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
-                "justificacion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "impacto_inventario": f"{fake.sentence(nb_words=10)}",
+                "impacto_proveedores": f"{fake.sentence(nb_words=8)}",
+                "justificacion": f"{fake.paragraph(nb_sentences=2)}",
                 "created_at": rand_datetime(days_back=240),
                 "updated_at": rand_datetime(days_back=30),
             }
@@ -495,8 +494,8 @@ class CustomsEcoSeed(SeedModule):
                     "eco_id": eco_id,
                     "tipo_cambio": tipo_c,
                     "campo_afectado": campo,
-                    "valor_anterior": f"{SEED_TAG} {fake.word()}",
-                    "valor_nuevo": f"{SEED_TAG} {fake.word()}",
+                    "valor_anterior": f"{fake.word()}",
+                    "valor_nuevo": f"{fake.word()}",
                     "material_codigo_anterior": mat_anterior,
                     "material_codigo_nuevo": mat_nuevo,
                     "proveedor_cuit_anterior": prov_anterior,
@@ -543,8 +542,8 @@ class CustomsEcoSeed(SeedModule):
                     "eco_id": eco_id,
                     "tipo_cambio": tipo_c,
                     "campo_afectado": campo,
-                    "valor_anterior": f"{SEED_TAG} {fake.word()}",
-                    "valor_nuevo": f"{SEED_TAG} {fake.word()}",
+                    "valor_anterior": f"{fake.word()}",
+                    "valor_nuevo": f"{fake.word()}",
                     "material_codigo_anterior": mat_anterior,
                     "material_codigo_nuevo": mat_nuevo,
                     "proveedor_cuit_anterior": prov_anterior,
@@ -580,7 +579,7 @@ class CustomsEcoSeed(SeedModule):
                 "aprobador_id": self.refs.rand_admin(),
                 "rol_aprobador": pick(ROL_APROBADOR_OPTIONS),
                 "decision": decision,
-                "comentarios": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "comentarios": f"{fake.sentence(nb_words=10)}",
                 "fecha_decision": rand_datetime(days_back=90),
                 "created_at": rand_datetime(days_back=90),
             }
@@ -608,7 +607,7 @@ class CustomsEcoSeed(SeedModule):
                     "estado_anterior": estado_anterior,
                     "estado_nuevo": estado_nuevo,
                     "actor_id": self.refs.rand_user(),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "notas": f"{fake.sentence(nb_words=8)}",
                     "created_at": rand_datetime(days_back=180 - step * 20),
                 }
                 try:
@@ -621,28 +620,11 @@ class CustomsEcoSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "eco_historial": "notas",
-            "eco_aprobacion": "comentarios",
-            "eco_item": "valor_anterior",
-            "eco_cambio": "valor_anterior",
-            "eco": "numero_eco",
-            "declaracion_aduanera_item": "codigo_arancelario",
-            "declaracion_aduanera": "numero",
-            "acuerdo_comercial": "nombre",
-            "operacion_aduanera": "numero_despacho",
-            "material_clasificacion_aduanera": "certificado_origen",
-            "hs_code": "codigo",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

@@ -12,7 +12,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -166,7 +165,7 @@ class InventoryGapsSeed(SeedModule):
                 "cantidad": cantidad,
                 "tipo_disposicion": tipo,
                 "estado": estado,
-                "notas": f"{SEED_TAG} Disposición SLOB - {tipo}",
+                "notas": f"Disposición SLOB - {tipo}",
                 "costo_recuperado": round(cantidad * random.uniform(0.1, 0.6), 2) if estado == "completada" else None,
                 "propuesto_por": int(self.refs.rand_user()),
                 "aprobado_por": int(self.refs.rand_admin()) if estado in ("aprobada", "en_ejecucion", "completada") else None,
@@ -181,27 +180,11 @@ class InventoryGapsSeed(SeedModule):
 
         self.log(f"slob_disposicion: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "slob_disposicion": "notas",
-            "lote_genealogia": None,
-            "nivel_servicio_objetivo": None,
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                else:
-                    # For tables without SEED marker, delete all
-                    # (these only have seed data, not user data)
-                    cursor.execute(f"DELETE FROM {table}")
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

@@ -20,7 +20,6 @@ import random
 from ._base import (
     RUBROS,
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -174,10 +173,10 @@ class SupplierMgmtSeed(SeedModule):
                 evaluado_por = self.refs.rand_admin()
 
             if estado == "rejected":
-                notas_rechazo = f"{SEED_TAG} {fake.sentence(nb_words=10)}"
+                notas_rechazo = f"{fake.sentence(nb_words=10)}"
 
             row = {
-                "razon_social": f"{SEED_TAG} {fake.company()}",
+                "razon_social": f"{fake.company()}",
                 "cuit": _fake_cuit(i),
                 "rubro": pick(RUBROS),
                 "contacto_nombre": fake.name(),
@@ -259,7 +258,7 @@ class SupplierMgmtSeed(SeedModule):
                     "criterio": criterio,
                     "puntaje": round(random.uniform(0, 100), 2),
                     "peso": peso,
-                    "comentarios": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "comentarios": f"{fake.sentence(nb_words=8)}",
                     "evaluador_id": self.refs.rand_admin(),
                     "created_at": rand_datetime(days_back=180),
                 }
@@ -292,7 +291,7 @@ class SupplierMgmtSeed(SeedModule):
             row = {
                 "proveedor_cuit": cuit,
                 "tipo": tipo,
-                "nombre": f"{SEED_TAG} {tipo} - {fake.company_suffix()}",
+                "nombre": f"{tipo} - {fake.company_suffix()}",
                 "organismo_certificador": pick(CERTIFICACION_ORGANISMOS),
                 "numero_certificado": seed_code("CERT", i + 1),
                 "fecha_emision": rand_datetime(days_back=730),
@@ -331,7 +330,7 @@ class SupplierMgmtSeed(SeedModule):
             row = {
                 "proveedor_cuit": cuit,
                 "email": email,
-                "nombre": f"{SEED_TAG} {fake.name()}",
+                "nombre": f"{fake.name()}",
                 "password_hash": "$2b$12$seedhashplaceholder000000000000000000000000000000",
                 "estado": estado,
                 "ultimo_login": ultimo_login,
@@ -381,7 +380,7 @@ class SupplierMgmtSeed(SeedModule):
                 "servicio_score": s_servicio,
                 "score_global": s_global,
                 "evaluado_por": self.refs.rand_admin(),
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "notas": f"{fake.sentence(nb_words=10)}",
                 "created_at": rand_datetime(days_back=365),
             }
             try:
@@ -453,7 +452,7 @@ class SupplierMgmtSeed(SeedModule):
 
             row = {
                 "cuit_proveedor": cuit,
-                "nombre": f"{SEED_TAG} {fake.first_name()}",
+                "nombre": f"{fake.first_name()}",
                 "apellido": fake.last_name(),
                 "cargo": pick(CARGOS_CONTACTO),
                 "es_principal": es_principal,
@@ -482,7 +481,7 @@ class SupplierMgmtSeed(SeedModule):
                 "entidad_tipo": pick(entidad_tipos),
                 "entidad_id": str(random.randint(1, 500)),
                 "ip_address": f"{random.randint(10,200)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}",
-                "user_agent": f"{SEED_TAG} Mozilla/5.0 Chrome/{random.randint(110,125)}",
+                "user_agent": f"Mozilla/5.0 Chrome/{random.randint(110,125)}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -545,32 +544,13 @@ class SupplierMgmtSeed(SeedModule):
 
         self.log(f"proveedor_riesgo: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "proveedor_riesgo": "provincia",
-            "portal_proveedor_documento": "user_agent",
-            "proveedor_ext_contactos": "nombre",
-            "proveedor_esg_score": None,
-            "proveedor_evaluacion": "notas",
-            "portal_proveedor_usuario": "nombre",
-            "proveedor_certificacion": "nombre",
-            "onboarding_evaluacion": "comentarios",
-            "onboarding_documento": "nombre_archivo",
-            "supplier_onboarding": "razon_social",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

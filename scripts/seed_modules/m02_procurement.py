@@ -25,7 +25,6 @@ import random
 from ._base import (
     MONEDAS,
     SEED_PREFIX,
-    SEED_TAG,
     UNIDADES,
     SeedModule,
     fake,
@@ -162,7 +161,7 @@ class ProcurementSeed(SeedModule):
                 "fecha_emision": fecha_emision,
                 "fecha_entrega_estimada": fecha_entrega_est,
                 "fecha_entrega_real": fecha_entrega_real,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "creado_por": int(self.refs.rand_planner()),
                 "aprobado_por": aprobado_por,
                 "created_at": rand_datetime(days_back=180),
@@ -192,7 +191,7 @@ class ProcurementSeed(SeedModule):
                 row = {
                     "orden_compra_id": oc_id,
                     "material_codigo": self.refs.rand_material(),
-                    "material_descripcion": f"{SEED_TAG} {fake.catch_phrase()}",
+                    "material_descripcion": f"{fake.catch_phrase()}",
                     "cantidad": cantidad,
                     "cantidad_recibida": round(cantidad * random.uniform(0, 1), 2),
                     "precio_unitario": precio_unit,
@@ -224,7 +223,7 @@ class ProcurementSeed(SeedModule):
                     "estado_anterior": prev_estado if k > 0 else None,
                     "estado_nuevo": nuevo_estado,
                     "actor_id": int(self.refs.rand_admin()),
-                    "razon": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                    "razon": f"{fake.sentence(nb_words=6)}",
                     "created_at": rand_datetime(days_back=90 - k * 5),
                 }
                 try:
@@ -255,8 +254,8 @@ class ProcurementSeed(SeedModule):
             row = {
                 "numero_rfq": seed_code("RFQ", i),
                 "estado": estado,
-                "titulo": f"{SEED_TAG} {fake.catch_phrase()}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "titulo": f"{fake.catch_phrase()}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "fecha_publicacion": fecha_pub,
                 "fecha_cierre_ofertas": fecha_cierre,
                 "solicitud_id": solicitud_id,
@@ -273,10 +272,10 @@ class ProcurementSeed(SeedModule):
                         item_row = {
                             "rfq_id": rfq_id,
                             "material_codigo": self.refs.rand_material(),
-                            "material_descripcion": f"{SEED_TAG} {fake.catch_phrase()}",
+                            "material_descripcion": f"{fake.catch_phrase()}",
                             "cantidad_solicitada": round(random.uniform(5, 300), 2),
                             "unidad": pick(UNIDADES),
-                            "especificaciones": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                            "especificaciones": f"{fake.sentence(nb_words=10)}",
                             "created_at": rand_datetime(days_back=60),
                         }
                         try:
@@ -349,7 +348,7 @@ class ProcurementSeed(SeedModule):
                         "moneda": pick(MONEDAS[:2]),  # ARS or USD
                         "lead_time_dias": random.randint(5, 90),
                         "terminos_pago": pick(TERMINOS_PAGO),
-                        "notas": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                        "notas": f"{fake.sentence(nb_words=6)}",
                         "submitted_at": rand_datetime(days_back=45),
                     }
                     try:
@@ -561,7 +560,7 @@ class ProcurementSeed(SeedModule):
                     "solped_id": solped_id,
                     "posicion": posicion,
                     "material_codigo": material,
-                    "material_descripcion": f"{SEED_TAG} {fake.catch_phrase()}",
+                    "material_descripcion": f"{fake.catch_phrase()}",
                     "centro": centro,
                     "fecha_creacion": fecha_creacion,
                     "cantidad": cantidad,
@@ -674,7 +673,7 @@ class ProcurementSeed(SeedModule):
         for fname in filenames:
             started = rand_datetime(days_back=30)
             row = {
-                "filename": f"{SEED_TAG} {fname}",
+                "filename": f"{fname}",
                 "user_id": self.refs.rand_admin(),
                 "started_at": started,
                 "finished_at": rand_datetime(days_back=29),
@@ -693,32 +692,11 @@ class ProcurementSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "sap_import_log": "filename",
-            "sap_purchase_orders": "pedido_id",
-            "sap_solpeds": "solped_id",
-            "purchase_orders": "numero",
-            "solpeds": "numero",
-            "rfq_adjudicacion": None,
-            "rfq_evaluacion": None,
-            "rfq_criterio_evaluacion": None,
-            "rfq_oferta": None,
-            "rfq_proveedor": None,
-            "rfq_item": "material_descripcion",
-            "rfq": "numero_rfq",
-            "orden_compra_historial": "razon",
-            "orden_compra_item": "material_descripcion",
-            "orden_compra": "numero_oc",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

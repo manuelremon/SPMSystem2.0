@@ -17,7 +17,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -109,7 +108,7 @@ class ReturnsWarrantySeed(SeedModule):
                 "orden_compra_id": None,
                 "ncr_id": None,
                 "proveedor_cuit": self.refs.rand_proveedor(),
-                "motivo": f"{SEED_TAG} {pick(MOTIVOS_DEVOLUCION)}",
+                "motivo": f"{pick(MOTIVOS_DEVOLUCION)}",
                 "estado": estado,
                 "monto_credito_esperado": monto_esperado,
                 "monto_credito_recibido": monto_recibido,
@@ -138,7 +137,7 @@ class ReturnsWarrantySeed(SeedModule):
                     "devolucion_id": dev_id,
                     "material_codigo": self.refs.rand_material(),
                     "cantidad": round(random.uniform(1, 200), 2),
-                    "motivo_detalle": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                    "motivo_detalle": f"{fake.sentence(nb_words=10)}",
                 }
                 try:
                     self.insert_no_return("devolucion_item", row)
@@ -160,7 +159,7 @@ class ReturnsWarrantySeed(SeedModule):
                     "estado_anterior": estado_anterior,
                     "estado_nuevo": estado_nuevo,
                     "actor_id": self.refs.rand_user(),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "notas": f"{fake.sentence(nb_words=8)}",
                     "created_at": rand_datetime(days_back=180 - step * 10),
                 }
                 try:
@@ -196,7 +195,7 @@ class ReturnsWarrantySeed(SeedModule):
                 "duracion_meses": duracion,
                 "fecha_inicio": fecha_inicio,
                 "fecha_fin": fecha_fin,
-                "condiciones": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "condiciones": f"{fake.paragraph(nb_sentences=2)}",
                 "estado": estado,
                 "created_at": rand_datetime(days_back=400),
             }
@@ -222,12 +221,12 @@ class ReturnsWarrantySeed(SeedModule):
             estado = pick(RECLAMO_ESTADOS)
             resolucion = None
             if estado in ("aprobado", "resuelto", "rechazado"):
-                resolucion = f"{SEED_TAG} {fake.sentence(nb_words=12)}"
+                resolucion = f"{fake.sentence(nb_words=12)}"
 
             row = {
                 "garantia_id": pick(garantia_pool),
                 "tipo": pick(RECLAMO_TIPOS),
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "estado": estado,
                 "reportado_por": random.randint(1, 121),
                 "asignado_a": random.randint(1, 121),
@@ -260,7 +259,7 @@ class ReturnsWarrantySeed(SeedModule):
             monto_recuperado = None
             fecha_resolucion = None
             if estado in ("aprobado", "resuelto"):
-                resolucion = f"{SEED_TAG} {fake.sentence(nb_words=10)}"
+                resolucion = f"{fake.sentence(nb_words=10)}"
                 monto_recuperado = rand_money(100, 50000)
             if estado == "resuelto":
                 fecha_resolucion = rand_past_date(days_min=1, days_max=60)
@@ -268,7 +267,7 @@ class ReturnsWarrantySeed(SeedModule):
             row = {
                 "garantia_id": pick(garantia_pool),
                 "tipo": pick(RECLAMO_TIPOS),
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=1)}",
+                "descripcion": f"{fake.paragraph(nb_sentences=1)}",
                 "cantidad_afectada": round(random.uniform(1, 200), 2),
                 "costo_estimado": rand_money(1000, 80000),
                 "estado": estado,
@@ -333,8 +332,8 @@ class ReturnsWarrantySeed(SeedModule):
             lotes = [f"LOT-{random.randint(1000,9999)}" for _ in range(3)]
             row = {
                 "numero_recall": seed_code("RECALL", i),
-                "titulo": f"{SEED_TAG} Recall {fake.catch_phrase()}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "titulo": f"Recall {fake.catch_phrase()}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "tipo": pick(tipos),
                 "severidad": pick(severidades),
                 "estado": estado,
@@ -345,7 +344,7 @@ class ReturnsWarrantySeed(SeedModule):
                 "responsable_id": random.randint(1, 121),
                 "fecha_inicio": rand_past_date(days_min=10, days_max=180),
                 "fecha_cierre": rand_past_date(days_min=1, days_max=30) if estado == "cerrado" else None,
-                "accion_requerida": f"{SEED_TAG} {fake.sentence(nb_words=12)}",
+                "accion_requerida": f"{fake.sentence(nb_words=12)}",
                 "created_at": rand_datetime(days_back=200),
                 "updated_at": rand_datetime(days_back=30),
             }
@@ -395,7 +394,7 @@ class ReturnsWarrantySeed(SeedModule):
                 row = {
                     "recall_id": rid,
                     "tipo": pick(tipos_accion),
-                    "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                    "descripcion": f"{fake.sentence(nb_words=10)}",
                     "responsable_id": random.randint(1, 121),
                     "estado": estado,
                     "fecha_completado": rand_past_date(days_min=1, days_max=30) if estado == "completado" else None,
@@ -410,26 +409,9 @@ class ReturnsWarrantySeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "garantia_reclamo": "nombre",
-            "garantia_historial": "descripcion",
-            "reclamo_garantia": "descripcion",
-            "garantia": "condiciones",
-            "recall_accion": "descripcion",
-            "recall_lote": None,
-            "recall": "numero_recall",
-            "devolucion_historial": "notas",
-            "devolucion_item": "motivo_detalle",
-            "devolucion": "numero_rma",
-        }
-        for table, col in clean_map.items():
-            if col is None:
-                continue
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

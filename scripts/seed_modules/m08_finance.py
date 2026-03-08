@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -229,7 +228,7 @@ class FinanceSeed(SeedModule):
                 "diferencia_precio": diff_precio,
                 "tolerancia_aplicada": round(random.uniform(0, 5), 2),
                 "aprobado_por": aprobado_por,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "created_at": rand_datetime(days_back=90),
             }
             try:
@@ -250,7 +249,7 @@ class FinanceSeed(SeedModule):
             grupo = GRUPO_MATERIAL_MAP.get(cat_name, "OTRO")
             row = {
                 "nombre": f"{SEED_PREFIX}{cat_name}",
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "descripcion": f"{fake.sentence(nb_words=8)}",
                 "grupo_material": grupo,
                 "created_at": rand_datetime(days_back=365),
             }
@@ -328,7 +327,7 @@ class FinanceSeed(SeedModule):
                 "material_codigo": material_codigo,
                 "proveedor_cuit": cuit,
                 "solicitud_id": solicitud_id,
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=12)}",
+                "descripcion": f"{fake.sentence(nb_words=12)}",
                 "registrado_por": int(self.refs.rand_user()),
                 "fecha_realizacion": rand_past_date(days_min=1, days_max=180),
                 "created_at": rand_datetime(days_back=180),
@@ -382,24 +381,11 @@ class FinanceSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "meta_ahorro": "categoria",
-            "ahorro_costo": "descripcion",
-            "spend_snapshot": None,
-            "spend_categoria": "nombre",
-            "matching_resultado": "notas",
-            "factura_item": None,
-            "factura_proveedor": "numero_factura",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

@@ -200,7 +200,6 @@ def registrar_tiempos_dock(dock_id: int, data: dict) -> dict:
         if not updates:
             raise ValueError("No hay tiempos para registrar")
 
-        updates.append("updated_at = CURRENT_TIMESTAMP" if not is_using_postgresql() else "updated_at = NOW()")
         values.append(dock_id)
 
         # Actualizar recepcion_dock
@@ -284,21 +283,21 @@ def generar_tareas_putaway(recepcion_id: int) -> list:
             material_codigo, cantidad, almacen = item
 
             # Auto-asignar prioridad según cantidad (lógica simple)
-            prioridad = 'alta' if cantidad > 1000 else 'media' if cantidad > 100 else 'baja'
+            prioridad = 'high' if cantidad > 1000 else 'normal' if cantidad > 100 else 'low'
 
             if is_using_postgresql():
                 cur.execute("""
-                    INSERT INTO putaway_tarea (recepcion_id, material_codigo, cantidad,
+                    INSERT INTO putaway_tarea (recepcion_item_id, material_codigo, cantidad,
                                               almacen, prioridad, estado)
-                    VALUES (%s, %s, %s, %s, %s, 'pendiente')
+                    VALUES (%s, %s, %s, %s, %s, 'pending')
                     RETURNING id
                 """, (recepcion_id, material_codigo, cantidad, almacen, prioridad))
                 task_id = cur.fetchone()[0]
             else:
                 cur.execute("""
-                    INSERT INTO putaway_tarea (recepcion_id, material_codigo, cantidad,
+                    INSERT INTO putaway_tarea (recepcion_item_id, material_codigo, cantidad,
                                               almacen, prioridad, estado)
-                    VALUES (?, ?, ?, ?, ?, 'pendiente')
+                    VALUES (?, ?, ?, ?, ?, 'pending')
                 """, (recepcion_id, material_codigo, cantidad, almacen, prioridad))
                 task_id = cur.lastrowid
 
@@ -367,9 +366,10 @@ def obtener_tareas_putaway(filtros: dict) -> dict:
             {where_sql}
             ORDER BY
                 CASE prioridad
-                    WHEN 'alta' THEN 1
-                    WHEN 'media' THEN 2
-                    WHEN 'baja' THEN 3
+                    WHEN 'urgent' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'normal' THEN 3
+                    WHEN 'low' THEN 4
                 END,
                 created_at DESC
             LIMIT {"?" if not is_using_postgresql() else "%s"}
@@ -411,8 +411,7 @@ def completar_putaway(tarea_id: int, user_id: int) -> dict:
             cur.execute("""
                 UPDATE putaway_tarea
                 SET estado = 'completed',
-                    completado_por = %s,
-                    fecha_completado = NOW(),
+                    asignado_a = %s,
                     updated_at = NOW()
                 WHERE id = %s
                 RETURNING *
@@ -422,8 +421,7 @@ def completar_putaway(tarea_id: int, user_id: int) -> dict:
             cur.execute("""
                 UPDATE putaway_tarea
                 SET estado = 'completed',
-                    completado_por = ?,
-                    fecha_completado = CURRENT_TIMESTAMP,
+                    asignado_a = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (user_id, tarea_id))
@@ -450,12 +448,47 @@ def obtener_kpis_warehouse() -> dict:
         Dict con {docks_disponibles, docks_ocupados, tareas_pendientes,
                  tareas_completadas_hoy, tiempo_promedio_descarga_min}
     """
-    # Tables warehouse_putaway and warehouse_docks do not exist in this schema.
-    # Return empty/default data to avoid 500 errors.
-    return {
-        'docks_disponibles': 0,
-        'docks_ocupados': 0,
-        'tareas_pendientes': 0,
-        'tareas_completadas_hoy': 0,
-        'tiempo_promedio_descarga_min': 0
-    }
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("SELECT COUNT(*) FROM dock_recepcion WHERE estado = 'available'")
+        docks_disponibles = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM dock_recepcion WHERE estado = 'occupied'")
+        docks_ocupados = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM putaway_tarea WHERE estado IN ('pending', 'in_progress')")
+        tareas_pendientes = cur.fetchone()[0]
+
+        if is_using_postgresql():
+            cur.execute("SELECT COUNT(*) FROM putaway_tarea WHERE estado = 'completed' AND updated_at >= CURRENT_DATE")
+        else:
+            cur.execute("SELECT COUNT(*) FROM putaway_tarea WHERE estado = 'completed' AND DATE(updated_at) = DATE('now')")
+        tareas_completadas_hoy = cur.fetchone()[0]
+
+        if is_using_postgresql():
+            cur.execute("""
+                SELECT AVG(EXTRACT(EPOCH FROM (hora_fin_descarga - hora_inicio_descarga)) / 60)
+                FROM recepcion_dock
+                WHERE hora_inicio_descarga IS NOT NULL AND hora_fin_descarga IS NOT NULL
+            """)
+        else:
+            cur.execute("""
+                SELECT AVG((JULIANDAY(hora_fin_descarga) - JULIANDAY(hora_inicio_descarga)) * 1440)
+                FROM recepcion_dock
+                WHERE hora_inicio_descarga IS NOT NULL AND hora_fin_descarga IS NOT NULL
+            """)
+        row = cur.fetchone()
+        tiempo_promedio = round(row[0], 1) if row and row[0] is not None else 0
+
+        return {
+            'docks_disponibles': docks_disponibles,
+            'docks_ocupados': docks_ocupados,
+            'tareas_pendientes': tareas_pendientes,
+            'tareas_completadas_hoy': tareas_completadas_hoy,
+            'tiempo_promedio_descarga_min': tiempo_promedio
+        }
+    finally:
+        cur.close()
+        conn.close()

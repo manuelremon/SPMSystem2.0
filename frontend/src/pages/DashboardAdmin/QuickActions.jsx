@@ -33,7 +33,7 @@ function QuickActions() {
       key: 'approve',
       label: t('dash_quick_approve', 'Aprobar'),
       icon: <CheckCircleOutlineIcon />,
-      path: '/solicitudes?estado=pendientes',
+      path: '/aprobaciones',
       visible: canApprove,
     },
     {

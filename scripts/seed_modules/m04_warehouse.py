@@ -18,7 +18,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -165,7 +164,7 @@ class WarehouseSeed(SeedModule):
                 "orden_compra_id": pick(oc_ids),
                 "fecha_recepcion": rand_past_date(days_min=1, days_max=180),
                 "recibido_por": int(self.refs.rand_user()),
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=9)}",
+                "notas": f"{fake.sentence(nb_words=9)}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -191,9 +190,9 @@ class WarehouseSeed(SeedModule):
                 estado = pick(RECEPCION_ITEM_ESTADOS)
                 notas = None
                 if estado in ("rechazado", "parcial"):
-                    notas = f"{SEED_TAG} {fake.sentence(nb_words=6)}"
+                    notas = f"{fake.sentence(nb_words=6)}"
                 else:
-                    notas = f"{SEED_TAG} Recibido OK"
+                    notas = f"Recibido OK"
 
                 row = {
                     "recepcion_id": rec_id,
@@ -231,11 +230,11 @@ class WarehouseSeed(SeedModule):
                 "proveedor_cuit": self.refs.rand_proveedor(),
                 "orden_compra_id": random.randint(1, 50) if random.random() > 0.3 else None,
                 "fecha_envio_estimada": fecha_estimada,
-                "transportista": f"{SEED_TAG} {pick(TRANSPORTISTAS)}",
+                "transportista": f"{pick(TRANSPORTISTAS)}",
                 "guia_despacho": f"GD-{random.randint(100000, 999999)}",
                 "cantidad_total": round(random.uniform(10, 5000), 2),
                 "estado": estado,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "creado_por_portal": int(self.refs.rand_user()) if random.random() > 0.5 else None,
                 "created_at": rand_datetime(days_back=90),
             }
@@ -296,7 +295,7 @@ class WarehouseSeed(SeedModule):
                 "recepcion_item_id": random.randint(1, 60) if random.random() > 0.2 else None,
                 "material_codigo": self.refs.rand_material(),
                 "cantidad": round(random.uniform(10, 500), 0),
-                "ubicacion_destino": f"{SEED_TAG} {pick(['A', 'B', 'C', 'D'])}-{random.randint(1, 50):02d}-{random.randint(1, 5)}",
+                "ubicacion_destino": f"{pick(['A', 'B', 'C', 'D'])}-{random.randint(1, 50):02d}-{random.randint(1, 5)}",
                 "almacen": self.refs.rand_almacen(),
                 "estado": estado,
                 "asignado_a": asignado_a,
@@ -339,7 +338,7 @@ class WarehouseSeed(SeedModule):
                 "cantidad_antes": cantidad_antes,
                 "cantidad_despues": cantidad_despues,
                 "tipo": tipo,
-                "razon": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "razon": f"{fake.sentence(nb_words=8)}",
                 "aprobado_por": aprobado_por,
                 "created_at": rand_datetime(days_back=180),
             }
@@ -377,7 +376,7 @@ class WarehouseSeed(SeedModule):
                 "cantidad": round(random.uniform(1, 2000), 2),
                 "tipo_disposicion": pick(SLOB_TIPOS_DISPOSICION),
                 "estado": estado,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "notas": f"{fake.sentence(nb_words=10)}",
                 "costo_recuperado": costo_recuperado,
                 "propuesto_por": self.refs.rand_user(),
                 "aprobado_por": aprobado_por,
@@ -392,44 +391,11 @@ class WarehouseSeed(SeedModule):
 
         self.log(f"slob_disposicion: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean() - delete seed data by SEED_PREFIX markers
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        # Tables in reverse dependency order, with the column containing SEED markers
-        # recepcion_dock (junction) cleaned via FK cascade or by matching linked recepciones
-        clean_map = {
-            "slob_disposicion": "notas",
-            "ajuste_inventario": "razon",
-            "putaway_tarea": "ubicacion_destino",
-            "asn_item": "numero_lote",
-            "asn": "numero_asn",
-            "recepcion_item": "notas",
-            "recepcion_dock": None,  # junction — clean via subquery
-            "recepcion": "numero_recepcion",
-            "dock_recepcion": "numero_dock",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if table == "recepcion_dock":
-                    # Delete junction rows linked to seed recepciones
-                    cursor.execute(
-                        "DELETE FROM recepcion_dock WHERE recepcion_id IN "
-                        "(SELECT id FROM recepcion WHERE numero_recepcion LIKE ?)",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    # Also delete junction rows linked to seed docks
-                    cursor.execute(
-                        "DELETE FROM recepcion_dock WHERE dock_id IN "
-                        "(SELECT id FROM dock_recepcion WHERE numero_dock LIKE ?)",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                elif col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

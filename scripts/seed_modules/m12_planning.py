@@ -15,8 +15,6 @@ Tablas reales en PG:
 import random
 
 from ._base import (
-    SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -102,7 +100,7 @@ class PlanningSeed(SeedModule):
             estado = "active" if i <= 4 else pick(WORK_CENTER_ESTADOS)
 
             row = {
-                "nombre": f"{SEED_TAG} {nombre_base}",
+                "nombre": f"{nombre_base}",
                 "codigo": seed_code("WC", i),
                 "tipo": tipo,
                 "capacidad_diaria": capacidad,
@@ -157,12 +155,12 @@ class PlanningSeed(SeedModule):
             periodo_hasta = rand_future_date(1, 90)
 
             row = {
-                "nombre": f"{SEED_TAG} {nombre_base}",
+                "nombre": f"{nombre_base}",
                 "periodo_desde": periodo_desde,
                 "periodo_hasta": periodo_hasta,
                 "estado": estado,
                 "responsable_id": self.refs.rand_user(),
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=9)}",
+                "notas": f"{fake.sentence(nb_words=9)}",
                 "created_at": rand_datetime(days_back=150),
             }
             try:
@@ -200,7 +198,7 @@ class PlanningSeed(SeedModule):
             estado = pick(PLAN_DEMANDA_ESTADOS)
 
             row = {
-                "nombre": f"{SEED_TAG} {nombre_base}",
+                "nombre": f"{nombre_base}",
                 "periodo_desde": rand_past_date(30, 365),
                 "periodo_hasta": rand_future_date(30, 365),
                 "estado": estado,
@@ -236,7 +234,7 @@ class PlanningSeed(SeedModule):
                     "fuente": pick(fuentes),
                     "cantidad_pronosticada": round(random.uniform(10, 2000), 2),
                     "confianza": round(random.uniform(0.5, 1.0), 2),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "notas": f"{fake.sentence(nb_words=8)}",
                     "created_at": rand_datetime(days_back=120),
                 }
                 try:
@@ -297,7 +295,7 @@ class PlanningSeed(SeedModule):
             fecha_resolucion = None
             if estado == "resuelta":
                 resuelto_por = self.refs.rand_user()
-                accion_tomada = f"{SEED_TAG} {fake.sentence(nb_words=8)}"
+                accion_tomada = f"{fake.sentence(nb_words=8)}"
                 fecha_resolucion = rand_datetime(days_back=15)
 
             row = {
@@ -361,30 +359,13 @@ class PlanningSeed(SeedModule):
 
         self.log(f"produccion_capacidad: {count} insertados")
 
-    # ------------------------------------------------------------------
-    # clean() - delete seed data by SEED_PREFIX / SEED_TAG markers
-    # ------------------------------------------------------------------
     def clean(self):
         cursor = self.conn.cursor()
-        # Tables in reverse dependency order, with the column containing SEED markers
-        clean_map = {
-            "produccion_capacidad": "notas",
-            "alertas_mrp": "accion_tomada",
-            "ordenes_planificadas": None,
-            "plan_demanda_entrada": "notas",
-            "plan_demanda": "nombre",
-            "plan_produccion": "nombre",
-            "work_center": "nombre",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

@@ -20,7 +20,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -90,7 +89,7 @@ class TMSSeed(SeedModule):
             tiempo_hrs = round(distancia / random.uniform(60, 100), 1)
 
             row = {
-                "nombre": f"{SEED_TAG} Ruta {origen}-{destino}",
+                "nombre": f"Ruta {origen}-{destino}",
                 "origen": origen,
                 "destino": destino,
                 "distancia_km": distancia,
@@ -150,7 +149,7 @@ class TMSSeed(SeedModule):
                 "solicitud_id": self.refs.rand_solicitud() if random.random() > 0.4 else None,
                 "origen": origen,
                 "destino": destino,
-                "transportista": f"{SEED_TAG} {pick(transportistas)}",
+                "transportista": f"{pick(transportistas)}",
                 "conductor": fake.name() if conductor_id else None,
                 "vehiculo_id": vehiculo_id,
                 "conductor_id": conductor_id,
@@ -162,7 +161,7 @@ class TMSSeed(SeedModule):
                 "fecha_salida": fecha_salida,
                 "fecha_llegada_est": rand_future_date(days_min=1, days_max=30),
                 "fecha_llegada_real": fecha_llegada_real,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "consolidation_id": None,
                 "route_id": pick(route_pool) if random.random() > 0.3 else None,
                 "created_by": self.refs.rand_user(),
@@ -196,7 +195,7 @@ class TMSSeed(SeedModule):
                     "ubicacion": f"{fake.city()}, {fake.province()}",
                     "latitud": round(random.uniform(-38, -34), 6),
                     "longitud": round(random.uniform(-70, -58), 6),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=7)}",
+                    "notas": f"{fake.sentence(nb_words=7)}",
                     "created_by": self.refs.rand_user(),
                     "created_at": rand_datetime(days_back=60),
                 }
@@ -225,7 +224,7 @@ class TMSSeed(SeedModule):
                 concepto, tipo = pick(conceptos)
                 row = {
                     "shipment_id": shp_id,
-                    "concepto": f"{SEED_TAG} {concepto}",
+                    "concepto": f"{concepto}",
                     "monto": rand_money(500, 30000),
                     "moneda": pick(["ARS", "USD"]),
                     "tipo": tipo,
@@ -289,7 +288,7 @@ class TMSSeed(SeedModule):
                 "total_costos": total_costos,
                 "total_cobrado": round(total_cobrado, 2),
                 "diferencia": diferencia,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                "notas": f"{fake.sentence(nb_words=8)}",
                 "created_at": rand_datetime(days_back=45),
             }
             try:
@@ -312,7 +311,7 @@ class TMSSeed(SeedModule):
         servicios = ["standard", "express", "economia", "hazmat"]
         for i in range(1, 7):
             row = {
-                "transportista": f"{SEED_TAG} {transportistas[i-1]}",
+                "transportista": f"{transportistas[i-1]}",
                 "origen": self.refs.rand_centro(),
                 "destino": self.refs.rand_centro(),
                 "tipo_servicio": pick(servicios),
@@ -351,7 +350,7 @@ class TMSSeed(SeedModule):
                 "litros": litros,
                 "costo": costo,
                 "odometro": random.randint(5000, 300000),
-                "estacion": f"{SEED_TAG} {pick(estaciones)} {fake.city()}",
+                "estacion": f"{pick(estaciones)} {fake.city()}",
                 "created_by": self.refs.rand_user(),
                 "created_at": rand_datetime(days_back=180),
             }
@@ -430,23 +429,9 @@ class TMSSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "tms_settlements": "notas",
-            "tms_fuel_log": "estacion",
-            "tms_shipment_costs": "concepto",
-            "tms_tracking_events": "notas",
-            "tms_consolidations": "codigo",
-            "tms_shipments": "codigo",
-            "tms_tariffs": "transportista",
-            "tms_routes": "nombre",
-            "tms_config": "clave",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

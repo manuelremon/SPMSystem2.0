@@ -17,7 +17,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -193,7 +192,7 @@ class FMSSeed(SeedModule):
                 row = {
                     "vehicle_id": vid,
                     "tipo": tipo,
-                    "nombre": f"{SEED_TAG} {descripcion}",
+                    "nombre": f"{descripcion}",
                     "intervalo_km": intervalo_km,
                     "intervalo_dias": intervalo_dias,
                     "items_json": _json_mp.dumps(items_data),
@@ -243,7 +242,7 @@ class FMSSeed(SeedModule):
                 "tipo": tipo,
                 "estado": estado,
                 "prioridad": random.randint(1, 5),
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "descripcion": f"{fake.sentence(nb_words=10)}",
                 "km_actual": random.randint(5000, 300000),
                 "fecha_inicio": fecha_ingreso,
                 "fecha_programada": fecha_prometida,
@@ -251,7 +250,7 @@ class FMSSeed(SeedModule):
                 "costo_estimado": rand_money(500, 30000),
                 "costo_real": round(costo_mo + costo_partes, 2),
                 "tecnico": pick(talleres),
-                "notas": f"{SEED_TAG} {notas_extra}" if notas_extra else None,
+                "notas": f"{notas_extra}" if notas_extra else None,
                 "created_by": self.refs.rand_user(),
                 "created_at": rand_datetime(days_back=90),
                 "updated_at": rand_datetime(days_back=30),
@@ -278,7 +277,7 @@ class FMSSeed(SeedModule):
                 row = {
                     "work_order_id": wo_id,
                     "material_id": self.refs.rand_material(),
-                    "descripcion": f"{SEED_TAG} {fake.catch_phrase()}",
+                    "descripcion": f"{fake.catch_phrase()}",
                     "cantidad": cantidad,
                     "unidad": pick(["UN", "KG", "LT", "M"]),
                     "costo": round(cantidad * costo_unit, 2),
@@ -308,7 +307,7 @@ class FMSSeed(SeedModule):
                     "fecha_emision": rand_past_date(days_min=30, days_max=730),
                     "fecha_vencimiento": rand_future_date(days_min=30, days_max=730),
                     "archivo_url": None,
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=7)}",
+                    "notas": f"{fake.sentence(nb_words=7)}",
                     "created_at": rand_datetime(days_back=365),
                 }
                 try:
@@ -335,9 +334,9 @@ class FMSSeed(SeedModule):
             resultado = pick(INSPECTION_RESULTADOS)
             observaciones = None
             if resultado in ("rechazado", "con_observaciones"):
-                observaciones = f"{SEED_TAG} {fake.sentence(nb_words=10)}"
+                observaciones = f"{fake.sentence(nb_words=10)}"
             else:
-                observaciones = f"{SEED_TAG} Inspeccion sin novedad"
+                observaciones = f"Inspeccion sin novedad"
 
             # Build items_json with checklist items
             items = random.sample(CHECKLIST_ITEMS, min(4, len(CHECKLIST_ITEMS)))
@@ -375,21 +374,9 @@ class FMSSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "fms_inspections": "observaciones",
-            "fms_vehicle_documents": "notas",
-            "fms_wo_parts": "descripcion",
-            "fms_work_orders": "codigo",
-            "fms_maintenance_plans": "nombre",
-            "fms_drivers": "documento",
-            "fms_vehicles": "patente",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

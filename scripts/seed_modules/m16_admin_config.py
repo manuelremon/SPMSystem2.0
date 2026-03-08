@@ -19,7 +19,6 @@ import random
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -113,7 +112,7 @@ class AdminConfigSeed(SeedModule):
             row = {
                 "solicitud_id": solicitud_id,
                 "tipo_alerta": pick(tipos_alerta),
-                "mensaje": f"{SEED_TAG} SLA alerta #{i}: {fake.sentence(nb_words=8)}",
+                "mensaje": f"SLA alerta #{i}: {fake.sentence(nb_words=8)}",
                 "resuelta": pick([True, False, False]),
                 "created_at": rand_datetime(days_back=90),
             }
@@ -176,7 +175,7 @@ class AdminConfigSeed(SeedModule):
                 "evento": pick(eventos),
                 "status_code": status_code,
                 "success": success,
-                "response_body": f"{SEED_TAG} {'OK' if success else 'Error'}: delivery {i}",
+                "response_body": f"{'OK' if success else 'Error'}: delivery {i}",
                 "created_at": rand_datetime(days_back=90),
             }
             try:
@@ -215,7 +214,7 @@ class AdminConfigSeed(SeedModule):
             filtros = json.dumps({"centro": self.refs.rand_centro(), "seed": True})
             destinatarios = json.dumps([fake.email(), fake.email()])
             row = {
-                "nombre": f"{SEED_TAG} {nombre}",
+                "nombre": f"{nombre}",
                 "tipo": tipo,
                 "frecuencia": frecuencia,
                 "filtros_json": filtros,
@@ -244,7 +243,7 @@ class AdminConfigSeed(SeedModule):
                 "tipo_reporte": pick(tipos_reporte),
                 "frecuencia": pick(["diario", "semanal", "mensual", "manual"]),
                 "parametros": json.dumps({"centro": self.refs.rand_centro(), "seed": True}),
-                "resultado": f"{SEED_TAG} Resultado reporte #{i}",
+                "resultado": f"Resultado reporte #{i}",
                 "archivo_path": f"/reports/seed_report_{i}.xlsx" if random.random() > 0.3 else None,
                 "estado": pick(estados_reporte),
                 "created_at": rand_datetime(days_back=60),
@@ -261,7 +260,7 @@ class AdminConfigSeed(SeedModule):
                 row = {
                     "reporte_id": rid,
                     "email": fake.email(),
-                    "nombre": f"{SEED_TAG} {fake.name()}",
+                    "nombre": f"{fake.name()}",
                     "created_at": rand_datetime(days_back=180),
                 }
                 try:
@@ -287,8 +286,8 @@ class AdminConfigSeed(SeedModule):
             }, ensure_ascii=False)
             centro = self.refs.rand_centro()
             row = {
-                "nombre": f"{SEED_TAG} Regla auto-aprobacion {i}",
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                "nombre": f"Regla auto-aprobacion {i}",
+                "descripcion": f"{fake.sentence(nb_words=6)}",
                 "condiciones_json": condiciones,
                 "activo": 1,
                 "centro_id": centro if centro else "1000",
@@ -316,9 +315,9 @@ class AdminConfigSeed(SeedModule):
         campos = ["estado", "cantidad", "precio", "prioridad", "asignado_a", None]
         roles = ["admin", "coordinador", "usuario", "planner", "jefe"]
         user_agents = [
-            f"{SEED_TAG} Mozilla/5.0 Chrome/120",
-            f"{SEED_TAG} Mozilla/5.0 Firefox/119",
-            f"{SEED_TAG} Mozilla/5.0 Safari/17",
+            f"Mozilla/5.0 Chrome/120",
+            f"Mozilla/5.0 Firefox/119",
+            f"Mozilla/5.0 Safari/17",
         ]
         for i in range(1, 21):
             accion = pick(acciones)
@@ -329,8 +328,8 @@ class AdminConfigSeed(SeedModule):
                 "accion": accion,
                 "actor_id": str(self.refs.rand_user()),
                 "campo_modificado": campo,
-                "valor_anterior": f"{SEED_TAG} {fake.word()}" if campo and accion == "update" else None,
-                "valor_nuevo": f"{SEED_TAG} {fake.word()}" if campo and accion == "update" else None,
+                "valor_anterior": f"{fake.word()}" if campo and accion == "update" else None,
+                "valor_nuevo": f"{fake.word()}" if campo and accion == "update" else None,
                 "actor_rol": pick(roles),
                 "ip_address": f"{random.randint(10,200)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}",
                 "user_agent": pick(user_agents),
@@ -345,23 +344,9 @@ class AdminConfigSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "reporte_destinatario": "nombre",
-            "reporte_historial": "resultado",
-            "reporte_programado": "nombre",
-            "webhook_delivery": "response_body",
-            "webhook": "url",
-            "sla_alertas": "mensaje",
-            "sla_configuracion": "tipo_solicitud",
-            "regla_auto_aprobacion": "nombre",
-            "audit_trail": "user_agent",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

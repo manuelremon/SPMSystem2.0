@@ -52,7 +52,7 @@ export default function WarehouseReceiving() {
   // Times dialog
   const [timesOpen, setTimesOpen] = useState(false);
   const [timesDockId, setTimesDockId] = useState(null);
-  const [timesForm, setTimesForm] = useState({ inicio_descarga: '', fin_descarga: '' });
+  const [timesForm, setTimesForm] = useState({ hora_inicio_descarga: '', hora_fin_descarga: '' });
 
   // New dock dialog
   const [newDockOpen, setNewDockOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function WarehouseReceiving() {
           api.get('/warehouse/kpis'),
         ]);
         if (cancelled) return;
-        if (docksRes.data?.ok) setDocks(docksRes.data.docks || docksRes.data.items || []);
+        if (docksRes.data?.ok) setDocks(docksRes.data.items || []);
         if (kpiRes.data?.ok) setKpis(kpiRes.data);
       } catch {
         if (!cancelled) toastRef.current.error(tRef.current('warehouse_error_docks', 'Error al cargar docks'));
@@ -109,7 +109,7 @@ export default function WarehouseReceiving() {
       if (res.data?.ok) {
         toastRef.current.success(tRef.current('warehouse_times_updated', 'Tiempos actualizados'));
         setTimesOpen(false);
-        setTimesForm({ inicio_descarga: '', fin_descarga: '' });
+        setTimesForm({ hora_inicio_descarga: '', hora_fin_descarga: '' });
         setTimesDockId(null);
         reload();
       }
@@ -257,16 +257,16 @@ export default function WarehouseReceiving() {
             <TextField
               label={t('warehouse_start_time', 'Inicio Descarga')}
               type="datetime-local"
-              value={timesForm.inicio_descarga}
-              onChange={(e) => setTimesForm(prev => ({ ...prev, inicio_descarga: e.target.value }))}
+              value={timesForm.hora_inicio_descarga}
+              onChange={(e) => setTimesForm(prev => ({ ...prev, hora_inicio_descarga: e.target.value }))}
               InputLabelProps={{ shrink: true }}
               fullWidth
             />
             <TextField
               label={t('warehouse_end_time', 'Fin Descarga')}
               type="datetime-local"
-              value={timesForm.fin_descarga}
-              onChange={(e) => setTimesForm(prev => ({ ...prev, fin_descarga: e.target.value }))}
+              value={timesForm.hora_fin_descarga}
+              onChange={(e) => setTimesForm(prev => ({ ...prev, hora_fin_descarga: e.target.value }))}
               InputLabelProps={{ shrink: true }}
               fullWidth
             />

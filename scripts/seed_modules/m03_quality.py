@@ -17,8 +17,6 @@ import json
 import random
 
 from ._base import (
-    SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -112,7 +110,7 @@ class QualitySeed(SeedModule):
                 "inspector_id": self.refs.rand_user(),
                 "fecha": rand_past_date(days_min=1, days_max=180),
                 "resultado": resultado,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "notas": f"{fake.sentence(nb_words=10)}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -169,7 +167,7 @@ class QualitySeed(SeedModule):
 
             if estado == "cerrada":
                 fecha_resolucion = rand_past_date(days_min=1, days_max=60)
-                accion_correctiva = f"{SEED_TAG} {fake.sentence(nb_words=12)}"
+                accion_correctiva = f"{fake.sentence(nb_words=12)}"
 
             row = {
                 "numero_ncr": seed_code("NCR", i),
@@ -177,7 +175,7 @@ class QualitySeed(SeedModule):
                 "proveedor_cuit": self.refs.rand_proveedor(),
                 "material_codigo": self.refs.rand_material(),
                 "cantidad_afectada": round(random.uniform(1, 500), 2),
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "severidad": pick(NCR_SEVERIDADES),
                 "estado": estado,
                 "reportado_por": self.refs.rand_user(),
@@ -211,7 +209,7 @@ class QualitySeed(SeedModule):
                     "estado_anterior": estado_anterior,
                     "estado_nuevo": estado_nuevo,
                     "actor_id": self.refs.rand_user(),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=7)}",
+                    "notas": f"{fake.sentence(nb_words=7)}",
                     "created_at": rand_datetime(days_back=90),
                 }
                 try:
@@ -256,7 +254,7 @@ class QualitySeed(SeedModule):
 
             if estado in ("verification", "closed"):
                 fecha_implementacion = rand_past_date(days_min=1, days_max=60)
-                accion_implementada = f"{SEED_TAG} {fake.sentence(nb_words=14)}"
+                accion_implementada = f"{fake.sentence(nb_words=14)}"
             if estado == "closed":
                 fecha_verificacion = rand_past_date(days_min=1, days_max=30)
                 efectividad = random.randint(1, 5)
@@ -265,10 +263,10 @@ class QualitySeed(SeedModule):
                 "numero_capa": seed_code("CAPA", i),
                 "ncr_id": ncr_id,
                 "tipo": pick(CAPA_TIPOS),
-                "titulo": f"{SEED_TAG} {fake.catch_phrase()}",
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
-                "descripcion_problema": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
-                "accion_propuesta": f"{SEED_TAG} {fake.sentence(nb_words=15)}",
+                "titulo": f"{fake.catch_phrase()}",
+                "descripcion": f"{fake.sentence(nb_words=10)}",
+                "descripcion_problema": f"{fake.paragraph(nb_sentences=2)}",
+                "accion_propuesta": f"{fake.sentence(nb_words=15)}",
                 "accion_implementada": accion_implementada,
                 "responsable_id": self.refs.rand_user(),
                 "verificador_id": self.refs.rand_admin(),
@@ -303,7 +301,7 @@ class QualitySeed(SeedModule):
                     "estado_anterior": estado_anterior,
                     "estado_nuevo": estado_nuevo,
                     "actor_id": self.refs.rand_user(),
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "notas": f"{fake.sentence(nb_words=8)}",
                     "created_at": rand_datetime(days_back=90),
                 }
                 try:
@@ -349,8 +347,8 @@ class QualitySeed(SeedModule):
 
             row = {
                 "numero_recall": seed_code("RECALL", i),
-                "titulo": f"{SEED_TAG} {fake.catch_phrase()}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "titulo": f"{fake.catch_phrase()}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "severidad": pick(RECALL_SEVERIDADES),
                 "tipo": pick(RECALL_TIPOS),
                 "material_codigo": self.refs.rand_material(),
@@ -361,7 +359,7 @@ class QualitySeed(SeedModule):
                 "fecha_cierre": fecha_cierre,
                 "estado": estado,
                 "responsable_id": self.refs.rand_admin(),
-                "accion_requerida": f"{SEED_TAG} {fake.paragraph(nb_sentences=3)}",
+                "accion_requerida": f"{fake.paragraph(nb_sentences=3)}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -414,26 +412,11 @@ class QualitySeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "recall_lote": None,
-            "recall": "numero_recall",
-            "capa_historial": "notas",
-            "capa": "numero_capa",
-            "ncr_historial": "notas",
-            "ncr": "numero_ncr",
-            "inspeccion_item": None,
-            "inspeccion_entrada": "numero_inspeccion",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                    if cursor.rowcount and cursor.rowcount > 0:
-                        self.log(f"Cleaned {cursor.rowcount} rows from {table}")
-                # Child tables (no SEED marker) are cleaned via CASCADE or skipped
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

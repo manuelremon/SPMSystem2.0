@@ -13,8 +13,6 @@ Tablas:
 import random
 
 from ._base import (
-    SEED_PREFIX,
-    SEED_TAG,
     UNIDADES,
     SeedModule,
     fake,
@@ -86,8 +84,8 @@ class KittingSeed(SeedModule):
 
             row = {
                 "kit_codigo": seed_code("BOM", i),
-                "nombre": f"{SEED_TAG} {desc}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "nombre": f"{desc}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "estado": estado,
                 "version": version,
                 "creado_por": self.refs.rand_user(),
@@ -130,7 +128,7 @@ class KittingSeed(SeedModule):
                     "es_opcional": es_opcional,
                     "alternativa_material": alternativa,
                     "secuencia": secuencia,
-                    "notas": f"{SEED_TAG} {fake.sentence(nb_words=7)}",
+                    "notas": f"{fake.sentence(nb_words=7)}",
                     "created_at": rand_datetime(days_back=300),
                 }
                 try:
@@ -176,7 +174,7 @@ class KittingSeed(SeedModule):
                 "fecha_requerida": fecha_requerida,
                 "fecha_inicio": fecha_inicio,
                 "fecha_completado": fecha_completado,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=9)}",
+                "notas": f"{fake.sentence(nb_words=9)}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -305,21 +303,9 @@ class KittingSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "kit_componente_asignacion": None,
-            "kit_orden_detalle": None,
-            "kit_orden": "numero_orden",
-            "kit_bom_componente": "notas",
-            "kit_bom": "kit_codigo",
-        }
-        for table, col in clean_map.items():
-            if col is None:
-                continue
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

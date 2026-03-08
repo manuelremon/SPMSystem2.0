@@ -32,7 +32,7 @@ function AttentionBanner({ resumen }) {
       label: t('dash_attention_pending_approval', '{count} pendientes de aprobación').replace('{count}', resumen.pendientes_aprobacion),
       color: 'warning',
       icon: <AssignmentLateIcon sx={{ fontSize: 16 }} />,
-      onClick: () => navigate('/solicitudes?estado=pendientes'),
+      onClick: () => navigate('/aprobaciones'),
     });
   }
 
@@ -54,7 +54,7 @@ function AttentionBanner({ resumen }) {
       label: t('dash_attention_sla', '{count} incumplimientos SLA').replace('{count}', resumen.sla_breaches),
       color: 'error',
       icon: <ErrorOutlineIcon sx={{ fontSize: 16 }} />,
-      onClick: () => navigate('/solicitudes?estado=pendientes'),
+      onClick: () => navigate('/solicitudes/todas?tab=pendientes&sla=breach'),
     });
   }
 

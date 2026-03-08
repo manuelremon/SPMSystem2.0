@@ -14,8 +14,8 @@ try:
 except ImportError:
     raise ImportError("Se requiere 'faker': pip install faker")
 
-SEED_PREFIX = "SEED-"
-SEED_TAG = "[SEED]"
+SEED_PREFIX = ""
+SEED_TAG = ""
 
 # Constantes reutilizables
 MONEDAS = ["USD", "ARS", "EUR"]
@@ -68,8 +68,8 @@ def rand_pct(min_val=0, max_val=100):
 
 
 def seed_code(prefix, idx):
-    """Genera código identificable como seed: SEED-OC-001."""
-    return f"{SEED_PREFIX}{prefix}-{idx:03d}"
+    """Genera código: OC-001."""
+    return f"{prefix}-{idx:03d}"
 
 
 def pick(lst):
@@ -175,28 +175,13 @@ class SeedModule(ABC):
         pass
 
     def clean(self):
-        """Limpia datos de seed. Por defecto borra registros con SEED- en campos clave."""
+        """Limpia datos de seed. Borra todos los registros de las tablas del modulo."""
         cursor = self.conn.cursor()
         for table in reversed(self.tables):
             try:
-                # Intentar borrar por patrones comunes de seed
-                for col in ['numero_oc', 'numero_rfq', 'numero_ncr', 'numero_capa',
-                            'numero_contrato', 'numero_factura', 'numero_rma',
-                            'numero_recall', 'numero_eco', 'numero_asn',
-                            'numero_recepcion', 'numero_orden', 'numero_lote',
-                            'numero_despacho', 'numero_reclamo', 'codigo',
-                            'nombre', 'titulo', 'descripcion', 'notas',
-                            'kit_codigo', 'numero_inspeccion', 'clave']:
-                    try:
-                        cursor.execute(
-                            f"DELETE FROM {table} WHERE {col} LIKE ?",
-                            (f'%{SEED_PREFIX}%',)
-                        )
-                        if cursor.rowcount and cursor.rowcount > 0:
-                            self.log(f"Cleaned {cursor.rowcount} rows from {table} (col: {col})")
-                            break
-                    except Exception:
-                        continue
+                cursor.execute(f"DELETE FROM {table}")
+                if cursor.rowcount and cursor.rowcount > 0:
+                    self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
                 self.log(f"Warning cleaning {table}: {e}")
         self.conn.commit()

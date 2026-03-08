@@ -414,6 +414,7 @@ export default function TodasLasSolicitudes() {
   const [searchParams] = useSearchParams();
 
   const initialTab = searchParams.get("tab") || "todas";
+  const slaFilter = searchParams.get("sla") === "breach";
   const tabIndexMap = { todas: 0, pendientes: 1, en_proceso: 2, completadas: 3, rechazadas: 4, cerradas: 5 };
 
   const [items, setItems] = useState([]);
@@ -473,7 +474,7 @@ export default function TodasLasSolicitudes() {
     });
   }, [items]);
 
-  // Filtrado por tab
+  // Filtrado por tab + SLA
   const filtered = useMemo(() => {
     let result = items;
 
@@ -485,6 +486,15 @@ export default function TodasLasSolicitudes() {
       });
     }
 
+    // Filtro SLA: solo solicitudes pendientes con más de 3 días de antigüedad
+    if (slaFilter) {
+      const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+      result = result.filter((s) => {
+        const fecha = new Date(s.fecha_creacion || s.created_at || 0).getTime();
+        return fecha < threeDaysAgo;
+      });
+    }
+
     // Ordenar por fecha de creación descendente
     result.sort((a, b) => {
       const fechaA = new Date(a.fecha_creacion || a.created_at || 0).getTime();
@@ -493,7 +503,7 @@ export default function TodasLasSolicitudes() {
     });
 
     return result;
-  }, [items, activeTab]);
+  }, [items, activeTab, slaFilter]);
 
   // Columnas del DataGrid - AG Grid format
   const columnDefs = useMemo(
@@ -734,6 +744,16 @@ export default function TodasLasSolicitudes() {
           sx={{ mb: 2 }}
         >
           {error}
+        </Alert>
+      )}
+
+      {slaFilter && (
+        <Alert
+          severity="warning"
+          onClose={() => navigate('/solicitudes/todas?tab=pendientes')}
+          sx={{ mb: 0 }}
+        >
+          {t('todas_sla_filter_active', 'Mostrando solo solicitudes pendientes con más de 3 días sin gestionar (incumplimiento SLA)')}
         </Alert>
       )}
 

@@ -27,7 +27,6 @@ from datetime import datetime, timedelta
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     now_str,
@@ -119,7 +118,7 @@ class MissingTablesSeed(SeedModule):
                     "moneda_destino": moneda_d,
                     "tasa": tasa,
                     "fecha": fecha,
-                    "fuente": f"{SEED_TAG} BCRA/Market",
+                    "fuente": f"BCRA/Market",
                 }
                 try:
                     self.insert_no_return("tipo_cambio", row)
@@ -143,8 +142,8 @@ class MissingTablesSeed(SeedModule):
         for i, nombre in enumerate(nombres):
             row = {
                 "proveedor_cuit": self.refs.rand_proveedor(),
-                "nombre": f"{SEED_TAG} {nombre}",
-                "descripcion": f"{SEED_TAG} {fake.paragraph(nb_sentences=2)}",
+                "nombre": f"{nombre}",
+                "descripcion": f"{fake.paragraph(nb_sentences=2)}",
                 "estado": pick(["active", "active", "active", "suspended"]),
                 "condiciones_pago": pick(["30 días", "60 días", "contado"]),
                 "porcentaje_margen": round(random.uniform(5, 20), 1),
@@ -248,11 +247,11 @@ class MissingTablesSeed(SeedModule):
                 periodo = (datetime.now() - timedelta(days=30 * month_back)).strftime('%Y-%m')
                 row = {
                     "programa_id": prog_id,
-                    "periodo": f"{SEED_TAG} {periodo}",
+                    "periodo": f"{periodo}",
                     "cantidad_consumida_total": round(random.uniform(50, 500), 2),
                     "monto_total": rand_money(5000, 200000),
                     "estado": pick(["draft", "enviado", "confirmado", "facturado"]),
-                    "notas": f"{SEED_TAG} Reconciliación período {periodo}",
+                    "notas": f"Reconciliación período {periodo}",
                     "created_at": rand_datetime(days_back=60),
                 }
                 if row["estado"] in ("enviado", "confirmado", "facturado"):
@@ -289,7 +288,7 @@ class MissingTablesSeed(SeedModule):
                 "cantidad": round(random.uniform(0.5, 500), 2),
                 "material_codigo": self.refs.rand_material() if origen == "material" else None,
                 "proveedor_cuit": self.refs.rand_proveedor() if origen == "proveedor" else None,
-                "periodo": f"{SEED_TAG} {periodo}",
+                "periodo": f"{periodo}",
                 "created_at": rand_datetime(days_back=180),
             }
             try:
@@ -312,7 +311,7 @@ class MissingTablesSeed(SeedModule):
                 "material_codigo": mat,
                 "huella_base": round(random.uniform(0.1, 50), 3),
                 "unidad_base": pick(["kg CO2e/kg", "kg CO2e/m3", "kg CO2e/UN", "kg CO2e/LT"]),
-                "fuente_dato": f"{SEED_TAG} {pick(fuentes)}",
+                "fuente_dato": f"{pick(fuentes)}",
                 "fecha_actualizacion": rand_datetime(days_back=365),
             }
             try:
@@ -337,7 +336,7 @@ class MissingTablesSeed(SeedModule):
         ]
         for nombre, tipo, valor_meta, unidad, progreso in metas:
             row = {
-                "nombre": f"{SEED_TAG} {nombre}",
+                "nombre": f"{nombre}",
                 "tipo": tipo,
                 "valor_meta": valor_meta,
                 "unidad": unidad,
@@ -368,7 +367,7 @@ class MissingTablesSeed(SeedModule):
         ]
         for nombre, tipo, fa, fb, fc in programas:
             row = {
-                "nombre": f"{SEED_TAG} {nombre}",
+                "nombre": f"{nombre}",
                 "tipo": tipo,
                 "frecuencia_a_dias": fa,
                 "frecuencia_b_dias": fb,
@@ -446,8 +445,8 @@ class MissingTablesSeed(SeedModule):
         ]
         for nombre in tableros:
             row = {
-                "nombre": f"{SEED_TAG} {nombre}",
-                "descripcion": f"{SEED_TAG} Tablero {nombre.lower()}",
+                "nombre": f"{nombre}",
+                "descripcion": f"Tablero {nombre.lower()}",
                 "estado": "active",
                 "created_by": int(self.refs.rand_admin()),
                 "created_at": rand_datetime(days_back=180),
@@ -556,7 +555,7 @@ class MissingTablesSeed(SeedModule):
                 "estado_anterior": ant,
                 "estado_nuevo": nuevo,
                 "actor_id": int(self.refs.rand_user()),
-                "notas": f"{SEED_TAG} Cambio de estado kanban",
+                "notas": f"Cambio de estado kanban",
                 "created_at": rand_datetime(days_back=60),
             }
             try:
@@ -591,8 +590,8 @@ class MissingTablesSeed(SeedModule):
                 "entidad_tipo": pick(["solicitud", "orden_compra", "envio", "material"]),
                 "entidad_id": random.randint(1, 100),
                 "severidad": evt[2],
-                "titulo": f"{SEED_TAG} {evt[1]}",
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=12)}",
+                "titulo": f"{evt[1]}",
+                "descripcion": f"{fake.sentence(nb_words=12)}",
                 "categoria": evt[3],
                 "leido": random.choice([0, 0, 1]),
                 "created_at": rand_datetime(days_back=30),
@@ -665,7 +664,7 @@ class MissingTablesSeed(SeedModule):
                 "tipo": tipo,
                 "prioridad": prioridad,
                 "cantidad": cantidad,
-                "titulo": f"{SEED_TAG} {titulo}",
+                "titulo": f"{titulo}",
                 "categoria": cat,
                 "ultima_ocurrencia": rand_datetime(days_back=7),
                 "estado": pick(["active", "active", "acknowledged"]),
@@ -723,7 +722,7 @@ class MissingTablesSeed(SeedModule):
                     "cantidad_producida": cant_prod,
                     "prioridad": pick(prioridades),
                     "estado": estado,
-                    "notas": f"{SEED_TAG} Item producción",
+                    "notas": f"Item producción",
                     "created_at": rand_datetime(days_back=30),
                 }
                 try:
@@ -742,7 +741,7 @@ class MissingTablesSeed(SeedModule):
                     "cantidad_producida": cant_prod,
                     "prioridad": pick(prioridades),
                     "estado": estado,
-                    "notas": f"{SEED_TAG} Material requerido",
+                    "notas": f"Material requerido",
                     "created_at": rand_datetime(days_back=30),
                 }
                 try:
@@ -809,7 +808,7 @@ class MissingTablesSeed(SeedModule):
                     "fuente": pick(fuentes),
                     "cantidad_pronosticada": cant,
                     "confianza": round(random.uniform(0.5, 0.95), 2),
-                    "notas": f"{SEED_TAG} Pronóstico demanda",
+                    "notas": f"Pronóstico demanda",
                     "created_at": rand_datetime(days_back=30),
                 }
                 try:
@@ -866,8 +865,8 @@ class MissingTablesSeed(SeedModule):
             row = {
                 "autor_id": str(user_id),
                 "autor_nombre": fake.name(),
-                "titulo": f"{SEED_TAG} {titulo}",
-                "contenido": f"{SEED_TAG} {contenido}",
+                "titulo": f"{titulo}",
+                "contenido": f"{contenido}",
                 "categoria": cat,
                 "likes": random.randint(0, 25),
                 "created_at": rand_datetime(days_back=60),
@@ -896,7 +895,7 @@ class MissingTablesSeed(SeedModule):
                     "post_id": post_id,
                     "autor_id": str(self.refs.rand_user()),
                     "autor_nombre": fake.name(),
-                    "contenido": f"{SEED_TAG} {pick(respuestas)}",
+                    "contenido": f"{pick(respuestas)}",
                     "created_at": rand_datetime(days_back=30),
                 }
                 try:
@@ -971,7 +970,7 @@ class MissingTablesSeed(SeedModule):
         question_ids = []
         for q in preguntas:
             row = {
-                "pregunta": f"{SEED_TAG} {q['pregunta']}",
+                "pregunta": f"{q['pregunta']}",
                 "opciones_json": json.dumps(q["opciones"]),
                 "respuesta_correcta": q["correcta"],
                 "categoria": q["categoria"],
@@ -1010,44 +1009,9 @@ class MissingTablesSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "trivia_answers": None,
-            "trivia_questions": "pregunta",
-            "foro_respuestas": "contenido",
-            "foro_posts": "titulo",
-            "plan_demanda_consenso": None,
-            "plan_demanda_detalle": "notas",
-            "plan_produccion_historial": None,
-            "plan_produccion_material": "notas",
-            "plan_produccion_item": "notas",
-            "control_tower_alerta_agregada": "titulo",
-            "control_tower_kpi_snapshot": None,
-            "control_tower_event": "titulo",
-            "kanban_historial": "notas",
-            "kanban_senal": None,
-            "kanban_tablero": "nombre",
-            "cycle_count_item": None,
-            "cycle_count_programa": "nombre",
-            "meta_sostenibilidad": "nombre",
-            "material_huella_carbono": "fuente_dato",
-            "emision_carbono": "periodo",
-            "consignment_reconciliacion": "periodo",
-            "consignment_consumo": None,
-            "consignment_stock": None,
-            "consignment_programa": "nombre",
-            "tipo_cambio": "fuente",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                if col:
-                    cursor.execute(
-                        f"DELETE FROM {table} WHERE {col} LIKE ?",
-                        (f"%{SEED_PREFIX}%",),
-                    )
-                else:
-                    # For tables without identifiable SEED marker, skip
-                    # (they'll be cleaned by parent table cascade or manually)
-                    pass
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

@@ -14,7 +14,6 @@ import random
 from ._base import (
     MONEDAS,
     SEED_PREFIX,
-    SEED_TAG,
     UNIDADES,
     SeedModule,
     fake,
@@ -98,7 +97,7 @@ class ContractsSeed(SeedModule):
                 "valor_total": valor_total,
                 "moneda": moneda,
                 "centro": centro,
-                "notas": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "notas": f"{fake.sentence(nb_words=10)}",
                 "creado_por": creado_por,
                 "aprobado_por": aprobado_por,
                 "alerta_vencimiento": 30,
@@ -136,7 +135,7 @@ class ContractsSeed(SeedModule):
                 row = {
                     "contrato_id": cid,
                     "material_codigo": self.refs.rand_material(),
-                    "material_descripcion": f"{SEED_TAG} {fake.catch_phrase()}",
+                    "material_descripcion": f"{fake.catch_phrase()}",
                     "precio_unitario": precio_unit,
                     "moneda": pick(["USD", "ARS"]),
                     "cantidad_comprometida": cantidad_comprometida,
@@ -210,7 +209,7 @@ class ContractsSeed(SeedModule):
                     "estado_anterior": previous,
                     "estado_nuevo": next_estado,
                     "actor_id": self.refs.rand_admin(),
-                    "razon": f"{SEED_TAG} {fake.sentence(nb_words=8)}",
+                    "razon": f"{fake.sentence(nb_words=8)}",
                     "created_at": rand_datetime(days_back=365 - step * 30),
                 }
                 try:
@@ -225,18 +224,9 @@ class ContractsSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "contrato_historial": "razon",
-            "contrato_documento": "nombre_archivo",
-            "contrato_item": "material_descripcion",
-            "contrato": "numero_contrato",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:

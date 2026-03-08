@@ -15,7 +15,6 @@ from datetime import datetime
 
 from ._base import (
     SEED_PREFIX,
-    SEED_TAG,
     SeedModule,
     fake,
     pick,
@@ -249,8 +248,8 @@ class ExecutiveSeed(SeedModule):
             row = {
                 "categoria": categoria,
                 "kpi_key": clave,
-                "nombre": f"{SEED_TAG} {nombre_display}",
-                "descripcion": f"{SEED_TAG} {fake.sentence(nb_words=10)}",
+                "nombre": f"{nombre_display}",
+                "descripcion": f"{fake.sentence(nb_words=10)}",
                 "unidad": unidad,
                 "formula": formula,
                 "target_value": target,
@@ -299,7 +298,7 @@ class ExecutiveSeed(SeedModule):
                         "1200": round(random.uniform(60, 100), 2),
                     },
                     "sample_size": random.randint(50, 500),
-                    "notes": f"{SEED_TAG} {fake.sentence(nb_words=6)}",
+                    "notes": f"{fake.sentence(nb_words=6)}",
                 })
 
                 row = {
@@ -348,7 +347,7 @@ class ExecutiveSeed(SeedModule):
                     "percentil_25": p25,
                     "mediana": mediana,
                     "percentil_75": p75,
-                    "fuente": f"{SEED_TAG} {fuente}",
+                    "fuente": f"{fuente}",
                     "periodo_dato": periodo_dato,
                     "created_at": rand_datetime(days_back=270),
                 }
@@ -378,13 +377,13 @@ class ExecutiveSeed(SeedModule):
             recomendacion = pick(RECOMENDACIONES_OPTIONS)
 
             row = {
-                "nombre": f"{SEED_TAG} Scorecard Procurement {q_label}",
+                "nombre": f"Scorecard Procurement {q_label}",
                 "periodo": q_label,
-                "categorias_evaluadas": f"{SEED_TAG} {categorias}",
+                "categorias_evaluadas": f"{categorias}",
                 "score_total": score,
-                "fortalezas": f"{SEED_TAG} {fortaleza}",
-                "debilidades": f"{SEED_TAG} {debilidad}",
-                "recomendaciones": f"{SEED_TAG} {recomendacion}",
+                "fortalezas": f"{fortaleza}",
+                "debilidades": f"{debilidad}",
+                "recomendaciones": f"{recomendacion}",
                 "generado_por": int(self.refs.rand_user()),
                 "created_at": rand_datetime(days_back=270),
             }
@@ -398,18 +397,9 @@ class ExecutiveSeed(SeedModule):
 
     def clean(self):
         cursor = self.conn.cursor()
-        clean_map = {
-            "procurement_scorecard": "nombre",
-            "benchmark": "fuente",
-            "executive_snapshot": "kpi_key",
-            "executive_kpi": "kpi_key",
-        }
-        for table, col in clean_map.items():
+        for table in self.tables:
             try:
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {col} LIKE ?",
-                    (f"%{SEED_PREFIX}%",),
-                )
+                cursor.execute(f"DELETE FROM {table}")
                 if cursor.rowcount and cursor.rowcount > 0:
                     self.log(f"Cleaned {cursor.rowcount} rows from {table}")
             except Exception as e:
