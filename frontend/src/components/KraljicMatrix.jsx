@@ -73,7 +73,6 @@ function QuadrantCell({ config, items, t }) {
         bgcolor: config.bgColor,
         border: '1px solid',
         borderColor: config.borderColor,
-        borderRadius: 1,
         p: 1.5,
         minHeight: 160,
         display: 'flex',

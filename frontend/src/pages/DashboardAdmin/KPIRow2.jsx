@@ -90,7 +90,6 @@ function KPIRow2({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
@@ -138,7 +137,6 @@ function KPIRow2({
             bgcolor: 'var(--surface)',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
             p: 2,
             transition: 'box-shadow 0.2s ease-in-out',
             '&:hover': {
@@ -217,7 +215,6 @@ function KPIRow2({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
@@ -304,8 +301,8 @@ function KPIRow2({
                                   {centro.porcentaje}%
                                 </Typography>
                               </Stack>
-                              <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
-                                <Box sx={{ height: '100%', width: `${Math.min(centro.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.utilizado, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                              <Box sx={{ height: 4, bgcolor: 'grey.200', overflow: 'hidden' }}>
+                                <Box sx={{ height: '100%', width: `${Math.min(centro.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.utilizado, transition: 'width 0.3s ease' }} />
                               </Box>
                             </Box>
                           </Tooltip>
@@ -332,8 +329,8 @@ function KPIRow2({
                                   {sector.porcentaje}%
                                 </Typography>
                               </Stack>
-                              <Box sx={{ height: 4, bgcolor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
-                                <Box sx={{ height: '100%', width: `${Math.min(sector.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.total, borderRadius: 2, transition: 'width 0.3s ease' }} />
+                              <Box sx={{ height: 4, bgcolor: 'grey.200', overflow: 'hidden' }}>
+                                <Box sx={{ height: '100%', width: `${Math.min(sector.porcentaje || 0, 100)}%`, bgcolor: BUDGET_COLORS.total, transition: 'width 0.3s ease' }} />
                               </Box>
                             </Box>
                           </Tooltip>

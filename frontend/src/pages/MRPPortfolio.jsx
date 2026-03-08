@@ -602,7 +602,7 @@ export default function MRPPortfolio() {
 
               {/* Counter */}
               <Chip
-                icon={<Box sx={{ width: 6, height: 6, bgcolor: "grey.400", borderRadius: 0 }} />}
+                icon={<Box sx={{ width: 6, height: 6, bgcolor: "grey.400" }} />}
                 label={`${total} materiales`}
                 size="small"
                 sx={{
@@ -618,7 +618,7 @@ export default function MRPPortfolio() {
         </Paper>
 
         {/* Data Table */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box
             sx={{
               px: 2,

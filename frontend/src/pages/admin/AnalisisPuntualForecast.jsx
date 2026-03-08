@@ -341,7 +341,7 @@ export default function AnalisisPuntualForecast() {
                     <Grid item xs={6}>
                       <Paper
                         elevation={0}
-                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}
                       >
                         <Typography variant="h5" fontWeight="bold" color="primary.main">
                           {forecastData.metricas?.mape?.toFixed(1) || 'N/A'}%
@@ -354,7 +354,7 @@ export default function AnalisisPuntualForecast() {
                     <Grid item xs={6}>
                       <Paper
                         elevation={0}
-                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}
                       >
                         <Typography variant="h5" fontWeight="bold" color="primary.main">
                           {forecastData.metricas?.rmse?.toFixed(2) || 'N/A'}
@@ -367,7 +367,7 @@ export default function AnalisisPuntualForecast() {
                     <Grid item xs={6}>
                       <Paper
                         elevation={0}
-                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}
                       >
                         <Typography variant="h5" fontWeight="bold" color="text.primary">
                           {forecastData.modelo_usado || modelo}
@@ -380,7 +380,7 @@ export default function AnalisisPuntualForecast() {
                     <Grid item xs={6}>
                       <Paper
                         elevation={0}
-                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 2 }}
+                        sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100' }}
                       >
                         <Typography variant="h5" fontWeight="bold" color="text.primary">
                           {forecastData.registros_historico || 0}
@@ -397,7 +397,7 @@ export default function AnalisisPuntualForecast() {
 
             {/* Predicciones */}
             <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ borderRadius: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <Paper elevation={1} sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <ShowChartIcon sx={{ fontSize: 20, color: 'text.secondary' }} />

@@ -327,7 +327,6 @@ export default function AdminCentros() {
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 2,
           overflow: "hidden",
         }}
       >

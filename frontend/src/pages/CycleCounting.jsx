@@ -318,25 +318,25 @@ export default function CycleCounting() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('cc_kpi_accuracy', 'Accuracy Rate')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
               {kpis.accuracy_rate != null ? `${Number(kpis.accuracy_rate).toFixed(1)}%` : '-'}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('cc_kpi_pending', 'Conteos Pendientes')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
               {kpis.conteos_pendientes ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('cc_kpi_variance', 'Varianza Total')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>
               {kpis.varianza_total ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('cc_kpi_adjustments', 'Ajustes Pendientes')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               {kpis.ajustes_pendientes ?? 0}
@@ -346,7 +346,7 @@ export default function CycleCounting() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('cc_tab_programs', 'Programas')} icon={<EventRepeatIcon />} iconPosition="start" />
           <Tab label={t('cc_tab_counts', 'Conteos')} icon={<PlaylistAddCheckIcon />} iconPosition="start" />
@@ -357,7 +357,7 @@ export default function CycleCounting() {
       {tabValue === 0 && (
         <>
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2}>
-            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1 }}>
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}>
               <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
                 <FormControl size="small" sx={{ minWidth: 160 }}>
                   <InputLabel>{t('cc_filter_estado', 'Estado')}</InputLabel>
@@ -386,7 +386,7 @@ export default function CycleCounting() {
 
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('cc_tab_programs', 'Programas')}
           >
             <SPMAgGrid
@@ -409,7 +409,7 @@ export default function CycleCounting() {
       {tabValue === 1 && (
         <>
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2}>
-            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1 }}>
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1 }}>
               <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
                 <FormControl size="small" sx={{ minWidth: 160 }}>
                   <InputLabel>{t('cc_filter_estado', 'Estado')}</InputLabel>
@@ -458,7 +458,7 @@ export default function CycleCounting() {
 
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('cc_tab_counts', 'Conteos')}
           >
             <SPMAgGrid

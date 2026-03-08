@@ -169,7 +169,7 @@ export default function FreightTariffs() {
       </Stack>
 
       {/* Filter */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
           <TextField
             size="small"
@@ -184,7 +184,7 @@ export default function FreightTariffs() {
       {/* Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('tariff_title', 'Tarifas de Flete')}
       >
         <SPMAgGrid

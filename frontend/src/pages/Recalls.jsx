@@ -308,7 +308,7 @@ export default function Recalls() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 170 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 170 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <WarningAmberIcon fontSize="small" sx={{ color: 'error.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -319,7 +319,7 @@ export default function Recalls() {
               {kpis.recalls_activos ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 170 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 170 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <BlockIcon fontSize="small" sx={{ color: 'warning.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -330,7 +330,7 @@ export default function Recalls() {
               {kpis.lotes_bloqueados ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 170 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 170 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <RecyclingIcon fontSize="small" sx={{ color: 'success.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -341,7 +341,7 @@ export default function Recalls() {
               {kpis.lotes_recuperados ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 170 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 170 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <AttachMoneyIcon fontSize="small" sx={{ color: 'info.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -356,7 +356,7 @@ export default function Recalls() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('recall_filter_estado', 'Estado')}</InputLabel>
@@ -388,7 +388,7 @@ export default function Recalls() {
       {/* Recalls Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('recall_title', 'Recalls')}
       >
         <SPMAgGrid

@@ -145,7 +145,6 @@ function ItemsTable({ items, totalMonto }) {
           justifyContent: 'flex-end',
           p: 2,
           bgcolor: 'action.hover',
-          borderRadius: 1,
           border: '1px solid',
           borderColor: 'divider',
         }}
@@ -183,7 +182,6 @@ function DetailRow({ icon: Icon, label, value }) {
         sx={{
           height: 36,
           width: 36,
-          borderRadius: 2,
           bgcolor: "action.hover",
           border: "1px solid",
           borderColor: "divider",
@@ -395,7 +393,7 @@ export default function SolicitudDetalle() {
 
       {/* Acciones de aprobacion */}
       {canApprove && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "warning.50", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "warning.dark" }}>
               Esta solicitud requiere tu aprobacion
@@ -431,7 +429,7 @@ export default function SolicitudDetalle() {
       {/* Info Cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
         {/* Informacion General */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               {t("detalle_info_general", "Informacion General")}
@@ -443,7 +441,7 @@ export default function SolicitudDetalle() {
             <DetailRow icon={CalendarTodayIcon} label={t("detalle_fecha_creacion", "Fecha de Creacion")} value={formatDate(solicitud.created_at || solicitud.fecha_creacion)} />
             <DetailRow icon={AccessTimeIcon} label={t("detalle_fecha_necesidad", "Fecha de Necesidad")} value={formatDate(solicitud.fecha_necesidad)} />
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-              <Box sx={{ height: 36, width: 36, borderRadius: 2, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Box sx={{ height: 36, width: 36, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <WarningAmberIcon sx={{ fontSize: 18, color: isAltaCriticidad ? "error.main" : "text.secondary" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -459,7 +457,7 @@ export default function SolicitudDetalle() {
         </Paper>
 
         {/* Ubicacion y Costos */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
               {t("detalle_ubicacion", "Ubicacion y Costos")}
@@ -471,7 +469,7 @@ export default function SolicitudDetalle() {
             <DetailRow icon={InventoryIcon} label={t("detalle_almacen", "Almacen Virtual")} value={formatAlmacen(solicitud.almacen_virtual || solicitud.almacen)} />
             <DetailRow icon={AttachMoneyIcon} label={t("detalle_centro_costos", "Centro de Costos")} value={solicitud.centro_costos} />
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-              <Box sx={{ height: 36, width: 36, borderRadius: 2, bgcolor: "primary.50", border: "1px solid", borderColor: "primary.200", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Box sx={{ height: 36, width: 36, bgcolor: "primary.50", border: "1px solid", borderColor: "primary.200", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -488,7 +486,7 @@ export default function SolicitudDetalle() {
       </Box>
 
       {/* Justificacion */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             {t("detalle_justificacion", "Justificacion")}
@@ -496,7 +494,7 @@ export default function SolicitudDetalle() {
         </Box>
         <Box sx={{ p: 2.5 }}>
           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-            <Box sx={{ height: 36, width: 36, borderRadius: 2, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Box sx={{ height: 36, width: 36, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <DescriptionIcon sx={{ fontSize: 18, color: "text.secondary" }} />
             </Box>
             <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.7, flex: 1 }}>
@@ -507,7 +505,7 @@ export default function SolicitudDetalle() {
       </Paper>
 
       {/* Items/Materiales */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             {t("detalle_materiales", "Materiales")} ({items.length})

@@ -608,7 +608,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
           height: '96vh',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 3,
           overflow: 'hidden',
         }}
       >
@@ -708,7 +707,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
         )}
 
         {error && (
-          <Alert severity="error" sx={{ borderRadius: 0 }}>
+          <Alert severity="error">
             {error}
           </Alert>
         )}
@@ -1037,7 +1036,6 @@ function ProgresoDecisiones({ decisiones, totalItems, items, currentIdx, onSelec
                 sx={{
                   width: 20,
                   height: 20,
-                  borderRadius: 1,
                   fontSize: '0.5625rem',
                   fontWeight: 700,
                   transition: 'all 0.2s',

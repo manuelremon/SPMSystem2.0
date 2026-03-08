@@ -155,7 +155,7 @@ export default function WarehouseReceiving() {
   }, []);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 180 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -212,7 +212,7 @@ export default function WarehouseReceiving() {
       )}
 
       {/* Dock Board */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('warehouse_dock_board', 'Panel de Docks')}</Typography>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>

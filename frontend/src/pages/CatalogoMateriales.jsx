@@ -67,7 +67,6 @@ function CollapsibleSection({ title, icon, expanded, onToggle, variant = "defaul
     <Paper
       variant="outlined"
       sx={{
-        borderRadius: 2,
         overflow: "hidden",
         borderColor: expanded ? "grey.400" : "grey.300",
       }}
@@ -194,7 +193,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
           <Stack spacing={2}>
             {/* Basic Info */}
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography
                   variant="caption"
                   fontWeight={700}
@@ -209,7 +208,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                   {material.descripcion_larga || material.descripcion || "N/D"}
                 </Typography>
               </Paper>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                   <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.5} color="text.secondary">
                     {t("catalogo_unidad", "Unidad")}
@@ -263,7 +262,6 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                           gap: 1,
                           py: 0.75,
                           px: 1.5,
-                          borderRadius: 1,
                           bgcolor: idx % 2 ? "grey.50" : "background.paper",
                         }}
                       >
@@ -294,7 +292,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
               {detail?.mrp_list?.length > 0 ? (
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {detail.mrp_list.map((mrp, idx) => (
-                    <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.5 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                         <Typography variant="body2" fontWeight={600}>{t('common_centro', 'Centro')}: {mrp.centro}</Typography>
                         <Typography variant="body2" color="text.secondary">| {t('common_almacen', 'Almacén')}: {mrp.almacen}</Typography>
@@ -303,15 +301,15 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                         )}
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Seg.</Typography>
                           <Typography variant="body2" fontWeight={600}>{mrp.stock_seguridad ?? 0}</Typography>
                         </Paper>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Pto. Pedido</Typography>
                           <Typography variant="body2" fontWeight={600}>{mrp.punto_pedido ?? 0}</Typography>
                         </Paper>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Max.</Typography>
                           <Typography variant="body2" fontWeight={600}>{mrp.stock_maximo ?? 0}</Typography>
                         </Paper>
@@ -338,21 +336,21 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
               {detail?.consumo_list?.length > 0 ? (
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {detail.consumo_list.map((c, idx) => (
-                    <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                    <Paper key={idx} variant="outlined" sx={{ p: 1.5 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                         <Typography variant="body2" fontWeight={600}>{t('common_centro', 'Centro')}: {c.centro}</Typography>
                         <Typography variant="body2" color="text.secondary">| {t('common_almacen', 'Almacén')}: {c.almacen}</Typography>
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Prom. Anual</Typography>
                           <Typography variant="body2" fontWeight={600} color="success.main">{c.promedio_anual}</Typography>
                         </Paper>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Total</Typography>
                           <Typography variant="body2" fontWeight={600}>{c.total}</Typography>
                         </Paper>
-                        <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
+                        <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
                           <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Anos</Typography>
                           <Typography variant="body2" fontWeight={600}>{c.anio_desde}-{c.anio_hasta}</Typography>
                         </Paper>
@@ -384,7 +382,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
               ) : (
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {solicitudesData.map((sol) => (
-                    <Paper key={sol.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                    <Paper key={sol.id} variant="outlined" sx={{ p: 1.5 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                         <Typography variant="body2" fontWeight={600} color="primary.main">
                           SPM #{sol.id}
@@ -423,7 +421,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
               ) : (
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
                   {equivalenciasData.map((eq, idx) => (
-                    <Paper key={eq.codigo_equivalente || idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                    <Paper key={eq.codigo_equivalente || idx} variant="outlined" sx={{ p: 1.5 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                         <Typography variant="body2" fontFamily="monospace" fontWeight={600} color="primary.main">
                           {eq.codigo_equivalente}
@@ -679,7 +677,7 @@ export default function CatalogoMateriales() {
         </Stack>
 
         {/* Search Card */}
-        <Paper variant="outlined" sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
             <Box sx={{ minWidth: 150 }}>
               <Typography
@@ -826,7 +824,6 @@ export default function CatalogoMateriales() {
         <Paper
           variant="outlined"
           sx={{
-            borderRadius: 2,
             height: "calc(100vh - 280px)",
             minHeight: 500,
           }}

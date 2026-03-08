@@ -244,7 +244,6 @@ const TimeRangeNavigator = ({
         sx={{
           position: 'relative',
           height: 44,
-          borderRadius: 2,
           overflow: 'hidden',
           border: 1,
           borderColor: 'grey.200',
@@ -734,7 +733,6 @@ const ForecastChart = ({
           alignItems: 'center',
           justifyContent: 'center',
           bgcolor: 'grey.50',
-          borderRadius: 2,
           border: '1px dashed',
           borderColor: 'grey.300',
           height
@@ -751,7 +749,7 @@ const ForecastChart = ({
   const shouldShowNavigator = showNavigator && fullData.dates.length > 30;
 
   return (
-    <Paper elevation={0} sx={{ width: '100%', bgcolor: 'white', borderRadius: 2, p: 2 }}>
+    <Paper elevation={0} sx={{ width: '100%', bgcolor: 'white', p: 2 }}>
       {/* Header con titulo y controles */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>

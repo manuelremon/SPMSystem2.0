@@ -178,7 +178,7 @@ export default function ReturnsList() {
   ], [t]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 180 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -240,7 +240,7 @@ export default function ReturnsList() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('returns_filter_estado', 'Estado')}</InputLabel>
@@ -259,7 +259,7 @@ export default function ReturnsList() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('returns_title', 'Devoluciones')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('returns_title', 'Devoluciones')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={returns}

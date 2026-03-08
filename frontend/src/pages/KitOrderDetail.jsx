@@ -240,7 +240,7 @@ export default function KitOrderDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -322,7 +322,7 @@ export default function KitOrderDetail() {
       </Paper>
 
       {/* Order Info */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('kit_info', 'Informacion de la Orden')}</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={3} divider={<Divider orientation="vertical" flexItem />}>
           <Box>
@@ -346,7 +346,7 @@ export default function KitOrderDetail() {
 
       {/* Availability Panel */}
       {availability && availability.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('kit_availability', 'Disponibilidad de Componentes')}</Typography>
           <Stack direction="row" gap={1} flexWrap="wrap">
             {availability.map((comp, idx) => {
@@ -368,7 +368,7 @@ export default function KitOrderDetail() {
       )}
 
       {/* Components Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2">{t('kit_components', 'Componentes')}</Typography>
         </Box>

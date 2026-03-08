@@ -99,7 +99,6 @@ export function SearchDropdown({
         zIndex: 9999,
         maxHeight: '380px',
         overflow: 'hidden',
-        borderRadius: 3,
         animation: 'scaleIn 0.15s ease-out',
         '@keyframes scaleIn': {
           '0%': { opacity: 0, transform: 'scale(0.95)' },
@@ -310,7 +309,6 @@ export function SearchDropdown({
                         bgcolor: 'action.hover',
                         px: 1.5,
                         py: 0.5,
-                        borderRadius: 1,
                         display: 'inline-block',
                       }}
                     >

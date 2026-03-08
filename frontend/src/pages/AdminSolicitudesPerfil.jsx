@@ -200,7 +200,7 @@ export default function AdminSolicitudesPerfil() {
       )}
 
       {/* Tabs */}
-      <Paper sx={{ borderRadius: 2 }}>
+      <Paper>
         <Tabs
           value={tab}
           onChange={(_, newValue) => setTab(newValue)}
@@ -359,7 +359,7 @@ export default function AdminSolicitudesPerfil() {
                           {fieldLabels[`${field}_nuevo`] || field}
                         </Typography>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                          <Box sx={{ flex: 1, p: 1.5, borderRadius: 1, bgcolor: "grey.100" }}>
+                          <Box sx={{ flex: 1, p: 1.5, bgcolor: "grey.100" }}>
                             <Typography variant="caption" color="text.disabled">
                               Actual:{" "}
                             </Typography>
@@ -368,7 +368,7 @@ export default function AdminSolicitudesPerfil() {
                             </Typography>
                           </Box>
                           <ArrowForwardIcon sx={{ color: "primary.main" }} />
-                          <Box sx={{ flex: 1, p: 1.5, borderRadius: 1, bgcolor: "primary.50" }}>
+                          <Box sx={{ flex: 1, p: 1.5, bgcolor: "primary.50" }}>
                             <Typography variant="caption" color="text.disabled">
                               Nuevo:{" "}
                             </Typography>

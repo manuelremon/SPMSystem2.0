@@ -41,7 +41,6 @@ export function Card({
       elevation={variant === 'outlined' ? 0 : elevation}
       variant={variant}
       sx={{
-        borderRadius: '8px',
         transition: shouldHover ? 'all 0.2s ease-in-out' : undefined,
         '&:hover': shouldHover ? {
           boxShadow: 4,

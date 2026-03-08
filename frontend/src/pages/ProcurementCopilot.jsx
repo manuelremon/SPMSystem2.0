@@ -293,7 +293,6 @@ export default function ProcurementCopilot() {
             width: { xs: '100%', md: '30%' },
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -361,7 +360,6 @@ export default function ProcurementCopilot() {
             flex: 1,
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -408,7 +406,6 @@ export default function ProcurementCopilot() {
                       sx={{
                         p: 1.5,
                         maxWidth: '75%',
-                        borderRadius: 2,
                         bgcolor: isUser ? 'primary.main' : 'grey.100',
                         color: isUser ? 'primary.contrastText' : 'text.primary',
                         border: isUser ? 'none' : '1px solid',
@@ -498,7 +495,7 @@ export default function ProcurementCopilot() {
 
       {/* Suggestions Panel */}
       {activeSuggestions.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <LightbulbIcon sx={{ color: 'warning.main' }} />
             <Typography variant="subtitle2">{t('copilot_suggestions', 'Sugerencias Activas')}</Typography>

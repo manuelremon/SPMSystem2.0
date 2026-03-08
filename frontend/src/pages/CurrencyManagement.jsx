@@ -261,25 +261,25 @@ export default function CurrencyManagement() {
 
       {/* KPI Cards */}
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
           <Typography variant="caption" color="text.secondary">{t('currency_kpi_usd', 'USD Rate')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
             {usdRate != null ? fmtRate(usdRate) : '-'}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
           <Typography variant="caption" color="text.secondary">{t('currency_kpi_eur', 'EUR Rate')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
             {eurRate != null ? fmtRate(eurRate) : '-'}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
           <Typography variant="caption" color="text.secondary">{t('currency_kpi_brl', 'BRL Rate')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
             {brlRate != null ? fmtRate(brlRate) : '-'}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
           <Typography variant="caption" color="text.secondary">{t('currency_kpi_exposure', 'Exposicion Total ARS')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
             {totalExposure != null ? `ARS ${Number(totalExposure).toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-'}
@@ -288,7 +288,7 @@ export default function CurrencyManagement() {
       </Stack>
 
       {/* Converter Tool */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
           <SwapHorizIcon sx={{ fontSize: 18, mr: 0.5, verticalAlign: 'text-bottom' }} />
           {t('currency_converter', 'Convertidor')}
@@ -337,7 +337,7 @@ export default function CurrencyManagement() {
             {t('currency_conv_btn', 'Convertir')}
           </Button>
           {convertResult && (
-            <Paper elevation={0} sx={{ px: 2, py: 1, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.main', borderRadius: 1 }}>
+            <Paper elevation={0} sx={{ px: 2, py: 1, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.main' }}>
               <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.dark' }}>
                 {convertResult.resultado != null
                   ? `${Number(convertResult.resultado).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${convertForm.to}`
@@ -354,7 +354,7 @@ export default function CurrencyManagement() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('currency_tab_rates', 'Tasas')} icon={<CurrencyExchangeIcon />} iconPosition="start" />
           <Tab label={t('currency_tab_exposure', 'Exposicion')} icon={<AccountBalanceIcon />} iconPosition="start" />
@@ -366,7 +366,7 @@ export default function CurrencyManagement() {
       {tabValue === 0 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('currency_tab_rates', 'Tasas')}
         >
           <SPMAgGrid
@@ -388,7 +388,7 @@ export default function CurrencyManagement() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('currency_tab_exposure', 'Exposicion')}
         >
           <SPMAgGrid
@@ -407,22 +407,22 @@ export default function CurrencyManagement() {
 
       {/* Tab 2: Gain/Loss */}
       {tabValue === 2 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('currency_gl_title', 'Ganancia / Perdida Cambiaria')}</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">{t('currency_gl_realized', 'Realizada')}</Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
                 {dashboard?.ganancia_realizada != null ? formatCurrency(dashboard.ganancia_realizada) : '-'}
               </Typography>
             </Paper>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">{t('currency_gl_unrealized', 'No Realizada')}</Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.main' }}>
                 {dashboard?.ganancia_no_realizada != null ? formatCurrency(dashboard.ganancia_no_realizada) : '-'}
               </Typography>
             </Paper>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary">{t('currency_gl_net', 'Neto')}</Typography>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {dashboard?.ganancia_neta != null ? formatCurrency(dashboard.ganancia_neta) : '-'}

@@ -95,7 +95,7 @@ export default function PriceCompare() {
       </Stack>
 
       {/* Search Section */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>
           {t('price_compare_subtitle', 'Buscar y comparar precios entre proveedores')}
         </Typography>
@@ -152,7 +152,7 @@ export default function PriceCompare() {
           <CircularProgress />
         </Box>
       ) : searchExecuted && precios.length === 0 ? (
-        <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2, textAlign: 'center' }}>
+        <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             {t('price_no_precios', 'No se encontraron precios para este material')}
           </Typography>
@@ -202,7 +202,7 @@ export default function PriceCompare() {
           </Grid>
 
           {/* Comparison Table */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>

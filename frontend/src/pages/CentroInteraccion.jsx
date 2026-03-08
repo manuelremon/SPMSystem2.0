@@ -264,7 +264,6 @@ export default function CentroInteraccion() {
             <MuiAlert
               severity="error"
               onClose={() => setError("")}
-              sx={{ borderRadius: 0 }}
             >
               {error}
             </MuiAlert>
@@ -279,7 +278,6 @@ export default function CentroInteraccion() {
             borderColor: "grey.200",
             boxShadow: 1,
             mb: 3,
-            borderRadius: 0,
           }}
         >
           {/* Tab Navigation */}
@@ -331,7 +329,6 @@ export default function CentroInteraccion() {
                             height: 18,
                             fontSize: 10,
                             fontWeight: 700,
-                            borderRadius: 0,
                             bgcolor: activeTab === index ? "primary.50" : "grey.100",
                             color: activeTab === index ? "primary.dark" : "grey.600",
                             "& .MuiChip-label": {
@@ -404,7 +401,6 @@ export default function CentroInteraccion() {
             border: 1,
             borderColor: "grey.200",
             boxShadow: 1,
-            borderRadius: 0,
           }}
         >
           <Box
@@ -493,7 +489,6 @@ export default function CentroInteraccion() {
                                 height: 18,
                                 fontSize: 10,
                                 fontWeight: 600,
-                                borderRadius: 0,
                                 borderColor: "info.200",
                                 bgcolor: "info.50",
                                 color: "info.dark",

@@ -303,7 +303,7 @@ export default function VMI() {
   ], [t, processingRepo, handleRepoAction]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 170 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 170 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -359,7 +359,7 @@ export default function VMI() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('vmi_tab_programas', 'Programas')} icon={<InventoryIcon />} iconPosition="start" />
           <Tab label={t('vmi_tab_reposiciones', 'Reposiciones Pendientes')} icon={<AutorenewIcon />} iconPosition="start" />
@@ -370,7 +370,7 @@ export default function VMI() {
       {tabValue === 0 && (
         <>
           {/* Filters */}
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>{t('vmi_filter_estado', 'Estado')}</InputLabel>
@@ -396,7 +396,7 @@ export default function VMI() {
 
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('vmi_tab_programas', 'Programas VMI')}
           >
             <SPMAgGrid
@@ -422,7 +422,7 @@ export default function VMI() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('vmi_tab_reposiciones', 'Reposiciones Pendientes')}
         >
           <SPMAgGrid

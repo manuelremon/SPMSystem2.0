@@ -86,7 +86,7 @@ export function Tooltip({ children, content, position = "top", delay = 200, clas
             "fixed z-[9999] pointer-events-none",
             // Glass style
             "px-3 py-1.5 rounded-md",
-            "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900",
+            "bg-slate-900 text-white",
             "shadow-lg",
             // Text
             "text-xs font-medium whitespace-nowrap",
@@ -149,8 +149,8 @@ export function InfoTooltip({ children, title, lines = [], position = "top" }) {
             // Glass style
             "min-w-[200px] max-w-[280px]",
             "px-3 py-2.5 rounded-xl",
-            "bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl",
-            "border border-white/50 dark:border-white/10",
+            "bg-white/90 backdrop-blur-xl",
+            "border border-white/50",
             "shadow-glass",
             // Text
             "text-xs",
@@ -160,13 +160,13 @@ export function InfoTooltip({ children, title, lines = [], position = "top" }) {
           role="tooltip"
         >
           {title && (
-            <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5 pb-1.5 border-b border-white/30 dark:border-white/10">
+            <p className="font-semibold text-slate-800 mb-1.5 pb-1.5 border-b border-white/30">
               {title}
             </p>
           )}
           <div className="space-y-1">
             {lines.map((line, idx) => (
-              <p key={idx} className="text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p key={idx} className="text-slate-600 leading-relaxed">
                 {line}
               </p>
             ))}

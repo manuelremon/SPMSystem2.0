@@ -292,11 +292,11 @@ export default function AdminWebhooks() {
         </Button>
       </Stack>
 
-      <Alert severity="info" sx={{ borderRadius: 2 }}>
+      <Alert severity="info">
         {t('webhooks_info', 'Los webhooks permiten enviar eventos de solicitudes aprobadas/rechazadas a sistemas externos. El secret se usa para firmar las peticiones con HMAC-SHA256.')}
       </Alert>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('webhooks_title', 'Webhooks Externos')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('webhooks_title', 'Webhooks Externos')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={webhooks}

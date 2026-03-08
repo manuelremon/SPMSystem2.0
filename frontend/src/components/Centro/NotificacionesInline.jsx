@@ -147,7 +147,6 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
           <Box
             sx={{
               p: 1.5,
-              borderRadius: 2,
               bgcolor: colors.bg,
               display: "flex",
               alignItems: "center",
@@ -180,7 +179,7 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
           <Alert
             severity="warning"
             icon={<AlertTriangle style={{ width: 20, height: 20 }} />}
-            sx={{ mb: 2, borderRadius: 2 }}
+            sx={{ mb: 2 }}
           >
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {t("centro_requiere_respuesta", "Esta notificacion requiere tu respuesta")}
@@ -205,7 +204,6 @@ function NotificacionDetailModal({ notif, onClose, onMarcarLeida }) {
               p: 2,
               bgcolor: "color-mix(in srgb, var(--primary) 8%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-              borderRadius: 2,
             }}
           >
             <Typography variant="body2" sx={{ color: "var(--primary)", fontWeight: 500 }}>
@@ -355,7 +353,7 @@ export default function NotificacionesInline({ onUpdate }) {
             onClick={loadNotificaciones}
             disabled={loading}
             size="small"
-            sx={{ border: "1px solid var(--border)", borderRadius: 1 }}
+            sx={{ border: "1px solid var(--border)" }}
           >
             <RefreshCw
               style={{
@@ -372,7 +370,7 @@ export default function NotificacionesInline({ onUpdate }) {
       {/* Content */}
       <Box sx={{ p: 3 }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -405,7 +403,6 @@ export default function NotificacionesInline({ onUpdate }) {
                     alignItems: "flex-start",
                     gap: 2,
                     p: 2,
-                    borderRadius: 2,
                     cursor: "pointer",
                     border: "1px solid transparent",
                     bgcolor: notif.leido ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -419,7 +416,6 @@ export default function NotificacionesInline({ onUpdate }) {
                   <Box
                     sx={{
                       p: 1,
-                      borderRadius: 1.5,
                       bgcolor: colors.bg,
                       display: "flex",
                       alignItems: "center",

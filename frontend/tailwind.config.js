@@ -4,15 +4,12 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
-  // Dark mode: detecta data-theme="dark" en :root
-  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       fontFamily: {
-        // Roboto - Material UI typography
-        sans: ["'Roboto'", "system-ui", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
-        mono: ["'Roboto Mono'", "ui-monospace", "SFMono-Regular", "monospace"],
-        display: ["'Roboto'", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["'Inter'", "system-ui", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        mono: ["'JetBrains Mono'", "'Fira Code'", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["'Inter'", "system-ui", "-apple-system", "sans-serif"],
       },
 
       // MUI Palette Colors - Synchronized with CSS variables
@@ -139,17 +136,16 @@ export default {
         },
       },
 
-      // Border radius - All set to 0 (no rounded corners)
       borderRadius: {
         none: "0",
-        sm: "0",
-        DEFAULT: "0",
-        md: "0",
-        lg: "0",
-        xl: "0",
-        "2xl": "0",
-        "3xl": "0",
-        full: "0",
+        sm: "var(--radius-sm)",
+        DEFAULT: "var(--radius)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        "2xl": "16px",
+        "3xl": "24px",
+        full: "9999px",
       },
 
       // Glass Morphism Shadows

@@ -51,7 +51,7 @@ export function TablesTab({
       minWidth: 120,
       cellStyle: {
         fontFamily: "monospace",
-        color: "#1976d2",
+        color: "var(--primary)",
       },
     },
     {

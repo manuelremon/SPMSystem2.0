@@ -247,7 +247,6 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -261,7 +260,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
       <DialogContent>
         <Stack spacing={3}>
           {/* Info de la consulta */}
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50" }}>
+          <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
               <InventoryIcon sx={{ color: "primary.main" }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -332,7 +331,6 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
                       alignItems: "center",
                       gap: 2,
                       p: 1.5,
-                      borderRadius: 2,
                       border: 2,
                       textAlign: "left",
                       cursor: "pointer",
@@ -357,7 +355,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
 
           {/* Campos adicionales segun opcion */}
           {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_PARCIAL && (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(237, 108, 2, 0.05)", borderColor: "warning.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(237, 108, 2, 0.05)", borderColor: "warning.light" }}>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -395,7 +393,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
           )}
 
           {opcionSeleccionada === OPCIONES_RESPUESTA.CEDER_CON_DEVOLUCION && (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(2, 136, 209, 0.05)", borderColor: "info.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(2, 136, 209, 0.05)", borderColor: "info.light" }}>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -433,7 +431,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
           )}
 
           {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL && (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(46, 125, 50, 0.05)", borderColor: "success.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(46, 125, 50, 0.05)", borderColor: "success.light" }}>
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
                   <CalendarTodayIcon sx={{ fontSize: 16 }} />
@@ -485,7 +483,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
 
           {/* Error message */}
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
+            <Alert severity="error">
               {error}
             </Alert>
           )}

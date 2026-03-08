@@ -90,7 +90,6 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
             bgcolor: "grey.50",
             border: 1,
             borderColor: "grey.200",
-            borderRadius: 1,
           }}
         >
           <Typography sx={{ fontFamily: "monospace", fontWeight: 600, color: textColor }}>
@@ -126,7 +125,6 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
             py: 1,
             border: 1,
             borderColor: "grey.200",
-            borderRadius: 1,
             bgcolor: "background.paper",
           }}
         >

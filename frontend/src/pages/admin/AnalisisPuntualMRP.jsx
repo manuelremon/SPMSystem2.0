@@ -238,7 +238,7 @@ export default function AnalisisPuntualMRP() {
               <Grid item xs={6} md={3}>
                 <Paper elevation={1} sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'grey.100' }}>
+                    <Box sx={{ p: 1, bgcolor: 'grey.100' }}>
                       <InventoryIcon sx={{ fontSize: 20, color: 'grey.600' }} />
                     </Box>
                     <Box>
@@ -256,7 +256,7 @@ export default function AnalisisPuntualMRP() {
               <Grid item xs={6} md={3}>
                 <Paper elevation={1} sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'error.light' }}>
+                    <Box sx={{ p: 1, bgcolor: 'error.light' }}>
                       <WarningAmberIcon sx={{ fontSize: 20, color: 'error.main' }} />
                     </Box>
                     <Box>
@@ -274,7 +274,7 @@ export default function AnalisisPuntualMRP() {
               <Grid item xs={6} md={3}>
                 <Paper elevation={1} sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'warning.light' }}>
+                    <Box sx={{ p: 1, bgcolor: 'warning.light' }}>
                       <TrendingDownIcon sx={{ fontSize: 20, color: 'warning.main' }} />
                     </Box>
                     <Box>
@@ -292,7 +292,7 @@ export default function AnalisisPuntualMRP() {
               <Grid item xs={6} md={3}>
                 <Paper elevation={1} sx={{ p: 2 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'warning.lighter' }}>
+                    <Box sx={{ p: 1, bgcolor: 'warning.lighter' }}>
                       <WarningAmberIcon sx={{ fontSize: 20, color: 'warning.dark' }} />
                     </Box>
                     <Box>
@@ -309,7 +309,7 @@ export default function AnalisisPuntualMRP() {
             </Grid>
 
             {/* Tabla de Alertas */}
-            <Paper elevation={1} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+            <Paper elevation={1} sx={{ overflow: 'hidden' }}>
               <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                 <Typography variant="h6" fontWeight={600}>
                   {t('mrp_alerts', 'Alertas de Stock')} ({alertas.length})

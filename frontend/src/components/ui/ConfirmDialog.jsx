@@ -51,7 +51,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, description, co
   const color = getVariantColor();
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: {} }}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
         <Box
           sx={{

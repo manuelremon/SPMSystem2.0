@@ -209,7 +209,7 @@ export default function CAPAList() {
       </Stack>
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>{t('capa_filtro_tipo', 'Tipo')}</InputLabel>
@@ -247,7 +247,7 @@ export default function CAPAList() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('capa_list_title', 'CAPAs')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('capa_list_title', 'CAPAs')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={capas}

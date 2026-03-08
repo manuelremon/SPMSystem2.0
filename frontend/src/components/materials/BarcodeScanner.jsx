@@ -204,7 +204,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 2 } }}
+      PaperProps={{ sx: {} }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -255,7 +255,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
                 width: '100%',
                 aspectRatio: '4/3',
                 bgcolor: 'grey.900',
-                borderRadius: 2,
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
@@ -299,7 +298,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
                     color: 'white',
                     px: 1.5,
                     py: 0.5,
-                    borderRadius: 1,
                     zIndex: 10,
                   }}
                 >
@@ -359,7 +357,6 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
                   sx={{
                     width: 220,
                     height: 220,
-                    borderRadius: 2,
                     border: '2px solid',
                     borderColor: 'divider',
                   }}

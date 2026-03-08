@@ -118,7 +118,7 @@ const StatusBadge = memo(function StatusBadge({
     <div style={{ padding: "4px 0" }}>
       {tooltipLines.map((line, idx) => (
         <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: idx < tooltipLines.length - 1 ? "4px" : 0 }}>
-          <span style={{ color: "#1976d2" }}>•</span>
+          <span style={{ color: "var(--primary)" }}>•</span>
           <span>{line}</span>
         </div>
       ))}
@@ -161,17 +161,16 @@ const StatusBadge = memo(function StatusBadge({
       slotProps={{
         tooltip: {
           sx: {
-            bgcolor: "#ffffff",
-            color: "#1f1f20",
-            border: "1px solid #dce0e6",
-            borderRadius: "8px",
+            bgcolor: "var(--card)",
+            color: "var(--fg)",
+            border: "1px solid var(--border)",
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             fontSize: "0.75rem",
             maxWidth: 300,
             "& .MuiTooltip-arrow": {
-              color: "#ffffff",
+              color: "var(--card)",
               "&::before": {
-                border: "1px solid #dce0e6",
+                border: "1px solid var(--border)",
               },
             },
           },

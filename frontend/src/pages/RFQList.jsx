@@ -193,7 +193,7 @@ export default function RFQList() {
       </Stack>
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('rfq_filtro_estado', 'Estado')}</InputLabel>
@@ -219,7 +219,7 @@ export default function RFQList() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('rfq_list_title', 'Solicitudes de Cotizacion')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('rfq_list_title', 'Solicitudes de Cotizacion')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={rfqs}

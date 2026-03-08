@@ -613,7 +613,7 @@ export default function Paso2DecisionAbastecimiento({
                 <Box component="span" fontWeight="bold" color="text.primary">{totalAsignado}</Box> de{" "}
                 <Box component="span" fontWeight="bold" color="text.primary">{cantidadSolicitada}</Box> asignados
               </Typography>
-              <Box sx={{ width: 128, height: 8, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+              <Box sx={{ width: 128, height: 8, bgcolor: 'grey.200', overflow: 'hidden' }}>
                 <Box
                   sx={{
                     height: '100%',
@@ -630,7 +630,7 @@ export default function Paso2DecisionAbastecimiento({
 
       {/* Barra de controles: Vista izq + Filtros centro + Navegacion items derecha */}
       {dataOpciones.length > 0 && (
-        <Paper sx={{ p: 1.5, borderRadius: 2, position: 'relative' }}>
+        <Paper sx={{ p: 1.5, position: 'relative' }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             {/* Toggle Vista - Izquierda */}
             <Stack direction="row" spacing={1}>
@@ -956,7 +956,6 @@ export default function Paso2DecisionAbastecimiento({
         onClose={() => setShowExcedenteModal(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Stack direction="row" spacing={2} alignItems="flex-start">
@@ -1353,7 +1352,6 @@ function EquivalenciasCard({
                           gap: 0.5,
                           px: 0.75,
                           py: 0.25,
-                          borderRadius: 1,
                           cursor: detalleStock.length > 0 ? 'pointer' : 'default',
                           bgcolor: stockExpanded ? 'primary.lighter' : 'transparent',
                           '&:hover': detalleStock.length > 0 ? { bgcolor: 'grey.200' } : {},
@@ -1385,7 +1383,6 @@ function EquivalenciasCard({
                     sx={{
                       mx: 2,
                       mb: 1,
-                      borderRadius: 2,
                       border: 1,
                       borderColor: 'divider',
                       bgcolor: 'grey.50',
@@ -1514,14 +1511,13 @@ function FuenteSeleccionadaCard({ fuente, onChangeCantidad, onRemove }) {
   const TipoIcon = tipoConfig.icon;
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+    <Paper variant="outlined" sx={{ p: 1.5 }}>
       <Stack direction="row" alignItems="center" spacing={2}>
         {/* Icono tipo */}
         <Box
           sx={{
             width: 32,
             height: 32,
-            borderRadius: 2,
             bgcolor: 'grey.100',
             display: 'flex',
             alignItems: 'center',
@@ -1809,7 +1805,6 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
                       sx={{
                         width: 32,
                         height: 32,
-                        borderRadius: 2,
                         bgcolor: 'grey.100',
                         display: 'flex',
                         alignItems: 'center',
@@ -1859,7 +1854,7 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
                       >
                         {score.toFixed(0)}
                       </Typography>
-                      <Box sx={{ width: 56, height: 4, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+                      <Box sx={{ width: 56, height: 4, bgcolor: 'grey.200', overflow: 'hidden' }}>
                         <Box
                           sx={{
                             height: '100%',
@@ -1944,7 +1939,7 @@ function MrpDetalle({ item, solicitud, onClose }) {
           <Button size="small" variant="text" onClick={onClose}>Cerrar</Button>
         </Stack>
         {status.warn && (
-          <Paper sx={{ px: 1.5, py: 1, borderRadius: 2, bgcolor: 'error.lighter', border: 1, borderColor: 'error.light' }}>
+          <Paper sx={{ px: 1.5, py: 1, bgcolor: 'error.lighter', border: 1, borderColor: 'error.light' }}>
             <Typography variant="body2" fontWeight="semibold" color="error.dark">
               Alerta: stock actual + pedidos ({total}) esta por debajo del punto de pedido ({d.punto_pedido ?? "N/D"}). Revisar gestion MRP.
             </Typography>
@@ -1966,7 +1961,7 @@ function MrpDetalle({ item, solicitud, onClose }) {
 
 function MrpField({ label, value }) {
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+    <Paper variant="outlined" sx={{ p: 1.5 }}>
       <Typography variant="caption" textTransform="uppercase" fontWeight="bold" letterSpacing={0.5} color="text.secondary">
         {label}
       </Typography>

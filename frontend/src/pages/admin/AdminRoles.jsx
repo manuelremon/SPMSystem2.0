@@ -339,7 +339,6 @@ export default function AdminRoles() {
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 2,
           overflow: "hidden",
         }}
       >

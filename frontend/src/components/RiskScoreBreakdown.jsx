@@ -82,7 +82,6 @@ export default function RiskScoreBreakdown({ risk }) {
           mb: 3,
           p: 2,
           bgcolor: getBarBgColor(overallScore),
-          borderRadius: 2,
           border: '1px solid',
           borderColor: 'divider',
         }}
@@ -136,7 +135,6 @@ export default function RiskScoreBreakdown({ risk }) {
                   position: 'relative',
                   height: 10,
                   bgcolor: 'grey.200',
-                  borderRadius: 1,
                   overflow: 'hidden',
                 }}
                 role="progressbar"
@@ -153,7 +151,6 @@ export default function RiskScoreBreakdown({ risk }) {
                     height: '100%',
                     width: `${Math.min(value, 100)}%`,
                     bgcolor: barColor,
-                    borderRadius: 1,
                     transition: 'width 0.5s ease-in-out',
                   }}
                 />

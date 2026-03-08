@@ -67,7 +67,6 @@ const MetricCard = ({ title, value, subtitle, icon: Icon, color = 'blue' }) => {
           sx={{
             p: 1,
             bgcolor: colors.bg,
-            borderRadius: 2,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -102,7 +101,7 @@ const PipelineViz = ({ data }) => {
               sx={{
                 height: 32,
                 bgcolor: 'grey.100',
-                borderRadius: 4,
+                borderRadius: 3,
                 overflow: 'hidden'
               }}
             >
@@ -110,7 +109,7 @@ const PipelineViz = ({ data }) => {
                 sx={{
                   height: '100%',
                   bgcolor: colors[idx] || 'primary.main',
-                  borderRadius: 4,
+                  borderRadius: 3,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
@@ -214,7 +213,7 @@ const OTIFGaugeCard = ({ data }) => {
 
       <Grid container spacing={2} sx={{ mt: 3 }}>
         <Grid item xs={6}>
-          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50' }}>
             <Typography
               variant="h6"
               fontWeight="bold"
@@ -228,7 +227,7 @@ const OTIFGaugeCard = ({ data }) => {
           </Box>
         </Grid>
         <Grid item xs={6}>
-          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50' }}>
             <Typography
               variant="h6"
               fontWeight="bold"
@@ -307,12 +306,11 @@ const CentrosChart = ({ data }) => {
             {centro.centro}
           </Typography>
           <Box sx={{ flex: 1 }}>
-            <Box sx={{ height: 24, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden' }}>
+            <Box sx={{ height: 24, bgcolor: 'grey.100', overflow: 'hidden' }}>
               <Box
                 sx={{
                   height: '100%',
                   bgcolor: 'secondary.main',
-                  borderRadius: 1,
                   width: `${(centro.total_solpeds / maxSolpeds) * 100}%`
                 }}
               />

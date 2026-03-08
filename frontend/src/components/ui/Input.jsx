@@ -106,7 +106,7 @@ export const Input = React.forwardRef(
             {showError && (
               <p
                 id={errorId}
-                className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400"
+                className="flex items-center gap-1.5 text-xs text-red-600"
                 role="alert"
               >
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
@@ -115,7 +115,7 @@ export const Input = React.forwardRef(
             )}
 
             {showSuccess && (
-              <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+              <p className="flex items-center gap-1.5 text-xs text-emerald-600">
                 <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                 <span>{successMessage}</span>
               </p>
@@ -124,7 +124,7 @@ export const Input = React.forwardRef(
             {showHelper && (
               <p
                 id={helperId}
-                className="text-xs text-slate-500 dark:text-slate-400"
+                className="text-xs text-slate-500"
               >
                 {helperText}
               </p>
@@ -137,8 +137,8 @@ export const Input = React.forwardRef(
               className={clsx(
                 "text-xs tabular-nums flex-shrink-0",
                 isOverLimit
-                  ? "text-red-600 dark:text-red-400 font-medium"
-                  : "text-slate-400 dark:text-slate-500"
+                  ? "text-red-600 font-medium"
+                  : "text-slate-400"
               )}
               aria-live="polite"
             >

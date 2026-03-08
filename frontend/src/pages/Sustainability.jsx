@@ -406,7 +406,7 @@ export default function Sustainability() {
             <LinearProgress
               variant="determinate"
               value={pct}
-              sx={{ flex: 1, height: 8, borderRadius: 1 }}
+              sx={{ flex: 1, height: 8 }}
               color={pct >= 100 ? 'success' : pct >= 50 ? 'warning' : 'error'}
             />
             <Typography variant="caption" sx={{ minWidth: 40, textAlign: 'right' }}>
@@ -451,7 +451,7 @@ export default function Sustainability() {
   ], [t]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 160 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 160 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -503,7 +503,7 @@ export default function Sustainability() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs
           value={tabValue}
           onChange={(_, v) => setTabValue(v)}
@@ -521,14 +521,14 @@ export default function Sustainability() {
 
       {/* Tab 0: Dashboard Summary */}
       {tabValue === 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           {dashboardData ? (
             <Stack spacing={3}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 {t('sust_dashboard_title', 'Resumen de Sustentabilidad')}
               </Typography>
               <Stack direction={{ xs: 'column', md: 'row' }} gap={3}>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
                   <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                     <Co2Icon fontSize="small" color="error" />
                     <Typography variant="subtitle2">{t('sust_dash_emisiones', 'Emisiones por Scope')}</Typography>
@@ -542,7 +542,7 @@ export default function Sustainability() {
                     </Stack>
                   ))}
                 </Paper>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
                   <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                     <NatureIcon fontSize="small" color="success" />
                     <Typography variant="subtitle2">{t('sust_dash_metas', 'Estado de Metas')}</Typography>
@@ -557,7 +557,7 @@ export default function Sustainability() {
                     {t('sust_dash_expiradas', 'Expiradas')}: <strong>{dashboardData.metas_expiradas ?? 0}</strong>
                   </Typography>
                 </Paper>
-                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
                   <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                     <BusinessIcon fontSize="small" color="info" />
                     <Typography variant="subtitle2">{t('sust_dash_esg', 'ESG Proveedores')}</Typography>
@@ -582,7 +582,7 @@ export default function Sustainability() {
       {/* Tab 1: Emisiones */}
       {tabValue === 1 && (
         <>
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 140 }}>
                 <InputLabel>{t('sust_filter_scope', 'Scope')}</InputLabel>
@@ -618,7 +618,7 @@ export default function Sustainability() {
           </Paper>
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('sust_tab_emisiones', 'Emisiones')}
           >
             <SPMAgGrid
@@ -652,7 +652,7 @@ export default function Sustainability() {
           </Stack>
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('sust_tab_esg', 'ESG Proveedores')}
           >
             <SPMAgGrid
@@ -686,7 +686,7 @@ export default function Sustainability() {
           </Stack>
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('sust_tab_metas', 'Metas')}
           >
             <SPMAgGrid
@@ -720,7 +720,7 @@ export default function Sustainability() {
           </Stack>
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('sust_tab_huella', 'Huella Materiales')}
           >
             <SPMAgGrid

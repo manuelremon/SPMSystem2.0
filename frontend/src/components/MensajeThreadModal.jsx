@@ -107,7 +107,6 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
           maxHeight: "85vh",
         }
       }}

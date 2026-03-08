@@ -433,7 +433,7 @@ export default function ConsignmentDetail() {
       </Stack>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('consign_tab_stock', 'Stock')} />
           <Tab label={t('consign_tab_consumos', 'Consumos')} />

@@ -306,7 +306,7 @@ export default function LotDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -352,7 +352,7 @@ export default function LotDetail() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs
           value={tabValue}
           onChange={(_, v) => setTabValue(v)}
@@ -369,12 +369,12 @@ export default function LotDetail() {
 
       {/* Tab 0: Info */}
       {tabValue === 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             {t('lot_info_title', 'Informacion del Lote')}
           </Typography>
           <Stack direction={{ xs: 'column', md: 'row' }} gap={3}>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('lot_info_general', 'Datos Generales')}</Typography>
               <Stack spacing={0.5}>
                 <Typography variant="body2">{t('lot_col_numero', 'Numero Lote')}: <strong>{lote.numero_lote}</strong></Typography>
@@ -384,7 +384,7 @@ export default function LotDetail() {
                 <Typography variant="body2">{t('lot_col_ubicacion', 'Ubicacion')}: <strong>{lote.ubicacion || '-'}</strong></Typography>
               </Stack>
             </Paper>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('lot_info_cantidades', 'Cantidades')}</Typography>
               <Stack spacing={0.5}>
                 <Typography variant="body2">{t('lot_col_inicial', 'Cantidad Inicial')}: <strong>{lote.cantidad_inicial ?? '-'}</strong></Typography>
@@ -393,7 +393,7 @@ export default function LotDetail() {
                 <Typography variant="body2">{t('lot_col_calidad', 'Calidad')}: {calidad ? <Chip size="small" label={CALIDAD_LABELS[calidad] || calidad} color={CALIDAD_COLORS[calidad] || 'default'} variant="outlined" sx={{ ml: 0.5 }} /> : '-'}</Typography>
               </Stack>
             </Paper>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('lot_info_fechas', 'Fechas')}</Typography>
               <Stack spacing={0.5}>
                 <Typography variant="body2">{t('lot_col_vencimiento', 'Vencimiento')}: <strong>{formatDate(lote.fecha_vencimiento) || '-'}</strong></Typography>
@@ -414,7 +414,7 @@ export default function LotDetail() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('lot_tab_movimientos', 'Movimientos')}
         >
           <SPMAgGrid
@@ -434,7 +434,7 @@ export default function LotDetail() {
 
       {/* Tab 2: Forward Traceability */}
       {tabValue === 2 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <AccountTreeIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -464,7 +464,7 @@ export default function LotDetail() {
 
       {/* Tab 3: Backward Traceability */}
       {tabValue === 3 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <AccountTreeIcon color="secondary" />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>

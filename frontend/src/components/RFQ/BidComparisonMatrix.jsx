@@ -75,7 +75,7 @@ export default function BidComparisonMatrix({ rfqId }) {
   };
 
   return (
-    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+    <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
       <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           {t('rfq_comparacion_titulo', 'Matriz de Comparacion de Ofertas')}

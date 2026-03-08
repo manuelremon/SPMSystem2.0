@@ -145,7 +145,7 @@ export default function MensajesInline({ onUpdate }) {
           onClick={loadMensajes}
           disabled={loading}
           size="small"
-          sx={{ border: "1px solid var(--border)", borderRadius: 1 }}
+          sx={{ border: "1px solid var(--border)" }}
         >
           <RefreshCw
             style={{
@@ -161,7 +161,7 @@ export default function MensajesInline({ onUpdate }) {
       {/* Content */}
       <Box sx={{ p: 3 }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -198,7 +198,6 @@ export default function MensajesInline({ onUpdate }) {
                     alignItems: "flex-start",
                     gap: 2,
                     p: 2,
-                    borderRadius: 2,
                     cursor: "pointer",
                     border: "1px solid transparent",
                     bgcolor: mensaje.leido ? "transparent" : "rgba(168, 85, 247, 0.05)",

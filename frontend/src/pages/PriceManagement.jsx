@@ -420,7 +420,7 @@ export default function PriceManagement() {
       </Stack>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tab} onChange={(e, val) => setTab(val)}>
           <Tab label={t('price_tab_listas', 'Listas de Precios')} />
           <Tab label={t('price_tab_negos', 'Negociaciones')} />

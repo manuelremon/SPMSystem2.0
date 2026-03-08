@@ -63,7 +63,6 @@ function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
         alignItems: 'flex-start',
         gap: 1.5,
         p: 1.5,
-        borderRadius: 2,
         border: 1,
         borderColor: styles.borderColor,
         bgcolor: styles.bgcolor,

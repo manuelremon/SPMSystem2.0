@@ -62,9 +62,9 @@ export default function AnalisisPuntualHome() {
       {tempDataActive ? (
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3, mt: 3 }}>
           {/* Card MRP */}
-          <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", p: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: "rgba(245, 158, 11, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Box sx={{ width: 48, height: 48, bgcolor: "rgba(245, 158, 11, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <WarningAmberIcon sx={{ color: "#f59e0b", fontSize: 24 }} />
               </Box>
               <Box>
@@ -80,16 +80,16 @@ export default function AnalisisPuntualHome() {
               variant="contained"
               fullWidth
               onClick={() => navigate("/admin/analisis-puntual/mrp")}
-              sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+              sx={{ bgcolor: "primary.main", textTransform: "none", fontWeight: 600 }}
             >
               {t("admin_ap_abrir_mrp", "Abrir MRP Temporal")}
             </Button>
           </Paper>
 
           {/* Card Forecast */}
-          <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", p: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: "rgba(59, 130, 246, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Box sx={{ width: 48, height: 48, bgcolor: "rgba(59, 130, 246, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <ShowChartIcon sx={{ color: "#3b82f6", fontSize: 24 }} />
               </Box>
               <Box>
@@ -105,7 +105,7 @@ export default function AnalisisPuntualHome() {
               variant="contained"
               fullWidth
               onClick={() => navigate("/admin/analisis-puntual/forecast")}
-              sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+              sx={{ bgcolor: "primary.main", textTransform: "none", fontWeight: 600 }}
             >
               {t("admin_ap_abrir_forecast", "Abrir Forecast Temporal")}
             </Button>
@@ -113,7 +113,7 @@ export default function AnalisisPuntualHome() {
         </Box>
       ) : (
         /* Estado sin datos */
-        <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, p: 6, textAlign: "center", mt: 3 }}>
+        <Paper elevation={0} sx={{ border: "1px solid var(--border)", p: 6, textAlign: "center", mt: 3 }}>
           <Box sx={{ width: 80, height: 80, borderRadius: "50%", bgcolor: "#f5f7fa", display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 3 }}>
             <InsertDriveFileIcon sx={{ fontSize: 40, color: "#9ca3af" }} />
           </Box>
@@ -127,7 +127,7 @@ export default function AnalisisPuntualHome() {
             variant="contained"
             startIcon={<UploadFileIcon />}
             onClick={() => setShowImportModal(true)}
-            sx={{ bgcolor: "#1976d2", textTransform: "none", fontWeight: 600 }}
+            sx={{ bgcolor: "primary.main", textTransform: "none", fontWeight: 600 }}
           >
             {t("admin_ap_importar_excel", "Importar Excel")}
           </Button>

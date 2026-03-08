@@ -87,7 +87,6 @@ const MetricCard = ({ icon: Icon, label, value, color = 'var(--primary)', highli
     sx={{
       p: 2.5,
       border: highlight ? `2px solid ${color}` : "1px solid var(--border)",
-      borderRadius: 2,
       bgcolor: highlight ? `${color}08` : "var(--card)"
     }}
   >
@@ -95,7 +94,6 @@ const MetricCard = ({ icon: Icon, label, value, color = 'var(--primary)', highli
       <Box sx={{
         p: 1.5,
         bgcolor: `${color}15`,
-        borderRadius: 2,
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
@@ -243,12 +241,12 @@ export default function AIAnalytics() {
         </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3 }}>
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} variant="rectangular" height={100} sx={{ borderRadius: 2 }} />
+            <Skeleton key={i} variant="rectangular" height={100} />
           ))}
         </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
-          <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />
-          <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />
+          <Skeleton variant="rectangular" height={350} />
+          <Skeleton variant="rectangular" height={350} />
         </Box>
       </Container>
     )
@@ -344,9 +342,9 @@ export default function AIAnalytics() {
         <>
           {/* Estado de Pipelines */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
-            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ p: 1.5, bgcolor: "var(--purple-bg-light)", borderRadius: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--purple-bg-light)" }}>
                   <PsychologyIcon sx={{ fontSize: 24, color: "var(--purple-dark)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -358,9 +356,9 @@ export default function AIAnalytics() {
               </Box>
             </Paper>
 
-            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ p: 1.5, bgcolor: "var(--warning-bg)", borderRadius: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--warning-bg)" }}>
                   <GpsFixedIcon sx={{ fontSize: 24, color: "var(--warning-light)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -372,9 +370,9 @@ export default function AIAnalytics() {
               </Box>
             </Paper>
 
-            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ p: 1.5, bgcolor: "var(--success-bg)", borderRadius: 2 }}>
+                <Box sx={{ p: 1.5, bgcolor: "var(--success-bg)" }}>
                   <TrendingUpIcon sx={{ fontSize: 24, color: "var(--success)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
@@ -398,7 +396,7 @@ export default function AIAnalytics() {
           {/* Contenido principal AI */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
             {/* Solicitudes Priorizadas */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <BarChartIcon sx={{ color: "var(--chart-8)" }} />
@@ -421,7 +419,7 @@ export default function AIAnalytics() {
                       <Paper
                         key={sol.id || idx}
                         elevation={0}
-                        sx={{ p: 2, bgcolor: "var(--bg)", border: "1px solid var(--border)", borderRadius: 1.5 }}
+                        sx={{ p: 2, bgcolor: "var(--bg)", border: "1px solid var(--border)" }}
                       >
                         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                           <Box sx={{ flex: 1 }}>
@@ -486,7 +484,7 @@ export default function AIAnalytics() {
             </Paper>
 
             {/* Alertas Inteligentes */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
@@ -522,8 +520,7 @@ export default function AIAnalytics() {
                           sx={{
                             p: 2,
                             bgcolor: isHigh ? 'var(--danger-bg)' : isMedium ? 'var(--warning-bg)' : 'var(--info-bg)',
-                            border: `1px solid ${isHigh ? 'var(--danger-border)' : isMedium ? 'var(--warning-border)' : 'var(--info-border)'}`,
-                            borderRadius: 1.5
+                            border: `1px solid ${isHigh ? 'var(--danger-border)' : isMedium ? 'var(--warning-border)' : 'var(--info-border)'}`
                           }}
                         >
                           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
@@ -607,7 +604,7 @@ export default function AIAnalytics() {
           {/* Graficos SLA */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 3 }}>
             {/* Cumplimiento general */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
                 <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
                   {t('sla_cumplimiento', 'Cumplimiento General')}
@@ -629,7 +626,7 @@ export default function AIAnalytics() {
             </Paper>
 
             {/* Por criticidad */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
                 <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
                   {t('sla_por_criticidad', 'Por Criticidad')}
@@ -680,7 +677,7 @@ export default function AIAnalytics() {
           </Box>
 
           {/* Alertas SLA activas */}
-          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
             <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
@@ -725,8 +722,7 @@ export default function AIAnalytics() {
                         sx={{
                           p: 2,
                           bgcolor: colors.bg,
-                          border: `1px solid ${colors.border}`,
-                          borderRadius: 1.5
+                          border: `1px solid ${colors.border}`
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -774,7 +770,7 @@ export default function AIAnalytics() {
       )}
 
       {/* Info adicional */}
-      <Paper elevation={0} sx={{ mt: 3, p: 2, border: "1px solid var(--border)", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ mt: 3, p: 2, border: "1px solid var(--border)" }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <PsychologyIcon sx={{ fontSize: 18, color: "var(--purple-dark)" }} />

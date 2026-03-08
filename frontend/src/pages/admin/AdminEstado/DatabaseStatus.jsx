@@ -32,7 +32,6 @@ function DatabaseCard({ name, info }) {
         variant="outlined"
         sx={{
           p: 2,
-          borderRadius: 2,
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
@@ -65,7 +64,6 @@ function DatabaseCard({ name, info }) {
         variant="outlined"
         sx={{
           p: 2,
-          borderRadius: 2,
           bgcolor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
@@ -96,7 +94,6 @@ function DatabaseCard({ name, info }) {
       variant="outlined"
       sx={{
         p: 2,
-        borderRadius: 2,
         bgcolor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
@@ -176,7 +173,6 @@ export function DatabaseStatus({ dbStats }) {
             <Paper
               sx={{
                 p: 2,
-                borderRadius: 2,
                 bgcolor: 'success.lighter',
                 textAlign: 'center',
               }}
@@ -202,7 +198,6 @@ export function DatabaseStatus({ dbStats }) {
             <Paper
               sx={{
                 p: 2,
-                borderRadius: 2,
                 bgcolor: 'info.lighter',
                 textAlign: 'center',
               }}

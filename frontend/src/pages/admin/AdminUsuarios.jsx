@@ -162,7 +162,6 @@ function RoleBadge({ role }) {
         fontWeight: 600,
         bgcolor: colors.bgcolor,
         color: colors.color,
-        borderRadius: 0,
         border: 1,
         borderColor: "grey.900",
         "& .MuiChip-label": {
@@ -193,7 +192,6 @@ function RoleChips({ value = [], onChange }) {
             onClick={() => toggleRole(role.value)}
             size="small"
             sx={{
-              borderRadius: 0,
               fontWeight: 600,
               fontSize: "12px",
               cursor: "pointer",
@@ -379,7 +377,6 @@ function UsuariosTable({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderRadius: 1,
           }}
         >
           <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "error.800" }}>
@@ -403,7 +400,6 @@ function UsuariosTable({
                 fontSize: "11px",
                 fontWeight: 600,
                 textTransform: "uppercase",
-                borderRadius: 0,
                 color: "text.secondary",
                 borderColor: "grey.200",
                 "&:hover": { bgcolor: "grey.50" },
@@ -421,7 +417,6 @@ function UsuariosTable({
                 fontSize: "11px",
                 fontWeight: 600,
                 textTransform: "uppercase",
-                borderRadius: 0,
               }}
             >
               {t('common_eliminar', 'Eliminar')}
@@ -485,7 +480,6 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                   fontSize: "11px",
                   fontWeight: 600,
                   textTransform: "uppercase",
-                  borderRadius: 0,
                   color: "text.secondary",
                   borderColor: "grey.200",
                   "&:hover": { bgcolor: "grey.50" },
@@ -502,7 +496,6 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                   fontSize: "11px",
                   fontWeight: 600,
                   textTransform: "uppercase",
-                  borderRadius: 0,
                 }}
               >
                 {t('common_eliminar', 'Eliminar')}
@@ -629,7 +622,6 @@ function EmptyState({ type = "no-data", onClearFilters }) {
             fontSize: "11px",
             fontWeight: 600,
             textTransform: "uppercase",
-            borderRadius: 0,
             color: "primary.main",
             bgcolor: "primary.50",
             "&:hover": { bgcolor: "primary.100" },
@@ -975,7 +967,6 @@ export default function AdminUsuarios() {
                   fontSize: "11px",
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
-                  borderRadius: 0,
                   px: 2,
                   height: 36,
                 }}
@@ -1085,7 +1076,6 @@ export default function AdminUsuarios() {
                   fontSize: "11px",
                   bgcolor: "grey.100",
                   color: "text.secondary",
-                  borderRadius: 0,
                   "& .MuiChip-icon": { mr: 0.5 },
                 }}
               />
@@ -1448,7 +1438,6 @@ export default function AdminUsuarios() {
               fontWeight: 600,
               fontSize: "11px",
               textTransform: "uppercase",
-              borderRadius: 0,
             }}
           >
             {t('common_cancelar', 'Cancelar')}
@@ -1463,7 +1452,6 @@ export default function AdminUsuarios() {
               fontWeight: 600,
               fontSize: "11px",
               textTransform: "uppercase",
-              borderRadius: 0,
             }}
           >
             {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}

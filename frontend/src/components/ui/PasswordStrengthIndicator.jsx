@@ -58,7 +58,7 @@ function StrengthSegment({ active, color, index }) {
     <div
       className={clsx(
         "h-1.5 rounded-full transition-all duration-300",
-        active ? color : "bg-slate-200 dark:bg-slate-700"
+        active ? color : "bg-slate-200"
       )}
       style={{ transitionDelay: `${index * 50}ms` }}
       role="presentation"
@@ -80,7 +80,7 @@ function StrengthCriterion({ met, label }) {
     <div
       className={clsx(
         "flex items-center gap-1.5 text-xs transition-colors duration-200",
-        met ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
+        met ? "text-emerald-600" : "text-slate-400"
       )}
     >
       {met ? (

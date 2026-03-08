@@ -341,21 +341,21 @@ export default function SupplierAudits() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('audit_sup_kpi_total', 'Total Auditorias')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>{kpis.auditorias_total ?? 0}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('audit_sup_kpi_pass_rate', 'Tasa Aprobacion')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
               {kpis.pass_rate != null ? `${Number(kpis.pass_rate).toFixed(1)}%` : '-'}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('audit_sup_kpi_hallazgos', 'Hallazgos Abiertos')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>{kpis.hallazgos_abiertos ?? 0}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('audit_sup_kpi_certs', 'Certificaciones Activas')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>{kpis.certificaciones_activas ?? 0}</Typography>
           </Paper>
@@ -363,7 +363,7 @@ export default function SupplierAudits() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <TextField
             size="small"
@@ -402,7 +402,7 @@ export default function SupplierAudits() {
       {/* Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('audit_sup_title', 'Auditorias de Proveedores')}
       >
         <SPMAgGrid

@@ -39,17 +39,17 @@ export default function MaterialClusters() {
         <div style={{ width: 180 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Centro</label>
           <input type="text" value={centro} onChange={e => setCentro(e.target.value)} placeholder="Ej: AA101 (todos)"
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 0, fontSize: 14, background: 'var(--bg-base)' }} />
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }} />
         </div>
         <div style={{ width: 140 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clusters</label>
           <select value={nClusters} onChange={e => setNClusters(Number(e.target.value))}
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 0, fontSize: 14, background: 'var(--bg-base)' }}>
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }}>
             {[3, 4, 5, 6, 7, 8].map(n => <option key={n} value={n}>{n} grupos</option>)}
           </select>
         </div>
         <button onClick={ejecutar} disabled={loading}
-          style={{ padding: '8px 24px', background: loading ? 'var(--fg-muted)' : 'var(--primary)', color: 'white', border: 'none', borderRadius: 0, fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: 38 }}>
+          style={{ padding: '8px 24px', background: loading ? 'var(--fg-muted)' : 'var(--primary)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: 38 }}>
           {loading ? 'Procesando...' : 'Ejecutar Clustering'}
         </button>
       </div>

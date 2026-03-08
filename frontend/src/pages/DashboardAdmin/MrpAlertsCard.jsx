@@ -29,7 +29,6 @@ function MrpAlertsCard({ resumen, onKpiDrillDown }) {
         bgcolor: 'var(--surface)',
         border: '1px solid',
         borderColor: totalAlertas > 0 ? 'warning.light' : 'divider',
-        borderRadius: 2,
         cursor: onKpiDrillDown ? 'pointer' : 'default',
         transition: 'box-shadow 0.2s ease-in-out',
         '&:hover': {

@@ -76,8 +76,8 @@ function ScoreBar({ value }) {
   const color = getScoreColor(v);
   return (
     <Stack direction="row" alignItems="center" gap={1} sx={{ width: '100%' }}>
-      <Box sx={{ flex: 1, height: 6, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden', minWidth: 40 }}>
-        <Box sx={{ width: `${Math.min(v, 100)}%`, height: '100%', bgcolor: color, borderRadius: 1 }} />
+      <Box sx={{ flex: 1, height: 6, bgcolor: 'grey.200', overflow: 'hidden', minWidth: 40 }}>
+        <Box sx={{ width: `${Math.min(v, 100)}%`, height: '100%', bgcolor: color }} />
       </Box>
       <Typography variant="body2" sx={{ fontWeight: 600, color, minWidth: 32, textAlign: 'right', fontSize: '0.8rem' }}>
         {v.toFixed(1)}
@@ -270,7 +270,7 @@ export default function SupplierRiskMap() {
       {/* Row 1: KPI Cards + Score Promedio */}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
         {/* Score Promedio Global - card grande */}
-        <Paper elevation={0} sx={{ flex: 1, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2.5, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
             {t('risk_avg_score', 'Score Promedio')}
           </Typography>
@@ -290,7 +290,7 @@ export default function SupplierRiskMap() {
         </Paper>
 
         {/* Distribucion por nivel */}
-        <Paper elevation={0} sx={{ flex: 2, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 2, p: 2.5, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
             {t('risk_distribution', 'Distribucion por Nivel de Riesgo')}
           </Typography>
@@ -305,8 +305,8 @@ export default function SupplierRiskMap() {
               return (
                 <Stack key={item.key} direction="row" alignItems="center" gap={1}>
                   <Typography variant="body2" sx={{ width: 55, fontWeight: 500, fontSize: '0.8rem' }}>{item.label}</Typography>
-                  <Box sx={{ flex: 1, height: 14, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden', position: 'relative' }}>
-                    <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: item.color, borderRadius: 1, transition: 'width 0.5s' }} />
+                  <Box sx={{ flex: 1, height: 14, bgcolor: 'grey.100', overflow: 'hidden', position: 'relative' }}>
+                    <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: item.color, transition: 'width 0.5s' }} />
                   </Box>
                   <Typography variant="body2" sx={{ minWidth: 55, textAlign: 'right', fontWeight: 600, fontSize: '0.8rem' }}>
                     {item.count} ({pct.toFixed(0)}%)
@@ -321,7 +321,7 @@ export default function SupplierRiskMap() {
         </Paper>
 
         {/* Dimensiones promedio */}
-        <Paper elevation={0} sx={{ flex: 1.5, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1.5, p: 2.5, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
             {t('risk_avg_dimensions', 'Riesgo Promedio por Dimension')}
           </Typography>
@@ -342,8 +342,8 @@ export default function SupplierRiskMap() {
                   variant="determinate"
                   value={Math.min(dim.value, 100)}
                   sx={{
-                    height: 8, borderRadius: 1, bgcolor: 'grey.100',
-                    '& .MuiLinearProgress-bar': { bgcolor: getScoreColor(dim.value), borderRadius: 1 },
+                    height: 8, bgcolor: 'grey.100',
+                    '& .MuiLinearProgress-bar': { bgcolor: getScoreColor(dim.value) },
                   }}
                 />
               </Box>
@@ -362,7 +362,7 @@ export default function SupplierRiskMap() {
       {/* Row 2: Top Riesgosos + Alertas */}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
         {/* Top 5 Proveedores mas riesgosos */}
-        <Paper elevation={0} sx={{ flex: 1, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2.5, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.5 }}>
             <TrendingUpIcon sx={{ color: 'error.main', fontSize: 20 }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
@@ -374,7 +374,7 @@ export default function SupplierRiskMap() {
               <Box
                 key={s.proveedor_cuit}
                 sx={{
-                  display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: 1,
+                  display: 'flex', alignItems: 'center', gap: 1, p: 1,
                   bgcolor: idx === 0 ? 'error.50' : 'transparent',
                   cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' },
                   border: expandedRow === (s.id || s.proveedor_cuit) ? '1px solid' : '1px solid transparent',
@@ -412,7 +412,7 @@ export default function SupplierRiskMap() {
         </Paper>
 
         {/* Alertas + Single Source (collapsible, compact) */}
-        <Paper elevation={0} sx={{ flex: 1, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ flex: 1, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           {/* Critical alerts */}
           <Box sx={{ p: 2 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
@@ -488,7 +488,7 @@ export default function SupplierRiskMap() {
       </Stack>
 
       {/* Row 3: Filters */}
-      <Paper elevation={0} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>{t('risk_filter_nivel', 'Nivel')}</InputLabel>
@@ -532,7 +532,7 @@ export default function SupplierRiskMap() {
         {/* Data Table */}
         <Paper
           elevation={0}
-          sx={{ flex: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ flex: 2, border: '1px solid', borderColor: 'divider' }}
         >
           <SPMAgGrid
             columnDefs={columnDefs}
@@ -552,7 +552,7 @@ export default function SupplierRiskMap() {
         {/* Detail Panel: always visible */}
         <Paper
           elevation={0}
-          sx={{ flex: 1, minWidth: 300, border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2.5 }}
+          sx={{ flex: 1, minWidth: 300, border: '1px solid', borderColor: 'divider', p: 2.5 }}
         >
           {selectedSupplier ? (
             <>

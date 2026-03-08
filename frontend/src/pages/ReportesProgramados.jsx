@@ -346,7 +346,7 @@ export default function ReportesProgramados() {
         </Button>
       </Stack>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('reportes_title', 'Reportes Programados')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('reportes_title', 'Reportes Programados')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={reportes}

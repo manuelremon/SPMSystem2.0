@@ -193,7 +193,7 @@ export default function InvoiceDetail() {
       </Button>
 
       {/* Header card */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -246,7 +246,7 @@ export default function InvoiceDetail() {
       </Paper>
 
       {/* Invoice Items */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {t('invoice_items_title', 'Items de Factura')}
@@ -266,7 +266,7 @@ export default function InvoiceDetail() {
       </Paper>
 
       {/* Matching Comparison */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
           {t('invoice_matching_title', 'Comparacion 3-Way Matching')}
         </Typography>
@@ -291,7 +291,7 @@ export default function InvoiceDetail() {
                     <Paper
                       key={result.id || idx}
                       variant="outlined"
-                      sx={{ p: 2, borderRadius: 1 }}
+                      sx={{ p: 2 }}
                     >
                       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
                         <Box>

@@ -72,7 +72,6 @@ export function Skeleton({
     animation,
     className,
     sx: {
-      borderRadius: muiVariant === 'rounded' ? '8px' : undefined,
       ...sx,
     },
     ...props,
@@ -147,7 +146,6 @@ export function CardSkeleton({ showImage = false, lines = 3, sx }) {
         p: 3,
         border: 1,
         borderColor: 'divider',
-        borderRadius: 2,
         ...sx,
       }}
       role="status"
@@ -186,7 +184,6 @@ export function StatCardSkeleton({ sx }) {
         p: 3,
         border: 1,
         borderColor: 'divider',
-        borderRadius: 2,
         ...sx,
       }}
       role="status"

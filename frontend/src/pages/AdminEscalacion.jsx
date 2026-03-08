@@ -197,11 +197,11 @@ export default function AdminEscalacion() {
         </Button>
       </Stack>
 
-      <Alert severity="info" sx={{ borderRadius: 2 }}>
+      <Alert severity="info">
         {t('escalation_info', 'Configura reglas de escalado para solicitudes que excedan el tiempo de aprobación. Cuando una solicitud supera el timeout, se notifica al rol indicado.')}
       </Alert>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('escalation_title', 'Escalado de Aprobaciones')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('escalation_title', 'Escalado de Aprobaciones')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={rules}

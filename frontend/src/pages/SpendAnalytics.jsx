@@ -139,7 +139,7 @@ export default function SpendAnalytics() {
 
       {/* KPI Cards */}
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">
             {t('spend_kpi_total', 'Gasto Total')}
           </Typography>
@@ -147,7 +147,7 @@ export default function SpendAnalytics() {
             {formatCurrency(kpis.totalSpend)}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">
             {t('spend_kpi_maverick', '% Gasto Maverick')}
           </Typography>
@@ -155,7 +155,7 @@ export default function SpendAnalytics() {
             {kpis.maverickPct.toFixed(1)}%
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">
             {t('spend_kpi_top_cat', 'Top Categoria')}
           </Typography>
@@ -166,7 +166,7 @@ export default function SpendAnalytics() {
       </Stack>
 
       {/* Spend by Category -- simple bar visualization */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
           {t('spend_by_category', 'Gasto por Categoria')}
         </Typography>
@@ -190,14 +190,13 @@ export default function SpendAnalytics() {
                       {formatCurrency(value)}
                     </Typography>
                   </Stack>
-                  <Box sx={{ height: 8, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+                  <Box sx={{ height: 8, bgcolor: 'grey.200', overflow: 'hidden' }}>
                     <Box
                       sx={{
                         height: '100%',
                         width: `${Math.min(pct, 100)}%`,
                         bgcolor: color,
                         transition: 'width 0.5s',
-                        borderRadius: 1,
                       }}
                     />
                   </Box>
@@ -210,7 +209,7 @@ export default function SpendAnalytics() {
 
       {/* Kraljic Matrix */}
       {kraljicData.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
             {t('spend_kraljic_title', 'Matriz de Kraljic')}
           </Typography>
@@ -219,7 +218,7 @@ export default function SpendAnalytics() {
       )}
 
       {/* Monthly Spend Trend */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {t('spend_trend_title', 'Tendencia Mensual de Gasto')}
@@ -240,7 +239,7 @@ export default function SpendAnalytics() {
       </Paper>
 
       {/* Maverick Spend */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1}>
             <WarningAmberIcon sx={{ color: 'warning.main' }} />

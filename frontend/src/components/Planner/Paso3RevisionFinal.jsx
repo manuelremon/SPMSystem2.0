@@ -135,7 +135,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
             sx={{
               mt: 1.5,
               p: 2,
-              borderRadius: 4,
+              borderRadius: 3,
               backgroundColor: "var(--card)",
               boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
             }}
@@ -297,7 +297,6 @@ function SectionHeader({ icon: Icon, title, variant }) {
       <Box
         sx={{
           p: 1,
-          borderRadius: 2,
           backgroundColor: style.bg,
           color: style.text,
           display: "flex",
@@ -347,7 +346,7 @@ function StockTable({ rows }) {
       component={Paper}
       elevation={0}
       sx={{
-        borderRadius: 4,
+        borderRadius: 3,
         backgroundColor: "var(--card)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
         overflow: "hidden",
@@ -453,7 +452,7 @@ function CompraTable({ rows }) {
       component={Paper}
       elevation={0}
       sx={{
-        borderRadius: 4,
+        borderRadius: 3,
         backgroundColor: "var(--card)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
         overflow: "hidden",

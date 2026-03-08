@@ -89,7 +89,7 @@ const BacktestResults = ({ data, loading = false }) => {
 
   if (loading) {
     return (
-      <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>
         <Skeleton variant="text" width={192} height={28} sx={{ mb: 2 }} />
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
           {[1, 2, 3, 4].map(i => (
@@ -118,7 +118,7 @@ const BacktestResults = ({ data, loading = false }) => {
   }, [steps]);
 
   return (
-    <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+    <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6" fontWeight={600} color="text.primary">
           {t('forecast_backtest_resultados', 'Resultados de Backtesting')}
@@ -145,7 +145,7 @@ const BacktestResults = ({ data, loading = false }) => {
       >
         <Paper
           elevation={0}
-          sx={{ p: 1.5, bgcolor: 'primary.50', borderRadius: 2 }}
+          sx={{ p: 1.5, bgcolor: 'primary.50' }}
         >
           <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>
             MAE Promedio
@@ -160,7 +160,7 @@ const BacktestResults = ({ data, loading = false }) => {
 
         <Paper
           elevation={0}
-          sx={{ p: 1.5, bgcolor: 'secondary.50', borderRadius: 2 }}
+          sx={{ p: 1.5, bgcolor: 'secondary.50' }}
         >
           <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 500 }}>
             RMSE Promedio
@@ -172,7 +172,7 @@ const BacktestResults = ({ data, loading = false }) => {
 
         <Paper
           elevation={0}
-          sx={{ p: 1.5, bgcolor: 'success.50', borderRadius: 2 }}
+          sx={{ p: 1.5, bgcolor: 'success.50' }}
         >
           <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
             R2 Promedio
@@ -184,7 +184,7 @@ const BacktestResults = ({ data, loading = false }) => {
 
         <Paper
           elevation={0}
-          sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 2 }}
+          sx={{ p: 1.5, bgcolor: 'grey.100' }}
         >
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
             Pasos Exitosos

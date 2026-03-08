@@ -274,7 +274,7 @@ export default function DemandPlanDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -320,14 +320,14 @@ export default function DemandPlanDetail() {
 
       {/* Chart */}
       {entries.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 1.5 }}>{t('demand_chart_title', 'Comparacion de Pronosticos por Fuente')}</Typography>
           <ForecastComparisonChart entries={entries} consensus={consensus} />
         </Paper>
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t('demand_tabs', 'Secciones del ciclo')} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label={t('demand_tab_entries', 'Entradas')} />
           <Tab label={t('demand_tab_consensus', 'Consenso')} />

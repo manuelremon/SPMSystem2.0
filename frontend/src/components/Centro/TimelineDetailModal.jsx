@@ -103,7 +103,6 @@ export default function TimelineDetailModal({ item, onClose }) {
           <Box
             sx={{
               p: 1.5,
-              borderRadius: 2,
               bgcolor: colors.bg,
               display: "flex",
               alignItems: "center",
@@ -149,7 +148,6 @@ export default function TimelineDetailModal({ item, onClose }) {
               p: 2,
               bgcolor: "rgba(59, 130, 246, 0.08)",
               border: "1px solid rgba(59, 130, 246, 0.2)",
-              borderRadius: 2,
             }}
           >
             <Typography variant="body2" sx={{ color: "var(--primary)", fontWeight: 500 }}>

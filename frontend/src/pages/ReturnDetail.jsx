@@ -191,7 +191,7 @@ export default function ReturnDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -223,7 +223,7 @@ export default function ReturnDetail() {
       </Paper>
 
       {/* Credit Tracking */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('returns_credit_tracking', 'Seguimiento de Credito')}</Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={3} alignItems="center">
           <Box sx={{ flex: 1, width: '100%' }}>
@@ -234,7 +234,7 @@ export default function ReturnDetail() {
             <LinearProgress
               variant="determinate"
               value={creditProgress}
-              sx={{ height: 12, borderRadius: 1, '& .MuiLinearProgress-bar': { borderRadius: 1 } }}
+              sx={{ height: 12 }}
               color={creditProgress >= 100 ? 'success' : creditProgress >= 50 ? 'warning' : 'error'}
             />
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'right' }}>
@@ -245,7 +245,7 @@ export default function ReturnDetail() {
       </Paper>
 
       {/* Items Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2">{t('returns_items', 'Items de la Devolucion')}</Typography>
         </Box>
@@ -262,7 +262,7 @@ export default function ReturnDetail() {
       </Paper>
 
       {/* Timeline */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('returns_timeline', 'Historial')}</Typography>
         {historial.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>

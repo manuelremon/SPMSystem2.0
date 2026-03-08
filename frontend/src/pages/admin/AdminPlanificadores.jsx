@@ -268,7 +268,6 @@ function PlanificadoresTable({
             bgcolor: "error.lighter",
             border: "1px solid",
             borderColor: "error.light",
-            borderRadius: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -533,7 +532,6 @@ return (
                   sx={{
                     color: "var(--success)",
                     border: "1px solid var(--success)",
-                    borderRadius: "4px",
                     padding: "4px 8px",
                     "&:hover": {
                       backgroundColor: "var(--success)",

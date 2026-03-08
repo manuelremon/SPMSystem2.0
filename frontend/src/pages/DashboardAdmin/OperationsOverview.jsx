@@ -113,7 +113,6 @@ function ModuleCard({ config, t }) {
         bgcolor: 'var(--surface)',
         border: '1px solid',
         borderColor: 'divider',
-        borderRadius: 2,
         p: 1.5,
         cursor: 'pointer',
         transition: 'box-shadow 0.2s ease-in-out',

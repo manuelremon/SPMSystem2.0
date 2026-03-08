@@ -348,7 +348,7 @@ export default function ECODetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -426,7 +426,7 @@ export default function ECODetail() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('eco_tab_changes', 'Cambios')} />
           <Tab label={t('eco_tab_approvals', 'Aprobaciones')} />
@@ -450,7 +450,7 @@ export default function ECODetail() {
           )}
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('eco_tab_changes', 'Cambios')}
           >
             <SPMAgGrid
@@ -472,7 +472,7 @@ export default function ECODetail() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('eco_tab_approvals', 'Aprobaciones')}
         >
           <SPMAgGrid
@@ -499,7 +499,7 @@ export default function ECODetail() {
           ) : (
             <>
               {/* OC Afectadas */}
-              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="subtitle2">{t('eco_impact_oc_title', 'OC Afectadas')}</Typography>
                 </Box>
@@ -516,7 +516,7 @@ export default function ECODetail() {
               </Paper>
 
               {/* Contratos */}
-              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="subtitle2">{t('eco_impact_contratos_title', 'Contratos Afectados')}</Typography>
                 </Box>
@@ -533,7 +533,7 @@ export default function ECODetail() {
               </Paper>
 
               {/* Stock */}
-              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="subtitle2">{t('eco_impact_stock_title', 'Stock Afectado')}</Typography>
                 </Box>
@@ -555,7 +555,7 @@ export default function ECODetail() {
 
       {/* Tab 3: History */}
       {tabValue === 3 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 2 }}>{t('eco_history_title', 'Historial de Cambios')}</Typography>
           {historial.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>

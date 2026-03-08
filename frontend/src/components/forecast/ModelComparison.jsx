@@ -61,7 +61,7 @@ const ModelComparison = ({
 
   if (loading) {
     return (
-      <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>
         <Skeleton variant="text" width={192} height={28} sx={{ mb: 2 }} />
         <Skeleton variant="rounded" height={256} sx={{ mb: 2 }} />
         <Stack spacing={1}>
@@ -80,7 +80,7 @@ const ModelComparison = ({
   const { ranking, mejor_modelo, recomendacion } = data;
 
   return (
-    <Paper sx={{ p: 3, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+    <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h6" fontWeight={600} color="text.primary">
           {t('forecast_comparacion_modelos', 'Comparacion de Modelos')}
@@ -144,7 +144,7 @@ const ModelComparison = ({
         <TableContainer
           component={Paper}
           variant="outlined"
-          sx={{ borderRadius: 3, overflow: 'hidden' }}
+          sx={{ overflow: 'hidden' }}
         >
           <Table size="small">
             <TableHead>

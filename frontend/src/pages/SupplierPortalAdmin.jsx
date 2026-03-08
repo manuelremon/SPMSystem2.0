@@ -322,7 +322,7 @@ export default function SupplierPortalAdmin() {
       </Stack>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('portal_tab_users', 'Usuarios Portal')} icon={<PeopleIcon />} iconPosition="start" />
           <Tab label={t('portal_tab_forecasts', 'Compartir Forecasts')} icon={<ShareIcon />} iconPosition="start" />
@@ -346,7 +346,7 @@ export default function SupplierPortalAdmin() {
 
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('portal_tab_users', 'Usuarios Portal')}
           >
             <SPMAgGrid
@@ -367,7 +367,7 @@ export default function SupplierPortalAdmin() {
 
       {/* Tab 1: Share Forecasts */}
       {tabValue === 1 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ mb: 2 }}>
             {t('portal_share_title', 'Compartir Forecasts con Proveedores')}
           </Typography>
@@ -435,7 +435,7 @@ export default function SupplierPortalAdmin() {
       {tabValue === 2 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('portal_tab_activity', 'Actividad')}
         >
           <SPMAgGrid

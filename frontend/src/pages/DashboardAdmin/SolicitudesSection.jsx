@@ -29,7 +29,7 @@ function SolicitudesSection({
   tableTitle,
 }) {
   return (
-    <Paper elevation={0} sx={{ overflow: 'hidden', bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+    <Paper elevation={0} sx={{ overflow: 'hidden', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
       {/* Header con boton de colapsar/expandir y crear solicitud */}
       <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'grey.100' }}>
         <Button
@@ -42,7 +42,6 @@ function SolicitudesSection({
             gap: 1,
             textAlign: 'left',
             '&:hover': { bgcolor: 'grey.50' },
-            borderRadius: 1,
             px: 1,
             py: 0.5,
             ml: -1,

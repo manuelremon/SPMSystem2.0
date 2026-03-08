@@ -56,7 +56,6 @@ export default function SolicitudDetalleModal({ isOpen, onClose, solicitud }) {
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -111,7 +110,7 @@ export default function SolicitudDetalleModal({ isOpen, onClose, solicitud }) {
 
           {/* Justificacion */}
           {solicitud.justificacion && (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <DescriptionIcon sx={{ fontSize: 18, color: "info.main" }} />
                 <Typography variant="caption" sx={{ fontWeight: 600, textTransform: "uppercase", color: "text.secondary" }}>
@@ -132,7 +131,7 @@ export default function SolicitudDetalleModal({ isOpen, onClose, solicitud }) {
             </Box>
 
             {items.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: "grey.50" }}>
@@ -199,7 +198,6 @@ function InfoItem({ icon, label, value }) {
         sx={{
           width: 36,
           height: 36,
-          borderRadius: 2,
           bgcolor: "grey.50",
           border: 1,
           borderColor: "divider",

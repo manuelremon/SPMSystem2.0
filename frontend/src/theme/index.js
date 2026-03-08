@@ -6,7 +6,7 @@ import { createTheme } from '@mui/material/styles';
  *
  * Paleta: SAP Blue (#0070f3) - Consistent with CSS Design System
  * Tipografía: Inter (consistent with CSS Design System)
- * Bordes: Rectos (borderRadius: 0)
+ * Bordes: Redondeados (borderRadius: 6)
  *
  * Breakpoints personalizados para diseño responsive:
  * - xs: 0px      - Móvil pequeño (iPhone SE)
@@ -202,7 +202,7 @@ const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 0,
+    borderRadius: 6,
   },
   spacing: 8,
   components: {
@@ -211,7 +211,6 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           fontWeight: 500,
-          borderRadius: 0,  // Bordes rectos
         },
         sizeMedium: {
           padding: '0.5rem 1rem',
@@ -229,114 +228,86 @@ const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          borderRadius: 0,  // Bordes rectos
+          borderRadius: '50%',
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
-        paper: {
-          borderRadius: 0,  // Bordes rectos
-        },
+        paper: {},
       },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: 0,  // Bordes rectos
+          borderRadius: 12,
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 0,  // Bordes rectos
+          borderRadius: 8,
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos
-        },
-        rounded: {
-          borderRadius: 0,  // Bordes rectos
-        },
+        root: {},
+        rounded: {},
       },
     },
     MuiMenu: {
       styleOverrides: {
-        paper: {
-          borderRadius: 0,  // Bordes rectos en menús desplegables
-        },
+        paper: {},
       },
     },
     MuiMenuItem: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos
-        },
+        root: {},
       },
     },
     MuiPopover: {
       styleOverrides: {
-        paper: {
-          borderRadius: 0,  // Bordes rectos en popovers
-        },
+        paper: {},
       },
     },
     MuiSelect: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos
-        },
+        root: {},
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos en inputs
-        },
-        notchedOutline: {
-          borderRadius: 0,
-        },
+        root: {},
+        notchedOutline: {},
       },
     },
     MuiInputBase: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos
-        },
+        root: {},
       },
     },
     MuiTextField: {
       styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 0,
-          },
-        },
+        root: {},
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 0,  // Bordes rectos en chips
+          borderRadius: 16,
         },
       },
     },
     MuiAlert: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos en alertas
-        },
+        root: {},
       },
     },
     MuiSnackbarContent: {
       styleOverrides: {
-        root: {
-          borderRadius: 0,  // Bordes rectos en snackbars
-        },
+        root: {},
       },
     },
     MuiTabs: {
@@ -368,25 +339,19 @@ const theme = createTheme({
     MuiBadge: {
       styleOverrides: {
         badge: {
-          borderRadius: 0,  // Bordes rectos en badges (si se desea)
+          borderRadius: '50%',
         },
       },
     },
     MuiTooltip: {
       styleOverrides: {
-        tooltip: {
-          borderRadius: 0,  // Bordes rectos en tooltips
-        },
+        tooltip: {},
       },
     },
     MuiAutocomplete: {
       styleOverrides: {
-        paper: {
-          borderRadius: 0,  // Bordes rectos en autocomplete dropdown
-        },
-        listbox: {
-          borderRadius: 0,
-        },
+        paper: {},
+        listbox: {},
       },
     },
     // DataGrid - Estilos globales (Fondo blanco, texto oscuro)
@@ -394,7 +359,6 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           border: `1px solid ${COLORS.divider}`,
-          borderRadius: 0,
           '& .MuiDataGrid-columnHeaders': {
             backgroundColor: `${COLORS.paper} !important`,
           },

@@ -89,7 +89,6 @@ export default function CompleteRegistration() {
         elevation={1}
         sx={{
           p: 3,
-          borderRadius: 2,
           bgcolor: 'background.paper'
         }}
       >
@@ -232,7 +231,6 @@ export default function CompleteRegistration() {
         <Alert
           severity="success"
           icon={<CheckCircleIcon />}
-          sx={{ borderRadius: 2 }}
         >
           {t("registro_exito", "Solicitud enviada. Un administrador revisara y aprobara tu alta.")}
         </Alert>

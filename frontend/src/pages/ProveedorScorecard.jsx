@@ -327,7 +327,7 @@ export default function ProveedorScorecard() {
 
       <Stack direction={{ xs: 'column', lg: 'row' }} gap={3}>
         {/* Ranking table */}
-        <Paper elevation={0} sx={{ flex: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('scorecard_ranking', 'Ranking de Proveedores')}>
+        <Paper elevation={0} sx={{ flex: 2, border: '1px solid', borderColor: 'divider' }} aria-label={t('scorecard_ranking', 'Ranking de Proveedores')}>
           <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               {t('scorecard_ranking', 'Ranking de Proveedores')}
@@ -379,7 +379,7 @@ export default function ProveedorScorecard() {
         </Paper>
 
         {/* Detail panel */}
-        <Paper elevation={0} sx={{ flex: 1, minWidth: 380, border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label="Scorecard detail">
+        <Paper elevation={0} sx={{ flex: 1, minWidth: 380, border: '1px solid', borderColor: 'divider' }} aria-label="Scorecard detail">
           {!selectedId ? (
             <Box sx={{ p: 6, textAlign: 'center', color: 'text.secondary' }}>
               <Typography>{t('scorecard_select_provider', 'Seleccione un proveedor del ranking')}</Typography>
@@ -428,7 +428,7 @@ export default function ProveedorScorecard() {
                             {val.toFixed(1)}%
                           </Typography>
                         </Stack>
-                        <Box sx={{ height: 6, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
+                        <Box sx={{ height: 6, bgcolor: 'grey.200', overflow: 'hidden' }}>
                           <Box sx={{
                             height: '100%',
                             width: `${Math.min(val, 100)}%`,

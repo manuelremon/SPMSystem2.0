@@ -40,7 +40,6 @@ export default function HistorialAprobaciones() {
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 2,
           border: "1px solid",
           borderColor: "divider",
           overflow: "hidden",

@@ -157,7 +157,7 @@ export default function DemandPlanning() {
   ], [t]);
 
   const KpiCard = ({ icon, label, value, unit, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 180 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -210,7 +210,7 @@ export default function DemandPlanning() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('demand_filter_estado', 'Estado')}</InputLabel>
@@ -222,7 +222,7 @@ export default function DemandPlanning() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('demand_title', 'Planificacion de Demanda')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('demand_title', 'Planificacion de Demanda')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={cycles}

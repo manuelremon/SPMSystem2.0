@@ -303,7 +303,7 @@ export default function VMIDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -332,7 +332,7 @@ export default function VMIDetail() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('vmi_tab_resumen', 'Resumen')} icon={<InfoIcon />} iconPosition="start" />
           <Tab label={t('vmi_tab_inventario', 'Inventario')} icon={<InventoryIcon />} iconPosition="start" />
@@ -343,19 +343,19 @@ export default function VMIDetail() {
 
       {/* Tab 0: Resumen */}
       {tabValue === 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             {t('vmi_resumen_title', 'Informacion del Programa')}
           </Typography>
           <Stack direction={{ xs: 'column', md: 'row' }} gap={3}>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('vmi_parametros', 'Parametros')}</Typography>
               <Typography variant="body2">{t('vmi_col_min', 'Stock Minimo')}: <strong>{programa.min_stock ?? '-'}</strong></Typography>
               <Typography variant="body2">{t('vmi_col_max', 'Stock Maximo')}: <strong>{programa.max_stock ?? '-'}</strong></Typography>
               <Typography variant="body2">{t('vmi_col_rop', 'Punto de Pedido')}: <strong>{programa.punto_pedido ?? '-'}</strong></Typography>
               <Typography variant="body2">{t('vmi_lead_time', 'Frecuencia')}: <strong>{programa.frecuencia_dias ?? '-'} {t('vmi_dias', 'dias')}</strong></Typography>
             </Paper>
-            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'action.hover' }}>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                 <InventoryIcon fontSize="small" color="info" />
                 <Typography variant="subtitle2">{t('vmi_snapshot', 'Inventario Actual')}</Typography>
@@ -379,7 +379,7 @@ export default function VMIDetail() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('vmi_tab_inventario', 'Inventario')}
         >
           <SPMAgGrid
@@ -401,7 +401,7 @@ export default function VMIDetail() {
       {tabValue === 2 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('vmi_tab_reposiciones', 'Reposiciones')}
         >
           <SPMAgGrid
@@ -423,7 +423,7 @@ export default function VMIDetail() {
       {tabValue === 3 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('vmi_tab_kpis', 'KPIs')}
         >
           <SPMAgGrid

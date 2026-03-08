@@ -158,7 +158,7 @@ export default function RFQCreate() {
       </Stack>
 
       {/* Form fields */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack spacing={2.5}>
           <TextField
             label={t('rfq_titulo', 'Titulo')}
@@ -188,7 +188,7 @@ export default function RFQCreate() {
       </Paper>
 
       {/* Items */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {t('rfq_items', 'Items Solicitados')}
@@ -278,7 +278,7 @@ export default function RFQCreate() {
       </Paper>
 
       {/* Proveedores */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {t('rfq_proveedores_invitados', 'Proveedores Invitados')}

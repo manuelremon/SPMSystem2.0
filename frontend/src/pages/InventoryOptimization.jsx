@@ -212,7 +212,7 @@ export default function InventoryOptimization() {
   }, [imbalances]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 180 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -268,7 +268,7 @@ export default function InventoryOptimization() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t('inventory_tabs', 'Secciones de Inventario')} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label={t('inventory_tab_imbalances', 'Desbalances')} />
           <Tab label={t('inventory_tab_transfers', 'Transferencias')} />

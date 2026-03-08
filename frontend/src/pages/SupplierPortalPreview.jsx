@@ -205,7 +205,7 @@ export default function SupplierPortalPreview() {
       </Stack>
 
       {/* Proveedor Selector */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ mb: 2 }}>
           {t('portal_preview_select', 'Seleccionar Proveedor para Vista Previa')}
         </Typography>
@@ -239,7 +239,7 @@ export default function SupplierPortalPreview() {
 
       {/* No selection message */}
       {!selectedCuit && (
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
+        <Alert severity="info">
           {t('portal_preview_hint', 'Ingrese un CUIT de proveedor para ver su portal')}
         </Alert>
       )}
@@ -247,12 +247,12 @@ export default function SupplierPortalPreview() {
       {/* Portal Preview Content */}
       {selectedCuit && (
         <>
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Alert severity="info">
             {t('portal_preview_viewing', 'Vista previa del portal para proveedor')}: <strong>{selectedCuit}</strong>
           </Alert>
 
           {/* POs Section */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <ReceiptLongIcon fontSize="small" sx={{ color: 'primary.main' }} />
@@ -274,7 +274,7 @@ export default function SupplierPortalPreview() {
           </Paper>
 
           {/* ASNs Section */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <LocalShippingIcon fontSize="small" sx={{ color: 'info.main' }} />
@@ -296,7 +296,7 @@ export default function SupplierPortalPreview() {
           </Paper>
 
           {/* Forecasts Section */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" alignItems="center" gap={1}>
                 <TrendingUpIcon fontSize="small" sx={{ color: 'success.main' }} />

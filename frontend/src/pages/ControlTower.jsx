@@ -445,7 +445,7 @@ export default function ControlTower() {
   ], [t, renderSparkline]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 150 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 150 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -527,7 +527,7 @@ export default function ControlTower() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('ct_filter_categoria', 'Categoria')}</InputLabel>
@@ -573,7 +573,7 @@ export default function ControlTower() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('ct_tab_timeline', 'Linea de Tiempo')} icon={<TimelineIcon />} iconPosition="start" />
           <Tab label={t('ct_tab_alertas', 'Alertas')} icon={<NotificationsActiveIcon />} iconPosition="start" />
@@ -585,7 +585,7 @@ export default function ControlTower() {
       {tabValue === 0 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('ct_tab_timeline', 'Linea de Tiempo')}
         >
           <SPMAgGrid
@@ -607,7 +607,7 @@ export default function ControlTower() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('ct_tab_alertas', 'Alertas')}
         >
           <SPMAgGrid
@@ -629,7 +629,7 @@ export default function ControlTower() {
       {tabValue === 2 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('ct_tab_tendencias', 'Tendencias')}
         >
           <SPMAgGrid

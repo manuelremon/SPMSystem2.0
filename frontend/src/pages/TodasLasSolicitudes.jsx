@@ -120,7 +120,6 @@ function ModalItemsTable({ items, totalMonto }) {
           justifyContent: "flex-end",
           p: 1.5,
           bgcolor: "grey.50",
-          borderRadius: 1,
           border: "1px solid",
           borderColor: "divider",
         }}
@@ -171,7 +170,6 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
           maxWidth: 700,
           maxHeight: "90vh",
           bgcolor: "background.paper",
-          borderRadius: 2,
           boxShadow: 24,
           display: "flex",
           flexDirection: "column",
@@ -761,7 +759,6 @@ export default function TodasLasSolicitudes() {
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 2,
           overflow: "hidden",
         }}
       >

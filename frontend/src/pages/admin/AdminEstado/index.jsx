@@ -47,8 +47,8 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
   const { t } = useI18n();
 
   return (
-    <Paper elevation={0} sx={{ border: "1px solid #dce0e6", borderRadius: 2, overflow: "hidden" }}>
-      <Box sx={{ p: 2, borderBottom: "1px solid #dce0e6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
+      <Box sx={{ p: 2, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <TrendingUpIcon sx={{ color: "#6366f1", fontSize: 20 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1f1f20" }}>
@@ -66,8 +66,8 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
                 minWidth: 40,
                 fontSize: "0.75rem",
                 ...(selectedHours === hours
-                  ? { bgcolor: "#1976d2" }
-                  : { color: "#606d80", borderColor: "#dce0e6" }),
+                  ? { bgcolor: "primary.main" }
+                  : { color: "#606d80", borderColor: "var(--border)" }),
               }}
             >
               {hours}h

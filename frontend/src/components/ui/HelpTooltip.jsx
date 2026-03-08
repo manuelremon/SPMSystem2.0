@@ -95,7 +95,7 @@ export function HelpTooltip({
         type="button"
         className={clsx(
           "inline-flex items-center justify-center",
-          "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300",
+          "text-slate-400 hover:text-slate-600",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-full",
           "transition-colors duration-150",
           className
@@ -119,7 +119,7 @@ export function HelpTooltip({
           className={clsx(
             "fixed z-[100]",
             "max-w-xs px-3 py-2",
-            "bg-slate-900 dark:bg-slate-700 text-white",
+            "bg-slate-900 text-white",
             "text-xs leading-relaxed",
             "rounded-lg shadow-lg",
             "animate-fade-in"
@@ -134,7 +134,7 @@ export function HelpTooltip({
           {/* Flecha indicadora */}
           <div
             className={clsx(
-              "absolute w-2 h-2 bg-slate-900 dark:bg-slate-700 rotate-45",
+              "absolute w-2 h-2 bg-slate-900 rotate-45",
               position === "top" && "bottom-[-4px] left-1/2 -translate-x-1/2",
               position === "bottom" && "top-[-4px] left-1/2 -translate-x-1/2",
               position === "left" && "right-[-4px] top-1/2 -translate-y-1/2",

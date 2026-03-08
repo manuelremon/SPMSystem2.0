@@ -194,21 +194,21 @@ export default function QualityInspections() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('quality_kpi_total', 'Total Inspecciones')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>{kpis.total ?? 0}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('quality_kpi_pass_rate', 'Tasa Aprobacion')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
               {kpis.pass_rate != null ? `${kpis.pass_rate.toFixed(1)}%` : '-'}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('quality_kpi_pending', 'Pendientes')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>{kpis.pending ?? 0}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary">{t('quality_kpi_fail', 'Rechazadas')}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.main' }}>{kpis.failed ?? 0}</Typography>
           </Paper>
@@ -216,7 +216,7 @@ export default function QualityInspections() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>{t('quality_filtro_tipo', 'Tipo')}</InputLabel>
@@ -248,7 +248,7 @@ export default function QualityInspections() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('quality_inspections_title', 'Inspecciones de Calidad')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('quality_inspections_title', 'Inspecciones de Calidad')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={inspections}

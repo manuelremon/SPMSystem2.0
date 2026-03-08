@@ -61,7 +61,6 @@ function TableSkeleton() {
           sx={{
             height: 48,
             bgcolor: "grey.100",
-            borderRadius: 1,
             mb: 1,
             animation: "pulse 1.5s ease-in-out infinite",
             "@keyframes pulse": {
@@ -99,7 +98,7 @@ export default function Materials() {
             {t("materials_title", "Agregar Materiales")}
           </Typography>
         </Box>
-        <Paper variant="outlined" sx={{ borderRadius: 2 }} aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
+        <Paper variant="outlined" aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
           <Box sx={{ pt: 3 }}>
             <TableSkeleton />
           </Box>
@@ -147,7 +146,7 @@ export default function Materials() {
 
       {/* Favorites Section */}
       {m.favoritos && m.favoritos.length > 0 && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
             <StarIcon sx={{ color: "warning.main", fontSize: 20 }} />
             <Typography variant="subtitle2" fontWeight={600} color="text.primary">
@@ -178,7 +177,7 @@ export default function Materials() {
       )}
 
       {/* Search and Context Section */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, p: 3 }}>
+      <Paper variant="outlined" sx={{ p: 3 }}>
         <Box
           sx={{
             display: "grid",
@@ -198,7 +197,7 @@ export default function Materials() {
       </Paper>
 
       {/* Materials Summary Section */}
-      <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+      <Paper variant="outlined">
         {/* Header */}
         <Box
           sx={{
@@ -728,7 +727,7 @@ function ContextSection({ m, t }) {
 
 function CommentDialog({ open, onClose, codigo, comment, onCommentChange, onSave, t }) {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: {} }}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
           {t("materials_nota_titulo", "Nota para el material")}

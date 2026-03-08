@@ -485,7 +485,7 @@ export default function Trivias() {
                 sx={{
                   width: '100%',
                   p: 2,
-                  borderRadius: 2,
+
                   border: '1px solid',
                   textAlign: 'left',
                   transition: 'all 0.2s',
@@ -585,7 +585,7 @@ export default function Trivias() {
                 sx={{
                   width: '100%',
                   p: 2,
-                  borderRadius: 2,
+
                   border: '1px solid',
                   textAlign: 'left',
                   transition: 'all 0.2s',
@@ -679,7 +679,7 @@ export default function Trivias() {
                 sx={{
                   flex: 1,
                   p: 2,
-                  borderRadius: 2,
+
                   border: '1px solid',
                   textAlign: 'center',
                   transition: 'all 0.2s',
@@ -780,7 +780,7 @@ export default function Trivias() {
                   sx={{
                     px: 2,
                     py: 1,
-                    borderRadius: 2,
+  
                     backgroundColor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'grey.300',
@@ -817,7 +817,7 @@ export default function Trivias() {
                   sx={{
                     flex: 1,
                     p: 2,
-                    borderRadius: 2,
+  
                     border: '2px dashed',
                     borderColor: `${cat.color}50`,
                     backgroundColor: `${cat.color}10`,
@@ -835,7 +835,6 @@ export default function Trivias() {
                         sx={{
                           px: 1.5,
                           py: 1,
-                          borderRadius: 1,
                           backgroundColor: 'background.paper',
                           border: '1px solid',
                           borderColor: cat.color,
@@ -911,7 +910,7 @@ export default function Trivias() {
                   sx={{
                     width: 56,
                     height: 56,
-                    borderRadius: 2,
+  
                     backgroundColor: 'primary.light',
                     display: 'grid',
                     placeItems: 'center',
@@ -951,7 +950,7 @@ export default function Trivias() {
                   sx={{
                     width: 56,
                     height: 56,
-                    borderRadius: 2,
+  
                     backgroundColor: 'success.light',
                     display: 'grid',
                     placeItems: 'center',
@@ -991,7 +990,7 @@ export default function Trivias() {
                   sx={{
                     width: 56,
                     height: 56,
-                    borderRadius: 2,
+  
                     backgroundColor: 'warning.light',
                     display: 'grid',
                     placeItems: 'center',
@@ -1031,7 +1030,7 @@ export default function Trivias() {
                   sx={{
                     width: 56,
                     height: 56,
-                    borderRadius: 2,
+  
                     backgroundColor: 'info.light',
                     display: 'grid',
                     placeItems: 'center',
@@ -1079,7 +1078,7 @@ export default function Trivias() {
                       alignItems: 'center',
                       gap: 1.5,
                       p: 1.5,
-                      borderRadius: 2,
+    
                       backgroundColor: r.user_id === user?.id ? 'primary.light' : 'grey.50',
                       border: r.user_id === user?.id ? '1px solid' : 'none',
                       borderColor: 'primary.main',

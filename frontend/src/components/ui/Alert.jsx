@@ -71,7 +71,6 @@ export function Alert({
       icon={showIcon ? undefined : false}
       className={className}
       sx={{
-        borderRadius: '8px',
         '& .MuiAlert-message': {
           width: '100%',
         },

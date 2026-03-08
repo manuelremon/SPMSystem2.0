@@ -405,7 +405,7 @@ export default function LotTraceability() {
   ], [t]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 150 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 150 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -477,7 +477,7 @@ export default function LotTraceability() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('lot_tab_lotes', 'Lotes')} icon={<QrCode2Icon />} iconPosition="start" />
           <Tab label={t('lot_tab_recalls', 'Recalls')} icon={<ReportProblemIcon />} iconPosition="start" />
@@ -488,7 +488,7 @@ export default function LotTraceability() {
       {tabValue === 0 && (
         <>
           {/* Filters */}
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
               <TextField
                 size="small"
@@ -528,7 +528,7 @@ export default function LotTraceability() {
 
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('lot_tab_lotes', 'Lotes')}
           >
             <SPMAgGrid
@@ -554,7 +554,7 @@ export default function LotTraceability() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('lot_tab_recalls', 'Recalls')}
         >
           <SPMAgGrid

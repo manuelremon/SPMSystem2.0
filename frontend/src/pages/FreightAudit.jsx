@@ -429,25 +429,25 @@ export default function FreightAudit() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('freight_kpi_total', 'Total Facturado')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>{fmtMoney(kpis.total_facturado)}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('freight_kpi_aprobado', 'Total Aprobado')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>{fmtMoney(kpis.total_aprobado)}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('freight_kpi_diferencia', 'Diferencia Total')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>{fmtMoney(kpis.diferencia_total)}</Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('freight_kpi_tasa_disputa', 'Tasa Disputa')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
               {kpis.tasa_disputa != null ? `${Number(kpis.tasa_disputa).toFixed(1)}%` : '-'}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('freight_kpi_pendientes', 'Facturas Pendientes')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>{kpis.facturas_pendientes ?? 0}</Typography>
           </Paper>
@@ -455,7 +455,7 @@ export default function FreightAudit() {
       )}
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={t('freight_tab_facturas', 'Facturas')} icon={<ReceiptLongIcon />} iconPosition="start" />
           <Tab label={t('freight_tab_carrier', 'Rendimiento Transportistas')} icon={<LeaderboardIcon />} iconPosition="start" />
@@ -466,7 +466,7 @@ export default function FreightAudit() {
       {tabValue === 0 && (
         <>
           {/* Filters */}
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>{t('freight_filter_estado', 'Estado')}</InputLabel>
@@ -509,7 +509,7 @@ export default function FreightAudit() {
           {/* Invoice Table */}
           <Paper
             elevation={0}
-            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            sx={{ border: '1px solid', borderColor: 'divider' }}
             aria-label={t('freight_title', 'Auditoria de Fletes')}
           >
             <SPMAgGrid
@@ -532,7 +532,7 @@ export default function FreightAudit() {
       {tabValue === 1 && (
         <Paper
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+          sx={{ border: '1px solid', borderColor: 'divider' }}
           aria-label={t('freight_tab_carrier', 'Rendimiento Transportistas')}
         >
           <SPMAgGrid

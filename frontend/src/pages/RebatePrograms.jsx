@@ -261,7 +261,7 @@ export default function RebatePrograms() {
       </Stack>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t('rebates_tabs', 'Secciones de Rebate')} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label={t('rebates_tab_programs', 'Programas')} />
           <Tab label={t('rebates_tab_claims', 'Claims')} />

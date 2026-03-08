@@ -32,7 +32,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
   const tieneConflictos = conflictos.length > 0;
 
   return (
-    <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2 }}>
+    <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
       {/* Header */}
       <Box sx={{ px: 3, py: 2, borderBottom: "1px solid var(--border)" }}>
         <Typography variant="h6" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>
@@ -132,7 +132,7 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
   const alcanza = diferencia >= 0;
 
   return (
-    <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+    <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
       <Typography
         variant="caption"
         sx={{ fontWeight: 700, letterSpacing: 0.5, color: "var(--fg-muted)", textTransform: "uppercase", display: "block", mb: 2 }}
@@ -159,7 +159,6 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
             mt: 1,
             border: 2,
             borderColor: alcanza ? "var(--success)" : "var(--danger)",
-            borderRadius: 1,
             bgcolor: alcanza ? "var(--success-bg)" : "var(--danger-bg)",
             cursor: alcanza ? "default" : "pointer",
             "&:hover": !alcanza ? { bgcolor: "rgba(239, 68, 68, 0.1)" } : {},
@@ -190,7 +189,7 @@ function AlertCard({ title, count, emptyLabel, items, variant }) {
   return (
     <Paper
       elevation={0}
-      sx={{ p: 1.5, bgcolor: c.bg, border: `1px solid ${c.border}`, borderRadius: 1.5 }}
+      sx={{ p: 1.5, bgcolor: c.bg, border: `1px solid ${c.border}` }}
     >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography variant="caption" sx={{ fontWeight: 700, color: "var(--fg)", letterSpacing: 0.3, fontSize: "0.65rem" }}>
@@ -304,7 +303,7 @@ function MaterialesList({ materiales, solicitud }) {
   ];
 
   return (
-    <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)", borderRadius: 2 }}>
+    <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
         <Typography
           variant="caption"

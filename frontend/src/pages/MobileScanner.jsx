@@ -177,7 +177,7 @@ export default function MobileScanner() {
 
       {/* Error */}
       {error && (
-        <Alert severity="warning" onClose={() => setError('')} sx={{ mx: 2, mt: 1, borderRadius: 2 }}>
+        <Alert severity="warning" onClose={() => setError('')} sx={{ mx: 2, mt: 1 }}>
           {error}
         </Alert>
       )}
@@ -194,7 +194,6 @@ export default function MobileScanner() {
             mt: 1,
             p: 1.5,
             bgcolor: 'success.main',
-            borderRadius: 2,
             animation: 'fadeIn 0.3s ease-in',
             '@keyframes fadeIn': { from: { opacity: 0, transform: 'scale(0.95)' }, to: { opacity: 1, transform: 'scale(1)' } },
           }}

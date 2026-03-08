@@ -67,7 +67,6 @@ function DatabaseItem({ name, status, latency, tooltip }) {
         gap: 1.5,
         p: 1.5,
         bgcolor: 'grey.50',
-        borderRadius: 2,
       }}
     >
       <StatusDot status={status} />
@@ -200,7 +199,6 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
                 gap: 1.5,
                 p: 1.5,
                 bgcolor: 'grey.50',
-                borderRadius: 2,
               }}
             >
               <StatusDot

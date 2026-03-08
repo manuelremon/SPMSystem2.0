@@ -79,7 +79,7 @@ class ErrorBoundary extends React.Component {
               width: "100%",
               border: 1,
               borderColor: "divider",
-              borderRadius: 4,
+              borderRadius: 3,
               p: 4,
               textAlign: "center",
             }}
@@ -119,7 +119,6 @@ class ErrorBoundary extends React.Component {
                   textAlign: "left",
                   p: 2,
                   bgcolor: "action.hover",
-                  borderRadius: 2,
                   border: 1,
                   borderColor: "divider",
                   maxHeight: 192,

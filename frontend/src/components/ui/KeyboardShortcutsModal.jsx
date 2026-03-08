@@ -80,11 +80,11 @@ function ShortcutKey({ shortcut }) {
             className={clsx(
               "inline-flex items-center justify-center",
               "min-w-[24px] h-6 px-1.5",
-              "bg-slate-100 dark:bg-slate-700",
-              "border border-slate-200 dark:border-slate-600",
+              "bg-slate-100",
+              "border border-slate-200",
               "rounded",
               "text-xs font-mono font-medium",
-              "text-slate-700 dark:text-slate-300"
+              "text-slate-700"
             )}
           >
             {key}
@@ -149,21 +149,21 @@ export function KeyboardShortcutsModal({ isOpen, onClose }) {
           "fixed z-[101]",
           "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
           "w-full max-w-2xl max-h-[85vh]",
-          "bg-white dark:bg-slate-800",
+          "bg-white",
           "rounded-2xl shadow-2xl",
           "overflow-hidden",
           "animate-scale-in"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <Keyboard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Keyboard className="w-5 h-5 text-blue-600" />
             </div>
             <h2
               id="shortcuts-title"
-              className="text-lg font-semibold text-slate-900 dark:text-white"
+              className="text-lg font-semibold text-slate-900"
             >
               {t("shortcuts_title", "Atajos de Teclado")}
             </h2>
@@ -183,7 +183,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {SHORTCUT_CATEGORIES.map((category) => (
               <div key={category.id}>
-                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
                   {t(`shortcuts_cat_${category.id}`, category.label)}
                 </h3>
                 <div className="space-y-2">
@@ -192,7 +192,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }) {
                       key={shortcut.key}
                       className="flex items-center justify-between py-2"
                     >
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-sm text-slate-700">
                         {t(`shortcut_${shortcut.key.replace(/[+]/g, "_")}`, shortcut.description)}
                       </span>
                       <ShortcutKey shortcut={shortcut.key} />
@@ -205,8 +205,8 @@ export function KeyboardShortcutsModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+        <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
+          <p className="text-xs text-slate-500 text-center">
             {t(
               "shortcuts_hint",
               "Presiona ? en cualquier momento para ver esta ayuda"

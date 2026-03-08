@@ -136,10 +136,10 @@ export default function ConsultasStockList({ onRespond }) {
     return (
       <div className="text-center py-12">
         <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-        <p className="text-slate-600 dark:text-slate-400 text-lg">
+        <p className="text-slate-600 text-lg">
           {t("consulta_sin_pendientes", "No tienes consultas pendientes")}
         </p>
-        <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+        <p className="text-slate-400 text-sm mt-1">
           {t("consulta_sin_pendientes_desc", "Las nuevas consultas apareceran aqui")}
         </p>
       </div>
@@ -152,7 +152,7 @@ export default function ConsultasStockList({ onRespond }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Package className="w-5 h-5 text-orange-500" />
-          <span className="font-medium text-slate-700 dark:text-slate-300">
+          <span className="font-medium text-slate-700">
             {consultas.length} {t("consulta_pendientes_count", "consultas pendientes")}
           </span>
         </div>
@@ -168,13 +168,13 @@ export default function ConsultasStockList({ onRespond }) {
         return (
           <div
             key={consulta.fuente_id}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:shadow-md transition-shadow"
+            className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between gap-4">
               {/* Info principal */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-slate-800">
                     {t("consulta_solicitud", "Solicitud")} #{consulta.solicitud_id}
                   </span>
                   {consulta.criticidad && (
@@ -186,7 +186,7 @@ export default function ConsultasStockList({ onRespond }) {
 
                 {/* Material info */}
                 {materialInfo && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 truncate">
+                  <p className="text-sm text-slate-600 mb-2 truncate">
                     {materialInfo.codigo} - {materialInfo.descripcion}
                   </p>
                 )}

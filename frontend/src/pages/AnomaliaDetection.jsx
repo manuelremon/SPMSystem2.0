@@ -74,7 +74,7 @@ export default function AnomaliaDetection() {
             value={searchQuery}
             onChange={handleSearch}
             placeholder="Buscar por codigo o descripcion..."
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 0, fontSize: 14, background: 'var(--bg-base)' }}
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }}
           />
           {searchResults.length > 0 && (
             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'var(--bg-base)', border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
@@ -94,12 +94,12 @@ export default function AnomaliaDetection() {
         <div style={{ width: 160 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Centro</label>
           <input type="text" value={centro} onChange={e => setCentro(e.target.value)} placeholder="Ej: AA101"
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 0, fontSize: 14, background: 'var(--bg-base)' }} />
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }} />
         </div>
         <div style={{ width: 120 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dias</label>
           <select value={dias} onChange={e => setDias(Number(e.target.value))}
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 0, fontSize: 14, background: 'var(--bg-base)' }}>
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }}>
             <option value={30}>30 dias</option>
             <option value={60}>60 dias</option>
             <option value={90}>90 dias</option>
@@ -108,7 +108,7 @@ export default function AnomaliaDetection() {
           </select>
         </div>
         <button onClick={detectar} disabled={!selectedMaterial || loading}
-          style={{ padding: '8px 24px', background: loading ? 'var(--fg-muted)' : 'var(--primary)', color: 'white', border: 'none', borderRadius: 0, fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: 38 }}>
+          style={{ padding: '8px 24px', background: loading ? 'var(--fg-muted)' : 'var(--primary)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: 38 }}>
           {loading ? 'Analizando...' : 'Detectar'}
         </button>
       </div>

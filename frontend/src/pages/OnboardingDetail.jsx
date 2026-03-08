@@ -435,7 +435,7 @@ export default function OnboardingDetail() {
       </Stack>
 
       {/* Info Summary */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
           <Box>
             <Typography variant="caption" color="text.secondary">{t('onboarding_cuit', 'CUIT')}</Typography>
@@ -464,7 +464,7 @@ export default function OnboardingDetail() {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
           <Tab label={t('onboarding_tab_data', 'Datos')} />
           <Tab label={t('onboarding_tab_docs', 'Documentos')} />

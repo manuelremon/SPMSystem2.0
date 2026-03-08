@@ -188,7 +188,7 @@ export default function VehiclesList() {
       </Stack>
 
       {/* Filters */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>{t('fms_filter_estado', 'Estado')}</InputLabel>
@@ -223,7 +223,7 @@ export default function VehiclesList() {
       {error && <Alert severity="error">{error}</Alert>}
 
       {/* Grid */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+      <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
         <SPMAgGrid
           rowData={vehicles || []}
           columnDefs={columnDefs}

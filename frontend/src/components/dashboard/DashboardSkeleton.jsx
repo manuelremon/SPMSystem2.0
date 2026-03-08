@@ -11,7 +11,7 @@ export const DashboardSkeleton = () => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
             {/* 1. Solicitudes Section (Collapsed Header) */}
-            <Paper elevation={0} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+            <Paper elevation={0} sx={{ bgcolor: 'white', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
                 <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'grey.100' }}>
                     <Stack direction="row" alignItems="center" gap={1}>
                         <Skeleton variant="circular" width={20} height={20} />
@@ -21,7 +21,7 @@ export const DashboardSkeleton = () => {
             </Paper>
 
             {/* 2. Filters Section */}
-            <Paper elevation={0} sx={{ bgcolor: 'white', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+            <Paper elevation={0} sx={{ bgcolor: 'white', border: '1px solid', borderColor: 'divider' }}>
                 <Box sx={{ py: 1, px: 3, height: 73 }}>
                     <Stack direction="row" alignItems="center" gap={3} sx={{ height: '100%' }}>
                         {/* Slider */}
@@ -47,7 +47,7 @@ export const DashboardSkeleton = () => {
             {/* 3. KPI Section Grid */}
             <Stack direction="row" gap={1.5} flexWrap="wrap">
                 {/* KPI 1: Sparkline */}
-                <Paper elevation={0} sx={{ flex: '1 1 340px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                <Paper elevation={0} sx={{ flex: '1 1 340px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
                     <Stack spacing={2}>
                         <Stack direction="row" justifyContent="space-between">
                             <Skeleton variant="text" width={100} height={20} />
@@ -59,7 +59,7 @@ export const DashboardSkeleton = () => {
                 </Paper>
 
                 {/* KPI 2: Cumplimiento */}
-                <Paper elevation={0} sx={{ flex: '1 1 400px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                <Paper elevation={0} sx={{ flex: '1 1 400px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
                     <Stack direction="row" gap={2} height="100%">
                         <Box sx={{ width: 120 }}>
                             <Skeleton variant="text" width={80} mb={1} />
@@ -79,7 +79,7 @@ export const DashboardSkeleton = () => {
                 </Paper>
 
                 {/* KPI 3: Tiempos */}
-                <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
                     <Stack spacing={2}>
                         <Skeleton variant="text" width={120} />
                         <Skeleton variant="rounded" width="100%" height={20} />
@@ -92,7 +92,7 @@ export const DashboardSkeleton = () => {
                 </Paper>
 
                 {/* KPI 4: Fuentes */}
-                <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
                     <Stack spacing={2} alignItems="center">
                         <Skeleton variant="text" width={150} />
                         <Stack direction="row" alignItems="center" gap={2}>
@@ -109,13 +109,13 @@ export const DashboardSkeleton = () => {
             {/* 4. Second Row (Charts/Details) */}
             <Grid container spacing={3}>
                 <Grid item xs={12} md={8}>
-                    <Paper elevation={0} sx={{ p: 2, height: 400, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                    <Paper elevation={0} sx={{ p: 2, height: 400, border: 1, borderColor: 'divider' }}>
                         <Skeleton variant="text" width={200} height={32} sx={{ mb: 2 }} />
                         <Skeleton variant="rounded" width="100%" height={300} />
                     </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                    <Paper elevation={0} sx={{ p: 2, height: 400, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                    <Paper elevation={0} sx={{ p: 2, height: 400, border: 1, borderColor: 'divider' }}>
                         <Skeleton variant="text" width={150} height={32} sx={{ mb: 2 }} />
                         <Stack spacing={2}>
                             <Skeleton variant="rounded" width="100%" height={60} />
@@ -134,7 +134,7 @@ export const DashboardSkeleton = () => {
 export const KPIGridSkeleton = () => (
     <Stack direction="row" gap={1.5} flexWrap="wrap">
         {/* KPI 1: Sparkline */}
-        <Paper elevation={0} sx={{ flex: '1 1 340px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ flex: '1 1 340px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
             <Stack spacing={2}>
                 <Stack direction="row" justifyContent="space-between">
                     <Skeleton variant="text" width={100} height={20} />
@@ -146,7 +146,7 @@ export const KPIGridSkeleton = () => (
         </Paper>
 
         {/* KPI 2: Cumplimiento */}
-        <Paper elevation={0} sx={{ flex: '1 1 400px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ flex: '1 1 400px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
             <Stack direction="row" gap={2} height="100%">
                 <Box sx={{ width: 120 }}>
                     <Skeleton variant="text" width={80} mb={1} />
@@ -166,7 +166,7 @@ export const KPIGridSkeleton = () => (
         </Paper>
 
         {/* KPI 3: Tiempos */}
-        <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
             <Stack spacing={2}>
                 <Skeleton variant="text" width={120} />
                 <Skeleton variant="rounded" width="100%" height={20} />
@@ -179,7 +179,7 @@ export const KPIGridSkeleton = () => (
         </Paper>
 
         {/* KPI 4: Fuentes */}
-        <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Paper elevation={0} sx={{ flex: '1 1 320px', height: 180, p: 2, border: 1, borderColor: 'divider' }}>
             <Stack spacing={2} alignItems="center">
                 <Skeleton variant="text" width={150} />
                 <Stack direction="row" alignItems="center" gap={2}>

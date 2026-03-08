@@ -208,7 +208,7 @@ export default function PutawayTasks() {
       </Stack>
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('putaway_filter_estado', 'Estado')}</InputLabel>
@@ -227,7 +227,7 @@ export default function PutawayTasks() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('putaway_title', 'Tareas de Ubicacion')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('putaway_title', 'Tareas de Ubicacion')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={tasks}

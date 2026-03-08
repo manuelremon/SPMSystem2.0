@@ -508,7 +508,6 @@ export default function Paso4AccionesPendientes({
                   sx={{
                     mt: 1.5,
                     p: 1.5,
-                    borderRadius: 2,
                     bgcolor: "var(--primary-muted)",
                   }}
                 >
@@ -592,7 +591,6 @@ function SectionHeader({ icon: Icon, title, subtitle, variant }) {
       <Box
         sx={{
           p: 1,
-          borderRadius: 2,
           bgcolor: style.bg,
           color: style.text,
           display: "flex",
@@ -630,7 +628,7 @@ function PreviewTable({ acciones, tipo }) {
       component={Paper}
       elevation={0}
       sx={{
-        borderRadius: 4,
+        borderRadius: 3,
         bgcolor: "var(--card)",
         boxShadow: "var(--shadow-sm)",
       }}
@@ -785,7 +783,7 @@ function AccionesTable({ acciones, tipo = "stock", onEstadoClick }) {
       component={Paper}
       elevation={0}
       sx={{
-        borderRadius: 4,
+        borderRadius: 3,
         bgcolor: "var(--card)",
         boxShadow: "var(--shadow-sm)",
       }}
@@ -968,7 +966,6 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
           <Box
             sx={{
               p: 1,
-              borderRadius: 1,
               bgcolor: estadoConfig.bg,
               display: "flex",
               alignItems: "center",
@@ -998,7 +995,7 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
           {/* Info del material */}
-          <Paper elevation={0} sx={{ p: 2, bgcolor: "var(--bg-soft)", borderRadius: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: "var(--bg-soft)" }}>
             <Typography
               variant="caption"
               sx={{
@@ -1062,7 +1059,6 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
               sx={{
                 p: 2,
                 border: "1px solid var(--border)",
-                borderRadius: 2,
                 bgcolor: "var(--card)",
               }}
             >

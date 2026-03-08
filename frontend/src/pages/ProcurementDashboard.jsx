@@ -41,7 +41,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 // Componente StatCard estilo MUI
 const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)', trend, trendLabel }) => (
-  <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+  <Paper variant="outlined" sx={{ p: 3 }}>
     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
       <Box>
         <Typography variant="body2" color="text.secondary" fontWeight={500}>
@@ -72,7 +72,6 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'var(--primary)'
       <Box sx={{
         p: 1.5,
         bgcolor: `color-mix(in srgb, ${color} 12%, transparent)`,
-        borderRadius: 2,
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
@@ -457,12 +456,12 @@ export default function ProcurementDashboard() {
         </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
+            <Skeleton key={i} variant="rectangular" height={120} />
           ))}
         </Box>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 3 }}>
-          <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
-          <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+          <Skeleton variant="rectangular" height={300} />
+          <Skeleton variant="rectangular" height={300} />
         </Box>
       </Box>
     );
@@ -554,7 +553,7 @@ export default function ProcurementDashboard() {
       {/* Segunda fila: OTIF Gauge + Top Proveedores */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 2fr" }, gap: 3 }}>
         {/* OTIF Gauge */}
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
             {t('procurement_otif_compliance', 'Cumplimiento OTIF')}
           </Typography>
@@ -582,7 +581,7 @@ export default function ProcurementDashboard() {
         </Paper>
 
         {/* Top Proveedores */}
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             {t('procurement_top_suppliers', 'Top 5 Proveedores por Volumen')}
           </Typography>
@@ -592,7 +591,7 @@ export default function ProcurementDashboard() {
 
       {/* Pipeline */}
       {pipeline.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 3 }}>
             {t('procurement_conversion_funnel', 'Embudo de Conversion')}
           </Typography>
@@ -605,9 +604,9 @@ export default function ProcurementDashboard() {
                     value={etapa.porcentaje}
                     sx={{
                       height: 8,
-                      borderRadius: 4,
+                      borderRadius: 3,
                       bgcolor: 'grey.200',
-                      "& .MuiLinearProgress-bar": { borderRadius: 4 }
+                      "& .MuiLinearProgress-bar": { borderRadius: 3 }
                     }}
                   />
                 </Box>
@@ -628,7 +627,7 @@ export default function ProcurementDashboard() {
 
       {/* Tabla Cumplimiento por Proveedor */}
       {compliance.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             {t('procurement_compliance_by_supplier', 'Cumplimiento por Proveedor')}
           </Typography>
@@ -638,7 +637,7 @@ export default function ProcurementDashboard() {
 
       {/* Historial de Importaciones */}
       {importHistory.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mb: 2 }}>
             {t('procurement_recent_imports', 'Ultimas Importaciones')}
           </Typography>

@@ -59,7 +59,6 @@ export function Modal({
   // Estilos personalizados para el Dialog
   const dialogSx = {
     '& .MuiDialog-paper': {
-      borderRadius: '12px',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
       border: '1px solid var(--border)',
       backgroundColor: 'var(--card)',
@@ -119,8 +118,8 @@ export function Modal({
         }}
         PaperProps={{
           sx: {
-            borderTopLeftRadius: '16px',
-            borderTopRightRadius: '16px',
+            borderTopLeftRadius: '12px',
+            borderTopRightRadius: '12px',
             maxHeight: '90vh',
             backgroundColor: 'var(--card)',
             boxShadow: '0 -10px 40px -10px rgba(0, 0, 0, 0.2)',

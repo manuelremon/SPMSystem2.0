@@ -114,7 +114,7 @@ export function AssistantModal({ isOpen, onClose, onUseSuggestions }) {
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2 }
+        sx: {}
       }}
     >
       <DialogTitle

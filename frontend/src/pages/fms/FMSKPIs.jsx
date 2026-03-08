@@ -50,7 +50,6 @@ function KpiCard({ icon: Icon, label, value, subtitle, borderColor, children }) 
           sx={{
             width: 44,
             height: 44,
-            borderRadius: 2,
             bgcolor: `${borderColor}15`,
             display: 'flex',
             alignItems: 'center',

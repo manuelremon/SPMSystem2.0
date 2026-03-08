@@ -89,7 +89,6 @@ function AttentionBanner({ resumen }) {
         bgcolor: 'var(--surface)',
         border: '1px solid',
         borderColor: 'divider',
-        borderRadius: 2,
         px: 2,
         py: 1.5,
       }}

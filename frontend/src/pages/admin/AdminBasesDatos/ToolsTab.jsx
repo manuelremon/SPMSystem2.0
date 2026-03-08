@@ -41,7 +41,6 @@ function ToolCard({ icon: Icon, iconColor, title, chipLabel, chipColor, descript
     <Paper
       variant="outlined"
       sx={{
-        borderRadius: 2,
         overflow: 'hidden',
         opacity: disabled ? 0.55 : 1,
         transition: 'border-color 0.2s',
@@ -243,7 +242,6 @@ export function ToolsTab({
               sx={{
                 mt: 1.5,
                 p: 1.5,
-                borderRadius: 1,
                 bgcolor: integrityResult.integrity_ok ? "success.lighter" : "error.lighter",
                 border: 1,
                 borderColor: integrityResult.integrity_ok ? "success.light" : "error.light",
@@ -400,7 +398,7 @@ export function ToolsTab({
           {poolStats ? (
             <Stack spacing={1}>
               {Object.entries(poolStats).map(([pool, stats]) => (
-                <Box key={pool} sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1, border: 1, borderColor: 'divider' }}>
+                <Box key={pool} sx={{ p: 1.5, bgcolor: "grey.50", border: 1, borderColor: 'divider' }}>
                   <Typography variant="caption" fontWeight={600}>
                     {pool}
                   </Typography>
@@ -421,7 +419,6 @@ export function ToolsTab({
         <Paper
           variant="outlined"
           sx={{
-            borderRadius: 2,
             overflow: 'hidden',
             borderColor: 'warning.light',
           }}

@@ -102,7 +102,6 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
       sx={{
         p: 2,
         border: "1px solid var(--border)",
-        borderRadius: 2,
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -112,7 +111,6 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
         <Box
           sx={{
             p: 1,
-            borderRadius: 1.5,
             backgroundColor: `${color}15`,
             display: "flex",
             alignItems: "center",
@@ -128,7 +126,6 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
             gap: 0.5,
             px: 1,
             py: 0.25,
-            borderRadius: 2,
             backgroundColor: getTendenciaBg(),
           }}
         >
@@ -473,7 +470,7 @@ export default function MRPKPIs() {
       <TempDataBanner />
 
       {/* Filtros - estilo Dashboard */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
         <Box sx={{ py: 1.5, px: 3, height: "73px" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
           {/* Slider de fechas */}
@@ -617,7 +614,6 @@ export default function MRPKPIs() {
                 fontWeight: 500,
                 color: "var(--fg-muted)",
                 border: "1px solid var(--border)",
-                borderRadius: 1,
                 backgroundColor: "transparent",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
@@ -675,7 +671,7 @@ export default function MRPKPIs() {
             }}
           >
             {/* Distribution Chart */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
               <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
                 <PieChartIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -690,7 +686,7 @@ export default function MRPKPIs() {
             </Paper>
 
             {/* Cumplimiento Gauge */}
-            <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+            <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
               <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
                 <CheckCircleIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -707,7 +703,7 @@ export default function MRPKPIs() {
           </Box>
 
           {/* Evolution Chart */}
-          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden", mb: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden", mb: 3 }}>
             <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
               <ShowChartIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -736,7 +732,7 @@ export default function MRPKPIs() {
           </Paper>
 
           {/* Top Materials at Risk */}
-          <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden", mb: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden", mb: 3 }}>
             <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
               <WarningIcon sx={{ color: COLORS.warning, fontSize: 20 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -761,7 +757,6 @@ export default function MRPKPIs() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         p: 1.5,
-                        borderRadius: 1.5,
                         border: "1px solid var(--border)",
                         "&:hover": { borderColor: COLORS.primary, backgroundColor: "var(--bg-soft)" },
                         transition: "all 0.2s ease",
@@ -814,7 +809,6 @@ export default function MRPKPIs() {
             sx={{
               p: 1.5,
               border: "1px solid var(--border)",
-              borderRadius: 2,
               backgroundColor: "var(--bg-soft)",
             }}
           >

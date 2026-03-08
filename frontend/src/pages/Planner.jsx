@@ -631,7 +631,6 @@ export default function Planner({ filterMode }) {
           sx={{
             border: 1,
             borderColor: "divider",
-            borderRadius: 2,
             p: 2,
             mb: 3,
           }}

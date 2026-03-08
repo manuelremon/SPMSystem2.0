@@ -114,8 +114,8 @@ function ExpandedCardDialog({
                   {topC.map((c, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                       <Typography variant="caption" sx={{ width: 80, flexShrink: 0 }}>{c.nombre}</Typography>
-                      <Box sx={{ flex: 1, height: 8, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden' }}>
-                        <Box sx={{ width: `${c.monto > 0 ? Math.min(100, (c.utilizado / c.monto) * 100) : 0}%`, height: '100%', bgcolor: BUDGET_COLORS.utilizado, borderRadius: 1 }} />
+                      <Box sx={{ flex: 1, height: 8, bgcolor: 'grey.100', overflow: 'hidden' }}>
+                        <Box sx={{ width: `${c.monto > 0 ? Math.min(100, (c.utilizado / c.monto) * 100) : 0}%`, height: '100%', bgcolor: BUDGET_COLORS.utilizado }} />
                       </Box>
                       <Typography variant="caption" sx={{ width: 70, textAlign: 'right' }}>KUSD {fmt(c.utilizado)}</Typography>
                     </Stack>
@@ -128,8 +128,8 @@ function ExpandedCardDialog({
                   {topS.map((s, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                       <Typography variant="caption" sx={{ width: 100, flexShrink: 0 }}>{s.nombre}</Typography>
-                      <Box sx={{ flex: 1, height: 8, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden' }}>
-                        <Box sx={{ width: `${s.monto > 0 ? Math.min(100, (s.utilizado / s.monto) * 100) : 0}%`, height: '100%', bgcolor: BUDGET_COLORS.disponible, borderRadius: 1 }} />
+                      <Box sx={{ flex: 1, height: 8, bgcolor: 'grey.100', overflow: 'hidden' }}>
+                        <Box sx={{ width: `${s.monto > 0 ? Math.min(100, (s.utilizado / s.monto) * 100) : 0}%`, height: '100%', bgcolor: BUDGET_COLORS.disponible }} />
                       </Box>
                       <Typography variant="caption" sx={{ width: 70, textAlign: 'right' }}>KUSD {fmt(s.utilizado)}</Typography>
                     </Stack>
@@ -174,7 +174,7 @@ function ExpandedCardDialog({
           return (
             <Stack spacing={3} sx={{ py: 2 }}>
               <Typography variant="body1" sx={{ fontWeight: 600, textAlign: 'center' }}>{t('dash_promedio', 'Promedio')} total: {total}d</Typography>
-              <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 32, borderRadius: 2, overflow: 'hidden' }}>
+              <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 32, overflow: 'hidden' }}>
                 <Box sx={{ flex: avgA, bgcolor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.75rem' }}>{avgA}d</Typography>
                 </Box>

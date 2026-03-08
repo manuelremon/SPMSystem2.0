@@ -924,7 +924,7 @@ export default function Aprobaciones() {
           <Alert
             severity="error"
             onClose={() => setError("")}
-            sx={{ mb: 2, borderRadius: 2 }}
+            sx={{ mb: 2 }}
           >
             {error}
           </Alert>
@@ -933,14 +933,14 @@ export default function Aprobaciones() {
           <Alert
             severity="success"
             onClose={() => setSuccess("")}
-            sx={{ mb: 2, borderRadius: 2 }}
+            sx={{ mb: 2 }}
           >
             {success}
           </Alert>
         )}
 
         {/* Main Card */}
-        <Paper variant="outlined" sx={{ overflow: "hidden", borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           {/* Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", px: 1 }}>
             <Tabs

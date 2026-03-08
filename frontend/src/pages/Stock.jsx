@@ -80,7 +80,6 @@ function SummaryCard({ label, value, subvalue, variant = "default" }) {
       variant="outlined"
       sx={{
         p: 2,
-        borderRadius: 2,
         ...variantStyles[variant],
       }}
     >
@@ -466,7 +465,7 @@ export default function Stock() {
       )}
 
       {/* Main Card with Filters and Table */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         {/* Filter Header */}
         <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
           <Stack direction="row" alignItems="center" spacing={1}>

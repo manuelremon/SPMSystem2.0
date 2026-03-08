@@ -202,7 +202,7 @@ export default function OnboardingList() {
   ], [t]);
 
   const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, flex: 1, minWidth: 170 }}>
+    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 170 }}>
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
         {icon}
         <Typography variant="caption" color="text.secondary">{label}</Typography>
@@ -263,7 +263,7 @@ export default function OnboardingList() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>{t('onboarding_filter_estado', 'Estado')}</InputLabel>
@@ -290,7 +290,7 @@ export default function OnboardingList() {
       </Paper>
 
       {/* Grid */}
-      <Paper elevation={0} sx={{ p: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ p: 0, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Box sx={{ height: 600 }}>
           <SPMAgGrid
             rowData={onboardings}

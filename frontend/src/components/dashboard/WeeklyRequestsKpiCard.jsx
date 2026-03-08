@@ -190,7 +190,6 @@ function TrendIndicator({ variacionPct, trend }) {
       sx={{
         px: 1,
         py: 0.25,
-        borderRadius: 1,
         backgroundColor: bgColor,
       }}
     >
@@ -231,7 +230,6 @@ export function WeeklyRequestsKpiCard({
       sx={{
         width: '100%',
         height: '100%',
-        borderRadius: 2,
         backgroundColor: '#ffffff',
         border: '1px solid',
         borderColor: 'divider',
@@ -272,7 +270,7 @@ export function WeeklyRequestsKpiCard({
           </Box>
           {/* KPI Principal + Tendencia en esquina superior derecha */}
           <Stack alignItems="flex-end" spacing={0.5}>
-            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.100' }}>
               <Typography
                 variant="h5"
                 sx={{

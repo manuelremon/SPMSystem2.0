@@ -254,7 +254,6 @@ const ForecastIndividual = () => {
               color: "var(--fg-muted)",
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 1.5,
               width: 32,
               height: 32,
               '&:hover': { borderColor: 'var(--primary)', color: 'var(--primary)' },
@@ -293,7 +292,6 @@ const ForecastIndividual = () => {
               fontWeight: 500,
               color: "var(--fg-muted)",
               borderColor: "var(--border)",
-              borderRadius: 1.5,
               px: 2,
               "&:hover": { color: "var(--danger, #dc2626)", borderColor: "var(--danger, #dc2626)", bgcolor: 'rgba(220,38,38,0.04)' },
             }}
@@ -313,7 +311,6 @@ const ForecastIndividual = () => {
           mb: 2.5,
           border: "1px solid",
           borderColor: 'divider',
-          borderRadius: 2,
           overflow: "hidden",
           transition: 'box-shadow 0.2s ease-in-out',
           '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
@@ -430,7 +427,6 @@ const ForecastIndividual = () => {
                 sx={{
                   height: 40,
                   minWidth: 130,
-                  borderRadius: 1.5,
                   fontWeight: 600,
                   fontSize: FONT_SIZES.md,
                   textTransform: 'none',
@@ -565,7 +561,7 @@ const ForecastIndividual = () => {
 
         if (isColdStart && materialCodigo) {
           return (
-            <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2, mb: 2 }} />}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ mb: 2 }} />}>
               <Box sx={{ mb: 3 }}>
                 <ForecastSimulationPanel
                   onSimulate={generateSyntheticData}
@@ -583,7 +579,6 @@ const ForecastIndividual = () => {
               severity="error"
               sx={{
                 mb: 2,
-                borderRadius: 2,
                 border: '1px solid',
                 borderColor: 'error.light',
                 '& .MuiAlert-message': { fontSize: FONT_SIZES.md },
@@ -599,7 +594,7 @@ const ForecastIndividual = () => {
 
       {/* ForecastPlaceholder */}
       {!loading && !error && forecastData && !simulationMode && historicoParaGrafico && historicoParaGrafico.length < 3 && materialCodigo && (
-        <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2, mb: 2 }} />}>
+        <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ mb: 2 }} />}>
           <Box sx={{ mb: 3 }}>
             <ForecastPlaceholder
               historicalData={historicoParaGrafico}
@@ -621,7 +616,6 @@ const ForecastIndividual = () => {
               mb: 2,
               border: "1px solid",
               borderColor: 'divider',
-              borderRadius: 2,
               overflow: 'hidden',
               transition: 'box-shadow 0.2s ease-in-out',
               '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
@@ -636,7 +630,6 @@ const ForecastIndividual = () => {
                     sx={{
                       width: 40,
                       height: 40,
-                      borderRadius: 1.5,
                       bgcolor: simulationMode ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0, 112, 243, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
@@ -737,7 +730,6 @@ const ForecastIndividual = () => {
                               fontSize: FONT_SIZES.md,
                               fontWeight: 500,
                               color: 'var(--fg-muted)',
-                              borderRadius: 1.5,
                               textTransform: 'none',
                               px: 1.5,
                               '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
@@ -758,7 +750,6 @@ const ForecastIndividual = () => {
                               fontSize: FONT_SIZES.md,
                               fontWeight: 500,
                               color: 'var(--fg-muted)',
-                              borderRadius: 1.5,
                               textTransform: 'none',
                               px: 1.5,
                               '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
@@ -778,7 +769,6 @@ const ForecastIndividual = () => {
                         fontSize: FONT_SIZES.md,
                         fontWeight: 500,
                         color: 'var(--warning, #d97706)',
-                        borderRadius: 1.5,
                         textTransform: 'none',
                         px: 1.5,
                         '&:hover': { bgcolor: 'rgba(217, 119, 6, 0.04)' },
@@ -826,13 +816,13 @@ const ForecastIndividual = () => {
             {activeTab === 0 && (
               <Stack gap={2}>
                 {/* KPIs */}
-                <Suspense fallback={<Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />}>
+                <Suspense fallback={<Skeleton variant="rectangular" height={80} />}>
                   <ForecastKPIs metricas={metricas} />
                 </Suspense>
 
                 {/* Gráfico principal */}
-                <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />}>
-                  <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: 'divider', borderRadius: 2 }}>
+                <Suspense fallback={<Skeleton variant="rectangular" height={400} />}>
+                  <Paper elevation={0} sx={{ p: 2, border: "1px solid", borderColor: 'divider' }}>
                     <ForecastChart
                       historico={historicoParaGrafico}
                       predicciones={prediccionesParaGrafico}
@@ -851,11 +841,11 @@ const ForecastIndividual = () => {
 
             {activeTab === 1 && (
               <Stack gap={2}>
-                <Suspense fallback={<Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />}>
+                <Suspense fallback={<Skeleton variant="rectangular" height={80} />}>
                   <ForecastKPIs metricas={metricas} />
                 </Suspense>
 
-                <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: 'divider', borderRadius: 2 }}>
+                <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: 'divider' }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -918,7 +908,7 @@ const ForecastIndividual = () => {
             )}
 
             {activeTab === 3 && (
-              <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />}>
+              <Suspense fallback={<Skeleton variant="rectangular" height={400} />}>
                 <PatternCharts
                   patronSemanal={forecastData.patrones?.semanal}
                   patronMensual={forecastData.patrones?.mensual}
@@ -929,7 +919,7 @@ const ForecastIndividual = () => {
 
           {/* Panel de Backtesting */}
           {showBacktest && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 2.5 }} />}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ mt: 2.5 }} />}>
               <Box sx={{ mt: 2.5 }}>
                 <BacktestResults data={backtestData} loading={loadingBacktest} />
               </Box>
@@ -938,7 +928,7 @@ const ForecastIndividual = () => {
 
           {/* Panel de Comparación */}
           {showComparacion && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2, mt: 2.5 }} />}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ mt: 2.5 }} />}>
               <Box sx={{ mt: 2.5 }}>
                 <ModelComparison data={comparacionData} loading={loadingComparacion} onSelectModel={handleSelectModelFromComparison} />
               </Box>
@@ -954,7 +944,6 @@ const ForecastIndividual = () => {
           sx={{
             border: "1px solid",
             borderColor: 'divider',
-            borderRadius: 2,
             overflow: 'hidden',
           }}
         >
@@ -1044,7 +1033,6 @@ const ForecastIndividual = () => {
               transform: 'translate(-50%, -50%)',
               width: 380,
               bgcolor: 'var(--surface)',
-              borderRadius: 3,
               border: '1px solid',
               borderColor: 'divider',
               boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.18)',
@@ -1058,7 +1046,6 @@ const ForecastIndividual = () => {
                 sx={{
                   width: 44,
                   height: 44,
-                  borderRadius: 2,
                   bgcolor: 'rgba(0, 112, 243, 0.08)',
                   display: 'flex',
                   alignItems: 'center',

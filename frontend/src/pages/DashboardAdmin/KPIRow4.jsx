@@ -32,7 +32,6 @@ const cardSx = {
   bgcolor: 'var(--surface)',
   border: '1px solid',
   borderColor: 'divider',
-  borderRadius: 2,
   p: 1.5,
   transition: 'box-shadow 0.2s ease-in-out',
   '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },

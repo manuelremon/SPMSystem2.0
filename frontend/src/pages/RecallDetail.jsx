@@ -220,7 +220,7 @@ export default function RecallDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -260,7 +260,7 @@ export default function RecallDetail() {
 
       {/* Stats */}
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 160 }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
             <WarningAmberIcon fontSize="small" sx={{ color: 'error.main' }} />
             <Typography variant="caption" color="text.secondary">{t('recall_stat_cantidad', 'Cantidad Total Afectada')}</Typography>
@@ -269,7 +269,7 @@ export default function RecallDetail() {
             {cantidadTotal != null ? cantidadTotal.toLocaleString('es-ES') : '--'}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 160 }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
             <InventoryIcon fontSize="small" sx={{ color: 'warning.main' }} />
             <Typography variant="caption" color="text.secondary">{t('recall_stat_lotes', 'Lotes Afectados')}</Typography>
@@ -278,7 +278,7 @@ export default function RecallDetail() {
             {totalLotes}
           </Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 160 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 160 }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
             <CheckCircleIcon fontSize="small" sx={{ color: 'success.main' }} />
             <Typography variant="caption" color="text.secondary">{t('recall_stat_recovered', 'Lotes Recuperados')}</Typography>
@@ -290,7 +290,7 @@ export default function RecallDetail() {
       </Stack>
 
       {/* Affected Lotes Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1}>
             <InventoryIcon fontSize="small" color="primary" />
@@ -313,7 +313,7 @@ export default function RecallDetail() {
 
       {/* Plan de Accion */}
       {recall.plan_accion && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <AssignmentIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -326,7 +326,6 @@ export default function RecallDetail() {
               whiteSpace: 'pre-wrap',
               p: 2,
               bgcolor: 'action.hover',
-              borderRadius: 1,
               lineHeight: 1.7,
             }}
           >

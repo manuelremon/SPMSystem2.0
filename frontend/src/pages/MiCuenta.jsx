@@ -314,12 +314,12 @@ export default function MiCuenta() {
         <Grid container spacing={2}>
           {[...Array(6)].map((_, i) => (
             <Grid item xs={12} md={6} key={i}>
-              <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
+              <Paper variant="outlined" sx={{ p: 2.5 }}>
                 <Skeleton width="40%" height={28} sx={{ mb: 1 }} />
                 <Stack spacing={1.5}>
-                  <Skeleton variant="rectangular" height={40} sx={{ borderRadius: 1 }} />
-                  <Skeleton variant="rectangular" height={40} sx={{ borderRadius: 1 }} />
-                  <Skeleton variant="rectangular" height={40} sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rectangular" height={40} sx={{}} />
+                  <Skeleton variant="rectangular" height={40} sx={{}} />
+                  <Skeleton variant="rectangular" height={40} sx={{}} />
                 </Stack>
               </Paper>
             </Grid>
@@ -345,7 +345,7 @@ export default function MiCuenta() {
       {/* Datos de Identidad + Contacto */}
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
             <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
               <PersonIcon fontSize="small" sx={{ color: "primary.main" }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Datos de Identidad</Typography>
@@ -370,7 +370,7 @@ export default function MiCuenta() {
         <Grid item xs={12} md={6}>
           <Stack spacing={2}>
             {/* Contacto */}
-            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+            <Paper variant="outlined" sx={{ overflow: "hidden" }}>
               <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
                 <PhoneIcon fontSize="small" sx={{ color: "primary.main" }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Datos de Contacto</Typography>
@@ -390,7 +390,7 @@ export default function MiCuenta() {
             </Paper>
 
             {/* Seguridad */}
-            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+            <Paper variant="outlined" sx={{ overflow: "hidden" }}>
               <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
                 <LockIcon fontSize="small" sx={{ color: "primary.main" }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Seguridad</Typography>
@@ -414,7 +414,7 @@ export default function MiCuenta() {
       </Grid>
 
       {/* Preferencias de Notificacion */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
           <NotificationsIcon fontSize="small" sx={{ color: "primary.main" }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Preferencias de Notificacion</Typography>
@@ -449,7 +449,7 @@ export default function MiCuenta() {
       </Paper>
 
       {/* Configuracion sujeta a aprobacion */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
           <TuneIcon fontSize="small" sx={{ color: "primary.main" }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Configuracion sujeta a aprobacion</Typography>
@@ -532,7 +532,7 @@ export default function MiCuenta() {
       </Paper>
 
       {/* Historial de solicitudes */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon fontSize="small" sx={{ color: "primary.main" }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Solicitudes de actualizacion de perfil</Typography>

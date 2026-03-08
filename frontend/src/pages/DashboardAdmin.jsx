@@ -908,7 +908,6 @@ export default function DashboardAdmin() {
           bgcolor: 'grey.50',
           border: '1px dashed',
           borderColor: 'divider',
-          borderRadius: 2,
           p: 2,
         }}>
           <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.7rem' }}>
@@ -920,7 +919,7 @@ export default function DashboardAdmin() {
             return (
               <Box key={cat.id} sx={{ mb: 1.5 }}>
                 <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
-                  <Box sx={{ width: 3, height: 14, borderRadius: 1, bgcolor: cat.color }} />
+                  <Box sx={{ width: 3, height: 14, bgcolor: cat.color }} />
                   <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem', color: 'text.secondary', textTransform: 'uppercase' }}>
                     {cat.label}
                   </Typography>

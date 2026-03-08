@@ -73,7 +73,6 @@ export default function DockBoard({ docks = [], onAssign, onUpdateTimes }) {
             aria-label={`Dock ${dock.numero_dock} - ${estadoLabel}`}
             sx={{
               p: 2,
-              borderRadius: 2,
               border: '2px solid',
               borderColor: colors.borderColor,
               backgroundColor: 'background.paper',

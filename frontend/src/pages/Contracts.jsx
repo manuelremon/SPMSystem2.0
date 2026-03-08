@@ -138,7 +138,7 @@ export default function Contracts() {
         </Button>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('contracts_filter_estado', 'Estado')}</InputLabel>
@@ -158,7 +158,7 @@ export default function Contracts() {
         </Stack>
       </Paper>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('contracts_title', 'Contratos')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('contracts_title', 'Contratos')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={contracts}

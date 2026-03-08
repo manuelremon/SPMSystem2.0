@@ -111,7 +111,7 @@ export default function WhatIfInventario() {
         </div>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Stack spacing={3}>
@@ -195,7 +195,6 @@ export default function WhatIfInventario() {
                   minHeight: 300,
                   border: '2px dashed',
                   borderColor: 'divider',
-                  borderRadius: 2,
                   bgcolor: 'background.paper',
                 }}
               >
@@ -283,7 +282,7 @@ export default function WhatIfInventario() {
       </Paper>
 
       {chartData && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
             {t('whatif_comparison', 'Comparación Actual vs. Ajustado')}
           </Typography>

@@ -71,7 +71,6 @@ function SummaryCard({ label, value, icon: Icon }) {
         display: "flex",
         alignItems: "center",
         gap: 2,
-        borderRadius: 2,
         border: "1px solid",
         borderColor: "divider",
       }}
@@ -80,7 +79,6 @@ function SummaryCard({ label, value, icon: Icon }) {
         sx={{
           p: 1.5,
           bgcolor: "primary.50",
-          borderRadius: 1,
           display: "flex",
           color: "primary.main",
         }}
@@ -292,7 +290,7 @@ export default function StockIndividual() {
       )}
 
       {/* Search Card */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Stack direction="row" spacing={1.5} alignItems="flex-end">
           <TextField
             label="Buscar material"
@@ -320,7 +318,7 @@ export default function StockIndividual() {
       {/* Material Info and Summary */}
       {selectedMaterial && (
         <>
-          <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
             <Box sx={{ mb: 2 }}>
               <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
                 Material Encontrado
@@ -361,7 +359,7 @@ export default function StockIndividual() {
           )}
 
           {/* Stock by Location Table */}
-          <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
             <Box
               sx={{
                 px: 2,
@@ -432,10 +430,10 @@ export default function StockIndividual() {
               value={Math.min(loadingProgress, 100)}
               sx={{
                 height: 8,
-                borderRadius: 4,
+                borderRadius: 3,
                 backgroundColor: "rgba(255, 255, 255, 0.2)",
                 "& .MuiLinearProgress-bar": {
-                  borderRadius: 4,
+                  borderRadius: 3,
                 },
               }}
             />

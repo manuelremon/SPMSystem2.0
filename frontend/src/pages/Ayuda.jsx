@@ -264,7 +264,7 @@ ${formData.mensaje}
                   </Typography>
                   <Stack spacing={1}>
                     {faqs.slice(0, 3).map((faq, idx) => (
-                      <Accordion key={idx} expanded={expandedFaq === `contacto-faq-${idx}`} onChange={handleFaqChange(`contacto-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' }, borderRadius: 1 }}>
+                      <Accordion key={idx} expanded={expandedFaq === `contacto-faq-${idx}`} onChange={handleFaqChange(`contacto-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' } }}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2" fontWeight="medium">{faq.pregunta}</Typography></AccordionSummary>
                         <AccordionDetails><Typography variant="body2" color="text.secondary">{faq.respuesta}</Typography></AccordionDetails>
                       </Accordion>
@@ -312,7 +312,7 @@ ${formData.mensaje}
               </Stack>
               <Stack spacing={1}>
                 {faqs.map((faq, idx) => (
-                  <Accordion key={idx} expanded={expandedFaq === `instrucciones-faq-${idx}`} onChange={handleFaqChange(`instrucciones-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' }, borderRadius: 1 }}>
+                  <Accordion key={idx} expanded={expandedFaq === `instrucciones-faq-${idx}`} onChange={handleFaqChange(`instrucciones-faq-${idx}`)} disableGutters elevation={0} sx={{ bgcolor: 'action.hover', '&:before': { display: 'none' } }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2" fontWeight="medium">{faq.pregunta}</Typography></AccordionSummary>
                     <AccordionDetails sx={{ borderTop: 1, borderColor: 'divider' }}><Typography variant="body2" color="text.secondary">{faq.respuesta}</Typography></AccordionDetails>
                   </Accordion>

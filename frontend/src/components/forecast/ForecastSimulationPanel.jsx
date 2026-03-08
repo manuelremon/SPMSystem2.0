@@ -89,7 +89,6 @@ const ForecastSimulationPanel = ({
         p: 4,
         border: '2px dashed',
         borderColor: 'warning.light',
-        borderRadius: 2,
         bgcolor: 'rgba(251, 191, 36, 0.04)',
       }}
     >
@@ -98,7 +97,6 @@ const ForecastSimulationPanel = ({
         <Box
           sx={{
             p: 1,
-            borderRadius: 1.5,
             bgcolor: 'warning.light',
             color: 'warning.contrastText',
             display: 'flex',
@@ -223,7 +221,6 @@ const ForecastSimulationPanel = ({
           p: 2,
           mb: 3,
           bgcolor: 'info.lighter',
-          borderRadius: 1,
           border: '1px solid',
           borderColor: 'info.light',
         }}

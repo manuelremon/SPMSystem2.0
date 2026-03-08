@@ -52,7 +52,6 @@ function MetricCard({ title, value, icon: Icon, variant = 'default', subtitle, t
       sx={{
         border: 1,
         borderColor: styles.borderColor,
-        borderRadius: 2,
         p: 2,
         bgcolor: styles.bgcolor,
         color: styles.color,

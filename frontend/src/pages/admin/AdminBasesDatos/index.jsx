@@ -243,7 +243,7 @@ export default function AdminBasesDatos() {
         <TempDataBanner onStatusChange={setTempModeActive} />
 
         {/* Card con Tabs */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           {/* Tabs Header */}
           <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
             <Tabs

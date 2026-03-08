@@ -178,7 +178,7 @@ export default function InspectionDetail() {
       </Stack>
 
       {/* Info */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={3} flexWrap="wrap">
           <Box>
             <Typography variant="caption" color="text.secondary">{t('quality_tipo', 'Tipo')}</Typography>
@@ -206,7 +206,7 @@ export default function InspectionDetail() {
       </Paper>
 
       {/* Editable items table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             {t('quality_items_inspeccion', 'Items de Inspeccion')} ({items.length})

@@ -579,7 +579,6 @@ export default function BudgetRequests() {
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 2,
           overflow: 'hidden',
         }}
       >
@@ -702,7 +701,6 @@ export default function BudgetRequests() {
                 sx={{
                   p: 2.5,
                   bgcolor: 'grey.50',
-                  borderRadius: 2,
                   border: 1,
                   borderColor: 'divider',
                 }}

@@ -251,7 +251,7 @@ export default function Consolidation() {
                             variant="determinate"
                             value={Math.min(utilization, 100)}
                             color={utilizationColor}
-                            sx={{ height: 8, borderRadius: 4 }}
+                            sx={{ height: 8, borderRadius: 3 }}
                           />
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>

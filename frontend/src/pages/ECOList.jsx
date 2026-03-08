@@ -255,25 +255,25 @@ export default function ECOList() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('eco_kpi_pending', 'Pendientes')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
               {kpis.pendientes ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('eco_kpi_implemented', 'Implementadas (mes)')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
               {kpis.implementadas_mes ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('eco_kpi_rejected', 'Rechazadas (mes)')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>
               {kpis.rechazadas_mes ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 150 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 150 }}>
             <Typography variant="caption" color="text.secondary">{t('eco_kpi_avg_time', 'Tiempo Prom. Aprobacion')}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               {kpis.tiempo_promedio_aprobacion != null ? `${Number(kpis.tiempo_promedio_aprobacion).toFixed(1)}d` : '-'}
@@ -283,7 +283,7 @@ export default function ECOList() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('eco_filter_estado', 'Estado')}</InputLabel>
@@ -334,7 +334,7 @@ export default function ECOList() {
       {/* Data Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('eco_title', 'Ordenes de Cambio de Ingenieria')}
       >
         <SPMAgGrid

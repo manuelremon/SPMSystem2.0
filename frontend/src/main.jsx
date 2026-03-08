@@ -7,11 +7,8 @@ import * as Sentry from '@sentry/react'
 import App from './App.jsx'
 import theme from './theme'
 
-// Roboto font for Material UI
-import '@fontsource/roboto/300.css'
-import '@fontsource/roboto/400.css'
-import '@fontsource/roboto/500.css'
-import '@fontsource/roboto/700.css'
+// Inter variable font for Material UI + Design System
+import '@fontsource-variable/inter'
 
 import './index.css'
 import { I18nProvider, getTranslation } from './context/i18n'

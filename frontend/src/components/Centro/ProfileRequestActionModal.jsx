@@ -58,7 +58,6 @@ function ValueComparison({ label, current, requested, icon: Icon }) {
       sx={{
         p: 2,
         bgcolor: "grey.50",
-        borderRadius: 2
       }}
     >
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
@@ -276,7 +275,6 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 3,
           maxHeight: "90vh"
         }
       }}
@@ -329,7 +327,6 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                   sx={{
                     p: 2,
                     bgcolor: "grey.50",
-                    borderRadius: 2,
                     border: 1,
                     borderColor: "divider",
                     cursor: "pointer",
@@ -388,7 +385,6 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                   sx={{
                     p: 2,
                     bgcolor: "primary.lighter",
-                    borderRadius: 3
                   }}
                 >
                   <Stack direction="row" alignItems="flex-start" spacing={2}>
@@ -471,7 +467,6 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
                     sx={{
                       p: 2,
                       bgcolor: "grey.100",
-                      borderRadius: 2,
                       border: 1,
                       borderColor: "divider"
                     }}
@@ -487,7 +482,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
             {/* Vista de aprobar */}
             {activeView === "approve" && (
               <Stack spacing={2}>
-                <Alert severity="success" sx={{ borderRadius: 2 }}>
+                <Alert severity="success">
                   Los cambios se aplicarán automáticamente al perfil del usuario.
                 </Alert>
                 <Box>
@@ -515,7 +510,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
             {/* Vista de rechazar */}
             {activeView === "reject" && (
               <Stack spacing={2}>
-                <Alert severity="error" sx={{ borderRadius: 2 }}>
+                <Alert severity="error">
                   El solicitante será notificado del rechazo con el motivo indicado.
                 </Alert>
                 <Box>
@@ -545,7 +540,7 @@ export default function ProfileRequestActionModal({ notif, onClose, onAction }) 
             {/* Vista de mensaje */}
             {activeView === "message" && (
               <Stack spacing={2}>
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Alert severity="info">
                   El mensaje será enviado a la bandeja de entrada del solicitante.
                 </Alert>
                 <Box>

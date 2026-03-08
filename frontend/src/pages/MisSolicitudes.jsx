@@ -68,7 +68,7 @@ function DeleteModal({ open, onClose, onConfirm, deleting, t }) {
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2 }
+        sx: {}
       }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
@@ -134,7 +134,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2, maxHeight: "90vh" }
+        sx: { maxHeight: "90vh" }
       }}
     >
       <DialogTitle
@@ -764,7 +764,7 @@ export default function MisSolicitudes() {
       )}
 
       {/* Main Card */}
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
           <Tabs

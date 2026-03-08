@@ -792,7 +792,6 @@ export default function MRPTableroAlertas() {
             overflow: "hidden",
             border: 1,
             borderColor: "divider",
-            borderRadius: 2,
           }}
         >
           {summaryCards.map((card) => (
@@ -816,7 +815,6 @@ export default function MRPTableroAlertas() {
             mb: 3,
             border: 1,
             borderColor: "divider",
-            borderRadius: 2,
           }}
         >
           <Stack
@@ -987,7 +985,6 @@ export default function MRPTableroAlertas() {
             overflow: "hidden",
             border: 1,
             borderColor: "divider",
-            borderRadius: 2,
           }}
         >
           <SPMAgGrid

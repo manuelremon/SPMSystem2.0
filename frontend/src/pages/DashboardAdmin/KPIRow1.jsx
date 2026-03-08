@@ -145,7 +145,6 @@ function KPIRow1({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 transition: 'box-shadow 0.2s ease-in-out',
                 overflow: 'hidden',
                 '&:hover': {
@@ -339,7 +338,6 @@ function KPIRow1({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 overflow: 'visible',
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
@@ -370,7 +368,7 @@ function KPIRow1({
                 {/* Barra apilada horizontal */}
                 <Stack spacing={1.5} sx={{ flex: 1, justifyContent: 'center' }}>
                   <Box>
-                    <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 12, borderRadius: 1, overflow: 'hidden' }}>
+                    <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 12, overflow: 'hidden' }}>
                       <Tooltip title={`Aprobación: ${tiempos.aprobacion}d (${pctAprobacion.toFixed(0)}%)`} arrow>
                         <Box sx={{ flex: pctAprobacion, bgcolor: colores.aprobacion.bg, minWidth: pctAprobacion > 5 ? 'auto' : 0, transition: 'flex 0.3s ease' }} />
                       </Tooltip>
@@ -506,7 +504,6 @@ function KPIRow1({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {

@@ -158,14 +158,14 @@ export default function ServiceLevels() {
       </Stack>
 
       {/* Info */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
         <Typography variant="body2" color="text.secondary">
           {t('service_info', 'Haga clic en la columna "Nivel Servicio (%)" para editar el valor. Los cambios se guardan automaticamente. El stock de seguridad y punto de reorden se recalculan al usar "Recalcular Todo".')}
         </Typography>
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('service_title', 'Niveles de Servicio')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('service_title', 'Niveles de Servicio')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={levels}

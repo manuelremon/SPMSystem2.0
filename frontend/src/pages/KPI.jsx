@@ -209,7 +209,6 @@ export default function KPI() {
                 bgcolor: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
               }}
             >
               <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -225,7 +224,7 @@ export default function KPI() {
                   <Box sx={{
                     height: 48,
                     width: 48,
-                    borderRadius: 4,
+                    borderRadius: 3,
                     bgcolor: 'var(--primary-muted)',
                     display: 'grid',
                     placeItems: 'center',
@@ -275,7 +274,6 @@ export default function KPI() {
                     bgcolor: 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: 2,
                   }}
                 >
                   <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -291,7 +289,7 @@ export default function KPI() {
                       <Box sx={{
                         height: 48,
                         width: 48,
-                        borderRadius: 4,
+                        borderRadius: 3,
                         bgcolor: bgColor,
                         display: 'grid',
                         placeItems: 'center',
@@ -330,7 +328,6 @@ export default function KPI() {
                     bgcolor: 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: 2,
                   }}
                 >
                   <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -346,7 +343,7 @@ export default function KPI() {
                       <Box sx={{
                         height: 48,
                         width: 48,
-                        borderRadius: 4,
+                        borderRadius: 3,
                         bgcolor: bgColor,
                         display: 'grid',
                         placeItems: 'center',
@@ -395,7 +392,6 @@ export default function KPI() {
                     bgcolor: 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: 2,
                   }}
                 >
                   <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -411,7 +407,7 @@ export default function KPI() {
                       <Box sx={{
                         height: 48,
                         width: 48,
-                        borderRadius: 4,
+                        borderRadius: 3,
                         bgcolor: bgColor,
                         display: 'grid',
                         placeItems: 'center',
@@ -448,7 +444,6 @@ export default function KPI() {
                 bgcolor: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
               }}
             >
               <Box sx={{ px: 3, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -497,7 +492,6 @@ export default function KPI() {
                 bgcolor: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
               }}
             >
               <Box sx={{ px: 3, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -560,7 +554,6 @@ export default function KPI() {
                 bgcolor: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
               }}
             >
               <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -648,7 +641,6 @@ export default function KPI() {
                 bgcolor: 'rgba(255, 255, 255, 0.7)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: 2,
               }}
             >
               <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -723,7 +715,6 @@ export default function KPI() {
             bgcolor: 'rgba(255, 255, 255, 0.7)',
             backdropFilter: 'blur(12px)',
             border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: 2,
           }}
         >
           <Box sx={{ px: 3, pt: 3, pb: 2 }}>

@@ -17,7 +17,6 @@ function CategoryHeader({ icon, title, subtitle, count, color = 'primary.main', 
           sx={{
             width: 4,
             height: 28,
-            borderRadius: 2,
             bgcolor: color,
             flexShrink: 0,
           }}

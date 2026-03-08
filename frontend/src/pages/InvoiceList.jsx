@@ -179,7 +179,6 @@ export default function InvoiceList() {
               p: 2,
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 2,
             }}
           >
             <Typography variant="caption" color="text.secondary">
@@ -197,7 +196,7 @@ export default function InvoiceList() {
       </Stack>
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <TextField
             size="small"
@@ -231,7 +230,7 @@ export default function InvoiceList() {
       {/* Data Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('invoice_title', 'Facturas de Proveedores')}
       >
         <SPMAgGrid

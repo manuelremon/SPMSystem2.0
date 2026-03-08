@@ -58,7 +58,6 @@ export function OverviewTab({
                 <Paper
                   variant="outlined"
                   sx={{
-                    borderRadius: 2,
                     overflow: 'hidden',
                     transition: 'border-color 0.2s',
                     '&:hover': { borderColor: 'primary.main' },
@@ -115,9 +114,7 @@ export function OverviewTab({
                         value={pct}
                         sx={{
                           height: 4,
-                          borderRadius: 2,
                           bgcolor: 'grey.100',
-                          '& .MuiLinearProgress-bar': { borderRadius: 2 },
                         }}
                       />
                     </Box>
@@ -131,7 +128,7 @@ export function OverviewTab({
 
       {/* Pool Stats */}
       {poolStats && Object.keys(poolStats).length > 0 && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
           <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <DnsIcon sx={{ fontSize: 18, color: 'primary.main' }} />
@@ -148,7 +145,6 @@ export function OverviewTab({
                   <Box
                     sx={{
                       p: 2,
-                      borderRadius: 1,
                       bgcolor: 'grey.50',
                       border: 1,
                       borderColor: 'divider',

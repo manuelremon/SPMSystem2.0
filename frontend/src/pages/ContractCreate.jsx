@@ -104,7 +104,7 @@ export default function ContractCreate() {
         </Typography>
       </Stack>
 
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack spacing={2.5}>
           <TextField label={t('contracts_numero', 'N. Contrato')} value={t('contracts_auto', 'Auto-generado')} disabled fullWidth size="small" />
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>

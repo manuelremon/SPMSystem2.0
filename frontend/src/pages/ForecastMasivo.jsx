@@ -372,7 +372,7 @@ const ForecastMasivo = () => {
       />
 
       {/* Filtros - estilo Dashboard */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
         <Box sx={{ py: 1.5, px: 3, minHeight: "73px" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, height: "100%" }}>
             {/* Plantilla */}
@@ -519,7 +519,7 @@ const ForecastMasivo = () => {
 
       {/* Lista de materiales importados (preview) */}
       {materialesImportados.length > 0 && resultados.length === 0 && !loading && (
-        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
           <Box sx={{ p: 2, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="subtitle2" fontWeight={600} color="var(--fg-strong)">
               {t('forecast_masivo_preview', 'Materiales a procesar')}
@@ -556,7 +556,7 @@ const ForecastMasivo = () => {
 
       {/* Progreso */}
       {loading && (
-        <Paper elevation={0} sx={{ mb: 3, p: 2, border: "1px solid var(--border)", borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ mb: 3, p: 2, border: "1px solid var(--border)" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography variant="body2" fontWeight={500}>Procesando materiales...</Typography>
             <Typography variant="caption" color="text.secondary">{progreso.actual} de {progreso.total}</Typography>
@@ -567,7 +567,7 @@ const ForecastMasivo = () => {
 
       {/* Estadísticas */}
       {stats && (
-        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
           <Box sx={{ display: "flex", alignItems: "stretch" }}>
             {[
               { label: "Total", value: stats.total, color: "var(--fg-strong)", bg: "var(--card)" },
@@ -601,7 +601,7 @@ const ForecastMasivo = () => {
 
       {/* Tabla de resultados */}
       {resultados.length > 0 && (
-        <Paper elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 2, overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
           <Box sx={{ p: 2, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
               {t('forecast_masivo_resultados', 'Resultados')}
@@ -623,7 +623,7 @@ const ForecastMasivo = () => {
 
       {/* Estado vacío */}
       {materialesImportados.length === 0 && resultados.length === 0 && !loading && (
-        <Paper elevation={0} sx={{ p: 8, border: "1px solid var(--border)", borderRadius: 2, textAlign: "center" }}>
+        <Paper elevation={0} sx={{ p: 8, border: "1px solid var(--border)", textAlign: "center" }}>
           <PlaylistAddIcon sx={{ fontSize: 64, color: "var(--border)", mb: 2 }} />
           <Typography variant="h6" fontWeight={600} color="var(--fg-strong)" gutterBottom>
             {t('forecast_masivo_empty_titulo', 'Analiza múltiples materiales')}

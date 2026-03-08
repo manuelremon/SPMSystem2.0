@@ -46,7 +46,6 @@ function CollapsibleSection({ title, icon: Icon, iconColor, defaultOpen = false,
     <Paper
       variant="outlined"
       sx={{
-        borderRadius: 2,
         overflow: 'hidden',
         border: '1px solid',
         borderColor: 'divider',
@@ -388,7 +387,6 @@ function InfrastructurePanel({ infrastructure }) {
               <Paper
                 sx={{
                   p: 1.5,
-                  borderRadius: 2,
                   bgcolor: 'error.lighter',
                   border: '1px solid',
                   borderColor: 'error.light',
@@ -409,7 +407,6 @@ function InfrastructurePanel({ infrastructure }) {
               <Paper
                 sx={{
                   p: 1.5,
-                  borderRadius: 2,
                   bgcolor: 'info.lighter',
                   border: '1px solid',
                   borderColor: 'info.light',
@@ -430,7 +427,6 @@ function InfrastructurePanel({ infrastructure }) {
               <Paper
                 sx={{
                   p: 1.5,
-                  borderRadius: 2,
                   bgcolor: 'success.lighter',
                   border: '1px solid',
                   borderColor: 'success.light',
@@ -471,7 +467,7 @@ function InfrastructurePanel({ infrastructure }) {
           {/* Memory */}
           {infrastructure.system?.memory && (
             <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
                   Memoria RAM
                 </Typography>
@@ -485,7 +481,6 @@ function InfrastructurePanel({ infrastructure }) {
                   sx={{
                     mt: 1,
                     height: 6,
-                    borderRadius: 1,
                     overflow: 'hidden',
                     bgcolor: 'divider',
                   }}
@@ -493,7 +488,6 @@ function InfrastructurePanel({ infrastructure }) {
                   <Box
                     sx={{
                       height: '100%',
-                      borderRadius: 1,
                       width: `${infrastructure.system.memory.percent_used}%`,
                       bgcolor: getResourceBarColor(infrastructure.system.memory.percent_used),
                     }}
@@ -505,7 +499,7 @@ function InfrastructurePanel({ infrastructure }) {
           {/* Disk */}
           {infrastructure.services?.system?.disk && (
             <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
                   Disco
                 </Typography>
@@ -519,7 +513,6 @@ function InfrastructurePanel({ infrastructure }) {
                   sx={{
                     mt: 1,
                     height: 6,
-                    borderRadius: 1,
                     overflow: 'hidden',
                     bgcolor: 'divider',
                   }}
@@ -527,7 +520,6 @@ function InfrastructurePanel({ infrastructure }) {
                   <Box
                     sx={{
                       height: '100%',
-                      borderRadius: 1,
                       width: `${infrastructure.services.system.disk.percent_used}%`,
                       bgcolor: getResourceBarColor(infrastructure.services.system.disk.percent_used),
                     }}
@@ -539,7 +531,7 @@ function InfrastructurePanel({ infrastructure }) {
           {/* Load Average */}
           {infrastructure.services?.system?.load && (
             <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
                   {t('admin_cpu_load', 'Carga CPU')}
                 </Typography>
@@ -555,7 +547,7 @@ function InfrastructurePanel({ infrastructure }) {
           {/* Network */}
           {infrastructure.oci?.shape?.network_gbps && (
             <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
                   {t('admin_network', 'Red')}
                 </Typography>
@@ -590,7 +582,6 @@ function InfrastructurePanel({ infrastructure }) {
                 <Paper
                   sx={{
                     p: 1.5,
-                    borderRadius: 2,
                     bgcolor: container.running ? 'success.lighter' : 'error.lighter',
                     border: '1px solid',
                     borderColor: container.running ? 'success.light' : 'error.light',
@@ -639,7 +630,7 @@ function InfrastructurePanel({ infrastructure }) {
             <Chip label={infrastructure.git.branch} size="small" />
           </Stack>
           {infrastructure.git.last_commit && (
-            <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+            <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                 <Box
                   component="code"

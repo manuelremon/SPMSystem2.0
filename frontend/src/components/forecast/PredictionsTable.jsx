@@ -206,7 +206,7 @@ const PredictionsTable = ({
 
   if (loading) {
     return (
-      <Paper sx={{ p: 2, borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Paper sx={{ p: 2, border: 1, borderColor: 'divider' }}>
         <Skeleton variant="text" width={128} height={24} sx={{ mb: 2 }} />
         <Stack spacing={1}>
           {[1, 2, 3, 4, 5].map(i => (
@@ -222,7 +222,6 @@ const PredictionsTable = ({
       <Paper
         sx={{
           p: 3,
-          borderRadius: 2,
           border: 1,
           borderColor: 'divider',
           textAlign: 'center'
@@ -239,7 +238,6 @@ const PredictionsTable = ({
     <Paper
       elevation={0}
       sx={{
-        borderRadius: 2,
         border: 1,
         borderColor: 'grey.200',
         overflow: 'hidden'
@@ -268,7 +266,7 @@ const PredictionsTable = ({
             <Stack direction="row" spacing={2}>
               <Paper
                 variant="outlined"
-                sx={{ px: 1.5, py: 0.5, textAlign: 'center', borderRadius: 2 }}
+                sx={{ px: 1.5, py: 0.5, textAlign: 'center' }}
               >
                 <Typography variant="caption" color="text.secondary">
                   Promedio
@@ -279,7 +277,7 @@ const PredictionsTable = ({
               </Paper>
               <Paper
                 variant="outlined"
-                sx={{ px: 1.5, py: 0.5, textAlign: 'center', borderRadius: 2 }}
+                sx={{ px: 1.5, py: 0.5, textAlign: 'center' }}
               >
                 <Typography variant="caption" color="text.secondary">
                   Maximo

@@ -16,9 +16,9 @@
   --ag-secondary-border-color: #e0e0e0;
   --ag-row-border-color: #eeeeee;
   --ag-header-column-separator-color: #e0e0e0;
-  --ag-range-selection-border-color: #1976d2;
-  --ag-input-focus-border-color: #1976d2;
-  --ag-checkbox-checked-color: #1976d2;
+  --ag-range-selection-border-color: var(--primary);
+  --ag-input-focus-border-color: var(--primary);
+  --ag-checkbox-checked-color: var(--primary);
   --ag-checkbox-unchecked-color: #606d80;
   --ag-icon-color: #606d80;
   --ag-font-size: 0.875rem;
@@ -52,7 +52,7 @@
 
 /* Header de columnas */
 .spm-ag-grid .ag-header {
-  border-bottom: 2px solid #1976d2;
+  border-bottom: 2px solid var(--primary);
   background-color: #f8f9fa;
 }
 
@@ -186,9 +186,9 @@
 }
 
 .spm-ag-grid .ag-filter-toolpanel-search-input:focus {
-  border-color: #1976d2;
+  border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
 }
 
 /* Menú contextual */
@@ -204,7 +204,7 @@
 }
 
 .spm-ag-grid .ag-menu-option:hover {
-  background-color: #f0f2f5;
+  background-color: var(--bg-soft);
 }
 
 .spm-ag-grid .ag-menu-option-active {
@@ -263,12 +263,12 @@
 }
 
 .spm-ag-grid .ag-checkbox-input-wrapper.ag-checked::after {
-  color: #1976d2;
+  color: var(--primary);
 }
 
 /* Celda con foco */
 .spm-ag-grid .ag-cell-focus {
-  border: 1px solid #1976d2 !important;
+  border: 1px solid var(--primary) !important;
   outline: none;
 }
 

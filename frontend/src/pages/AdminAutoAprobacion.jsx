@@ -364,7 +364,7 @@ export default function AdminAutoAprobacion() {
         )}
       </Stack>
 
-      <Alert severity="info" sx={{ borderRadius: 2 }}>
+      <Alert severity="info">
         {currentTab === 0
           ? t('auto_approval_info', 'Las reglas de auto-aprobación permiten aprobar automáticamente solicitudes que cumplen todos los criterios configurados, sin intervención humana. Se evalúan por orden de prioridad (menor número = mayor prioridad).')
           : t('auto_approval_historial_info', 'Historial de solicitudes que fueron auto-aprobadas por reglas configuradas.')}
@@ -376,7 +376,7 @@ export default function AdminAutoAprobacion() {
       </Tabs>
 
       {currentTab === 0 && (
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('auto_approval_title', 'Reglas de Auto-Aprobación')}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('auto_approval_title', 'Reglas de Auto-Aprobación')}>
           <SPMAgGrid
             columnDefs={columnDefs}
             rowData={rules}
@@ -390,7 +390,7 @@ export default function AdminAutoAprobacion() {
       )}
 
       {currentTab === 1 && (
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }} aria-label={t('auto_approval_historial_tab', 'Historial')}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('auto_approval_historial_tab', 'Historial')}>
           <SPMAgGrid
             columnDefs={historialColumnDefs}
             rowData={historial}
@@ -570,7 +570,6 @@ export default function AdminAutoAprobacion() {
             {simulationResult && (
               <Alert
                 severity={simulationResult.porcentaje > 50 ? 'warning' : 'success'}
-                sx={{ borderRadius: 2 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {t('auto_approval_resultado', 'Resultado de simulación:')}

@@ -187,16 +187,16 @@ export default function NCRDetail() {
 
       {/* Info cards */}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('ncr_material', 'Material')}</Typography>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>{ncr.material_codigo || '-'}</Typography>
           <Typography variant="body2" color="text.secondary">{ncr.material_descripcion || ''}</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('ncr_proveedor', 'Proveedor')}</Typography>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>{ncr.proveedor_nombre || '-'}</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('ncr_cantidad', 'Cantidad Afectada')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>{ncr.cantidad_afectada ?? 0}</Typography>
         </Paper>
@@ -204,14 +204,14 @@ export default function NCRDetail() {
 
       {/* Description */}
       {ncr.descripcion && (
-        <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('ncr_descripcion', 'Descripcion')}</Typography>
           <Typography variant="body1" sx={{ mt: 0.5 }}>{ncr.descripcion}</Typography>
         </Paper>
       )}
 
       {/* FSM Actions + editable fields */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
           {t('ncr_acciones', 'Acciones y Seguimiento')}
         </Typography>
@@ -303,7 +303,7 @@ export default function NCRDetail() {
 
       {/* Timeline */}
       {historial.length > 0 && (
-        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
             {t('ncr_timeline', 'Historial')}
           </Typography>

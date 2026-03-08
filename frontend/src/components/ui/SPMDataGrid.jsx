@@ -62,19 +62,19 @@ export function SPMDataGrid({
     height,
     width: '100%',
     '& .MuiDataGrid-root': {
-      border: '1px solid #dce0e6',
+      border: '1px solid var(--border)',
       borderRadius: 'var(--radius-md)',
       backgroundColor: '#ffffff',
     },
     '& .MuiDataGrid-columnHeaders': {
       backgroundColor: '#ffffff !important',
       color: '#1f1f20 !important',
-      borderBottom: '2px solid #dce0e6',
+      borderBottom: '2px solid var(--border)',
     },
     '& .MuiDataGrid-columnHeader': {
       backgroundColor: '#ffffff !important',
       color: '#1f1f20 !important',
-      borderRight: '1px solid #dce0e6 !important',
+      borderRight: '1px solid var(--border) !important',
       '&:last-of-type': {
         borderRight: 'none !important',
       },
@@ -107,8 +107,8 @@ export function SPMDataGrid({
       fill: '#606d80 !important',
     },
     '& .MuiDataGrid-cell': {
-      borderBottom: '1px solid #dce0e6 !important',  // Color5
-      borderRight: '1px solid #dce0e6 !important',
+      borderBottom: '1px solid var(--border) !important',  // Color5
+      borderRight: '1px solid var(--border) !important',
       color: '#1f1f20',                              // Color1
       fontSize: '0.875rem',
       padding: '0 12px',
@@ -118,14 +118,14 @@ export function SPMDataGrid({
     },
     '& .MuiDataGrid-row': {
       '& .MuiDataGrid-cell': {
-        borderRight: '1px solid #dce0e6 !important',
+        borderRight: '1px solid var(--border) !important',
         '&:last-of-type': {
           borderRight: 'none !important',
         },
       },
     },
     '& .MuiDataGrid-row:hover': {
-      backgroundColor: '#f0f2f5',        // Gris muy claro
+      backgroundColor: 'var(--bg-soft)',        // Gris muy claro
     },
     '& .MuiDataGrid-row.Mui-selected': {
       backgroundColor: '#e8eef5',        // Azul muy claro
@@ -134,13 +134,13 @@ export function SPMDataGrid({
       },
     },
     '& .MuiDataGrid-footerContainer': {
-      borderTop: '1px solid #dce0e6',
+      borderTop: '1px solid var(--border)',
       backgroundColor: '#f5f7fa',        // Fondo principal
     },
     '& .MuiDataGrid-toolbarContainer': {
       padding: '8px 16px',
       gap: '8px',
-      borderBottom: '1px solid #dce0e6',
+      borderBottom: '1px solid var(--border)',
     },
     '& .MuiButton-root': {
       textTransform: 'none',
@@ -158,7 +158,7 @@ export function SPMDataGrid({
     // Asegurar bordes visibles en todas las celdas
     '& .MuiDataGrid-virtualScroller': {
       '& .MuiDataGrid-cell': {
-        borderRight: '1px solid #dce0e6 !important',
+        borderRight: '1px solid var(--border) !important',
       },
     },
   };
@@ -205,7 +205,7 @@ export function SPMDataGrid({
       alignItems: 'center',
       p: 1,
       gap: 1,
-      borderBottom: '1px solid #dce0e6',
+      borderBottom: '1px solid var(--border)',
       backgroundColor: '#f8f9fa',
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -334,7 +334,7 @@ export function SPMDataGrid({
           justifyContent: 'flex-end',
           alignItems: 'center',
           p: 1,
-          borderBottom: '1px solid #dce0e6',
+          borderBottom: '1px solid var(--border)',
           backgroundColor: '#f8f9fa',
           gap: 1,
         }}>

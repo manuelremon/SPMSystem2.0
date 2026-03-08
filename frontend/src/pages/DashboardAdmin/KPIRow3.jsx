@@ -71,7 +71,6 @@ function KPIRow3({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
@@ -143,7 +142,6 @@ function KPIRow3({
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: 2,
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {

@@ -50,9 +50,7 @@ function UrgentModal({ open, onClose, onConfirm, t }) {
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: {
-          borderRadius: 2,
-        },
+        sx: {},
       }}
     >
       <DialogTitle
@@ -290,7 +288,7 @@ export default function BudgetRequestCreate() {
         )}
 
         {/* Form Card */}
-        <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+        <Paper variant="outlined">
           <form onSubmit={handleSubmit}>
             {/* Section: Location */}
             <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: "divider" }}>
@@ -378,7 +376,7 @@ export default function BudgetRequestCreate() {
                     gap: 2,
                   }}
                 >
-                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5 }}>
                     <Typography
                       variant="caption"
                       sx={{
@@ -397,7 +395,7 @@ export default function BudgetRequestCreate() {
                     </Typography>
                   </Paper>
 
-                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5 }}>
                     <Typography
                       variant="caption"
                       sx={{
@@ -418,7 +416,7 @@ export default function BudgetRequestCreate() {
 
                   {montoNum > 0 && (
                     <>
-                      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
+                      <Paper variant="outlined" sx={{ p: 1.5 }}>
                         <Typography
                           variant="caption"
                           sx={{
@@ -440,7 +438,6 @@ export default function BudgetRequestCreate() {
                       <Paper
                         sx={{
                           p: 1.5,
-                          borderRadius: 1,
                           bgcolor: "success.50",
                           border: 1,
                           borderColor: "success.200",

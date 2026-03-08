@@ -280,7 +280,6 @@ export default function VehicleDetail() {
                     width: '100%',
                     height: 160,
                     bgcolor: 'grey.100',
-                    borderRadius: 2,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

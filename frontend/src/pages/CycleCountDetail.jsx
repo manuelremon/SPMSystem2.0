@@ -248,7 +248,7 @@ export default function CycleCountDetail() {
       </Button>
 
       {/* Header */}
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
@@ -300,19 +300,19 @@ export default function CycleCountDetail() {
 
       {/* Stats */}
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('cc_stat_total', 'Total Items')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>{totalItems}</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('cc_stat_counted', 'Contados')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>{countedItems}</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('cc_stat_pending', 'Pendientes')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>{pendingItems}</Typography>
         </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary">{t('cc_stat_variance', 'Con Varianza')}</Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>{varianceItems}</Typography>
         </Paper>
@@ -328,7 +328,7 @@ export default function CycleCountDetail() {
       {/* Items Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('cc_items_table', 'Items del Conteo')}
       >
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>

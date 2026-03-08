@@ -505,7 +505,7 @@ export default function ChatAssistant() {
         height: 520,
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 4,
+        borderRadius: 3,
         overflow: 'hidden',
         animation: 'scaleIn 0.2s ease-out',
         '@keyframes scaleIn': {

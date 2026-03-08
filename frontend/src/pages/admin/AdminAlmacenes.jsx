@@ -57,11 +57,6 @@ function FormInput({ label, name, value, onChange, required = false, disabled = 
       required={required}
       disabled={disabled}
       placeholder={placeholder}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: 0,
-        },
-      }}
     />
   );
 }
@@ -88,7 +83,6 @@ function AlertMessage({ type = "error", children, onClose }) {
       severity={type}
       onClose={onClose}
       sx={{
-        borderRadius: 0,
         '& .MuiAlert-message': {
           fontSize: '0.875rem',
         },
@@ -195,7 +189,6 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
                 variant="outlined"
                 onClick={onCancelDelete}
                 sx={{
-                  borderRadius: 0,
                   textTransform: 'none',
                   fontSize: '0.75rem',
                   fontWeight: 600,
@@ -209,7 +202,6 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
                 color="error"
                 onClick={onConfirmDelete}
                 sx={{
-                  borderRadius: 0,
                   textTransform: 'none',
                   fontSize: '0.75rem',
                   fontWeight: 600,
@@ -470,7 +462,6 @@ return (
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          borderRadius: 0,
           borderBottom: '1px solid',
           borderColor: 'divider',
         }}
@@ -513,7 +504,6 @@ return (
               startIcon={<AddIcon />}
               onClick={handleNew}
               sx={{
-                borderRadius: 0,
                 textTransform: 'none',
                 fontWeight: 600,
                 px: 2,
@@ -538,7 +528,7 @@ return (
           </Box>
         )}
 
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           {/* Filtros */}
           <Box
             sx={{
@@ -559,7 +549,6 @@ return (
                   flex: 1,
                   maxWidth: 400,
                   '& .MuiOutlinedInput-root': {
-                    borderRadius: 0,
                     bgcolor: 'background.paper',
                   },
                 }}
@@ -575,7 +564,6 @@ return (
                 size="small"
                 label={`${filteredAlmacenes.length} almacenes`}
                 sx={{
-                  borderRadius: 0,
                   height: 24,
                   fontSize: '0.75rem',
                   fontWeight: 600,
@@ -730,7 +718,6 @@ return (
         PaperProps={{
           sx: {
             width: { xs: '100%', sm: 400 },
-            borderRadius: 0,
           },
         }}
       >
@@ -833,7 +820,6 @@ return (
             onClick={() => setDrawerOpen(false)}
             disabled={submitting}
             sx={{
-              borderRadius: 0,
               textTransform: 'none',
               fontWeight: 500,
             }}
@@ -847,7 +833,6 @@ return (
             disabled={submitting}
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{
-              borderRadius: 0,
               textTransform: 'none',
               fontWeight: 600,
             }}

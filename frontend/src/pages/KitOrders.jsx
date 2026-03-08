@@ -264,7 +264,7 @@ export default function KitOrders() {
       {/* KPI Cards */}
       {kpis && (
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 180 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 180 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <InventoryIcon fontSize="small" sx={{ color: 'info.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -275,7 +275,7 @@ export default function KitOrders() {
               {kpis.activas ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 180 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 180 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <CheckCircleIcon fontSize="small" sx={{ color: 'success.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -286,7 +286,7 @@ export default function KitOrders() {
               {kpis.completadas_mes ?? 0}
             </Typography>
           </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, minWidth: 180 }}>
+          <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider', minWidth: 180 }}>
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <AccessTimeIcon fontSize="small" sx={{ color: 'primary.main' }} />
               <Typography variant="caption" color="text.secondary">
@@ -301,7 +301,7 @@ export default function KitOrders() {
       )}
 
       {/* Filters */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('kit_filter_estado', 'Estado')}</InputLabel>
@@ -334,7 +334,7 @@ export default function KitOrders() {
       {/* Orders Table */}
       <Paper
         elevation={0}
-        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+        sx={{ border: '1px solid', borderColor: 'divider' }}
         aria-label={t('kit_title', 'Ordenes de Kit')}
       >
         <SPMAgGrid
