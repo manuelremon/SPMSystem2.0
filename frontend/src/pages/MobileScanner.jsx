@@ -153,7 +153,9 @@ export default function MobileScanner() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#000', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ bgcolor: '#000', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)', borderRadius: 1, overflow: 'hidden' }}>
       {/* Header */}
       <Stack
         direction="row"
@@ -245,6 +247,8 @@ export default function MobileScanner() {
           {t("scanner_mobile_done", "Listo")}
         </Button>
       </Stack>
+    </Box>
+    </Box>
     </Box>
   );
 }
