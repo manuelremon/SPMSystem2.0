@@ -176,7 +176,7 @@ export default function CashflowSimulator() {
                       <Typography color="textSecondary" variant="body2" gutterBottom>
                         DPO Promedio
                       </Typography>
-                      <Typography variant="h5">{avgDpoAfter.toFixed(1)} días</Typography>
+                      <Typography variant="h5">{Number(avgDpoAfter).toFixed(1)} días</Typography>
                       <Typography variant="caption" color="textSecondary">
                         Antes: {avgDpoBefore} días
                       </Typography>
@@ -211,7 +211,7 @@ export default function CashflowSimulator() {
                             <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
                               {formatCurrency(sim.ahorro_neto)}
                             </TableCell>
-                            <TableCell align="right">{sim.dias_pago_promedio.toFixed(1)} días</TableCell>
+                            <TableCell align="right">{Number(sim.dias_pago_promedio).toFixed(1)} días</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -250,7 +250,7 @@ export default function CashflowSimulator() {
                           Después
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          DPO: {avgDpoAfter.toFixed(1)} días ({(avgDpoAfter - avgDpoBefore).toFixed(1)} días
+                          DPO: {Number(avgDpoAfter).toFixed(1)} días ({(Number(avgDpoAfter) - Number(avgDpoBefore)).toFixed(1)} días
                           menos)
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
@@ -268,7 +268,7 @@ export default function CashflowSimulator() {
                       <strong>ROI Proyectado:</strong> Al implementar un programa de descuento dinámico con un{' '}
                       {descuentoPct}% de descuento en {porcentajeElegibles}% de las facturas, se puede capturar un
                       ahorro de {formatCurrency(totalAhorro)} en 6 meses, reduciendo el DPO en{' '}
-                      {(avgDpoBefore - avgDpoAfter).toFixed(1)} días.
+                      {(Number(avgDpoBefore) - Number(avgDpoAfter)).toFixed(1)} días.
                     </Typography>
                   </Alert>
                 </CardContent>

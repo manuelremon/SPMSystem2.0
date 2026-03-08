@@ -243,7 +243,7 @@ export default function ReturnDetail() {
               color={creditProgress >= 100 ? 'success' : creditProgress >= 50 ? 'warning' : 'error'}
             />
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'right' }}>
-              {creditProgress.toFixed(1)}%
+              {Number(creditProgress).toFixed(1)}%
             </Typography>
           </Box>
         </Stack>

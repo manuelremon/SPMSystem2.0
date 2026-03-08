@@ -190,20 +190,20 @@ export default function DemandPlanning() {
           <KpiCard
             icon={<TrackChangesIcon fontSize="small" sx={{ color: 'info.main' }} />}
             label={t('demand_kpi_mape', 'MAPE')}
-            value={kpis.mape != null ? kpis.mape.toFixed(1) : null}
+            value={kpis.mape != null ? Number(kpis.mape).toFixed(1) : null}
             unit="%"
             color="info.main"
           />
           <KpiCard
             icon={<TrendingUpIcon fontSize="small" sx={{ color: 'warning.main' }} />}
             label={t('demand_kpi_bias', 'Bias')}
-            value={kpis.bias != null ? kpis.bias.toFixed(2) : null}
+            value={kpis.bias != null ? Number(kpis.bias).toFixed(2) : null}
             color="warning.main"
           />
           <KpiCard
             icon={<PercentIcon fontSize="small" sx={{ color: 'success.main' }} />}
             label={t('demand_kpi_accuracy', 'Precision')}
-            value={kpis.accuracy_pct != null ? kpis.accuracy_pct.toFixed(1) : null}
+            value={kpis.accuracy_pct != null ? Number(kpis.accuracy_pct).toFixed(1) : null}
             unit="%"
             color="success.main"
           />

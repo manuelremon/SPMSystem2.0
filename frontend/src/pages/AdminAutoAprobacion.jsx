@@ -324,7 +324,7 @@ export default function AdminAutoAprobacion() {
       type: 'numericColumn',
       valueFormatter: (params) => {
         if (params.value == null) return 'N/A';
-        return `${(params.value * 100).toFixed(0)}%`;
+        return `${(Number(params.value) * 100).toFixed(0)}%`;
       },
     },
     {

@@ -206,7 +206,7 @@ export default function WarehouseReceiving() {
           <KpiCard
             icon={<AccessTimeIcon fontSize="small" sx={{ color: 'info.main' }} />}
             label={t('warehouse_kpi_avg_time', 'Tiempo Prom. Descarga (min)')}
-            value={kpis.tiempo_promedio_descarga_min != null ? kpis.tiempo_promedio_descarga_min.toFixed(0) : null}
+            value={kpis.tiempo_promedio_descarga_min != null ? Number(kpis.tiempo_promedio_descarga_min).toFixed(0) : null}
             color="info.main"
           />
         </Stack>

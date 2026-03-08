@@ -316,7 +316,7 @@ const PackingLists = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PackageIcon color="warning" />
                 <Box>
-                  <Typography variant="h5">{kpis.peso_despachado_mes_kg.toFixed(1)}</Typography>
+                  <Typography variant="h5">{Number(kpis.peso_despachado_mes_kg).toFixed(1)}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     {t('pack_kpi_peso_mes', 'kg despachados')}
                   </Typography>

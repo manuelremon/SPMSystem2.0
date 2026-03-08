@@ -130,7 +130,7 @@ const ExecutiveDashboard = () => {
       field: 'score_total',
       headerName: t('exec_score', 'Score'),
       width: 100,
-      valueFormatter: (params) => params.value ? `${params.value.toFixed(1)}%` : 'N/A'
+      valueFormatter: (params) => params.value ? `${Number(params.value).toFixed(1)}%` : 'N/A'
     },
     {
       field: 'categorias_evaluadas',
@@ -209,7 +209,7 @@ const ExecutiveDashboard = () => {
                 </Box>
 
                 <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {kpi.valor_actual?.toFixed(1)}{kpi.unidad}
+                  {Number(kpi.valor_actual || 0).toFixed(1)}{kpi.unidad}
                 </Typography>
 
                 <Typography variant="body2" sx={{ mb: 2 }}>
@@ -218,7 +218,7 @@ const ExecutiveDashboard = () => {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Chip
-                    label={`${kpi.variacion_pct >= 0 ? '+' : ''}${kpi.variacion_pct?.toFixed(1)}%`}
+                    label={`${kpi.variacion_pct >= 0 ? '+' : ''}${Number(kpi.variacion_pct || 0).toFixed(1)}%`}
                     size="small"
                     color={kpi.variacion_pct >= 0 ? 'success' : 'error'}
                   />
@@ -247,7 +247,7 @@ const ExecutiveDashboard = () => {
                   <Tooltip title={`${kpi.benchmark.industria} - ${kpi.benchmark.region}`}>
                     <Chip
                       icon={<Star />}
-                      label={`${t('exec_benchmark', 'Benchmark')}: ${kpi.benchmark.mediana?.toFixed(1)}`}
+                      label={`${t('exec_benchmark', 'Benchmark')}: ${Number(kpi.benchmark.mediana || 0).toFixed(1)}`}
                       size="small"
                       variant="outlined"
                       sx={{ mt: 1 }}
@@ -324,7 +324,7 @@ const ExecutiveDashboard = () => {
                         <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#f9f9f9' : '#fff' }}>
                           <td style={{ padding: '8px 12px', borderBottom: '1px solid #eee' }}>{row.periodo}</td>
                           <td style={{ padding: '8px 12px', borderBottom: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>
-                            {row.valor?.toFixed(2)}{modalTrend.unidad || ''}
+                            {Number(row.valor || 0).toFixed(2)}{modalTrend.unidad || ''}
                           </td>
                         </tr>
                       ))}
@@ -355,15 +355,15 @@ const ExecutiveDashboard = () => {
                     </Grid>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">P25</Typography>
-                      <Typography variant="body2">{modalTrend.benchmark.percentil_25?.toFixed(1)}</Typography>
+                      <Typography variant="body2">{Number(modalTrend.benchmark.percentil_25 || 0).toFixed(1)}</Typography>
                     </Grid>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">{t('exec_median', 'Mediana')}</Typography>
-                      <Typography variant="body2">{modalTrend.benchmark.mediana?.toFixed(1)}</Typography>
+                      <Typography variant="body2">{Number(modalTrend.benchmark.mediana || 0).toFixed(1)}</Typography>
                     </Grid>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">P75</Typography>
-                      <Typography variant="body2">{modalTrend.benchmark.percentil_75?.toFixed(1)}</Typography>
+                      <Typography variant="body2">{Number(modalTrend.benchmark.percentil_75 || 0).toFixed(1)}</Typography>
                     </Grid>
                   </Grid>
                 </Box>

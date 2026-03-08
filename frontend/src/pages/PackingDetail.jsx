@@ -134,7 +134,7 @@ const PackingDetail = () => {
           `Optimización completa:\n` +
           `- Bultos creados: ${resultado.bultos_creados}\n` +
           `- Items asignados: ${resultado.items_asignados}\n` +
-          `- Peso total: ${resultado.peso_total.toFixed(2)} kg`
+          `- Peso total: ${Number(resultado.peso_total).toFixed(2)} kg`
         );
         loadData();
       }
@@ -292,7 +292,7 @@ const PackingDetail = () => {
             <Typography variant="body2" color="text.secondary">
               {t('pack_peso_total', 'Peso Total')}
             </Typography>
-            <Typography variant="h5">{packing.peso_total.toFixed(2)} kg</Typography>
+            <Typography variant="h5">{Number(packing.peso_total).toFixed(2)} kg</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={3}>

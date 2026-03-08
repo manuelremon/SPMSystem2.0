@@ -376,7 +376,7 @@ export default function OnboardingDetail() {
         const color = puntaje >= 80 ? 'success.main' : puntaje >= 60 ? 'warning.main' : 'error.main';
         return (
           <Typography variant="body2" sx={{ fontWeight: 600, color }}>
-            {puntaje.toFixed(1)}
+            {Number(puntaje).toFixed(1)}
           </Typography>
         );
       },
@@ -457,7 +457,7 @@ export default function OnboardingDetail() {
                 fontWeight: 700,
                 color: onboarding.score_calificacion >= 80 ? 'success.main' : onboarding.score_calificacion >= 60 ? 'warning.main' : 'error.main'
               }}>
-                {onboarding.score_calificacion.toFixed(1)}
+                {Number(onboarding.score_calificacion).toFixed(1)}
               </Typography>
             </Box>
           )}
@@ -628,7 +628,7 @@ export default function OnboardingDetail() {
                   fontWeight: 700,
                   color: onboarding.score_calificacion >= 80 ? 'success.main' : onboarding.score_calificacion >= 60 ? 'warning.main' : 'error.main'
                 }}>
-                  {onboarding.score_calificacion?.toFixed(1) || '--'}
+                  {Number(onboarding.score_calificacion || 0).toFixed(1) || '--'}
                 </Typography>
               </Stack>
               <Button variant="outlined" startIcon={<AddIcon />} size="small" onClick={() => setEvalDialogOpen(true)}>

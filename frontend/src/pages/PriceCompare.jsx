@@ -309,7 +309,7 @@ export default function PriceCompare() {
                           <Chip
                             size="small"
                             icon={<TrendingUpIcon />}
-                            label={`+${diferenciaPct.toFixed(1)}%`}
+                            label={`+${Number(diferenciaPct).toFixed(1)}%`}
                             color={diferenciaPct > 20 ? 'error' : 'warning'}
                           />
                         )}

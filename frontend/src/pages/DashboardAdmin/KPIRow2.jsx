@@ -253,7 +253,7 @@ function KPIRow2({
                       <SPMGauge value={100} valueMax={100} width={70} height={70} color={BUDGET_COLORS.total} startAngle={-90} endAngle={90} />
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_total', 'Total')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, whiteSpace: 'nowrap' }}>
-                        MUSD {(presupuestoFiltrado.total / 1000000).toFixed(1)}
+                        MUSD {(Number(presupuestoFiltrado.total) / 1000000).toFixed(1)}
                       </Typography>
                     </Stack>
                   </Tooltip>
@@ -262,7 +262,7 @@ function KPIRow2({
                       <SPMGauge value={presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.utilizado} startAngle={-90} endAngle={90} />
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_utilizado', 'Utilizado')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, whiteSpace: 'nowrap' }}>
-                        MUSD {(presupuestoFiltrado.utilizado / 1000000).toFixed(1)}
+                        MUSD {(Number(presupuestoFiltrado.utilizado) / 1000000).toFixed(1)}
                       </Typography>
                     </Stack>
                   </Tooltip>
@@ -271,7 +271,7 @@ function KPIRow2({
                       <SPMGauge value={100 - presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.disponible} startAngle={-90} endAngle={90} />
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_disponible', 'Disponible')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.disponible, whiteSpace: 'nowrap' }}>
-                        MUSD {(presupuestoFiltrado.disponible / 1000000).toFixed(1)}
+                        MUSD {(Number(presupuestoFiltrado.disponible) / 1000000).toFixed(1)}
                       </Typography>
                     </Stack>
                   </Tooltip>

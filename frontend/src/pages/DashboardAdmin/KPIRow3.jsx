@@ -59,7 +59,7 @@ function KPIRow3({
           const formatMonto = (val) => {
             if (val >= 1000000) return `MUSD ${(val / 1000000).toFixed(2).replace('.', ',')}`;
             if (val >= 1000) return `KUSD ${(val / 1000).toFixed(2).replace('.', ',')}`;
-            return `USD ${val.toFixed(2).replace('.', ',')}`;
+            return `USD ${Number(val).toFixed(2).replace('.', ',')}`;
           };
 
           return (
@@ -128,7 +128,7 @@ function KPIRow3({
           const formatMontoStock = (val) => {
             if (val >= 1000000) return `MUSD ${(val / 1000000).toFixed(2).replace('.', ',')}`;
             if (val >= 1000) return `KUSD ${(val / 1000).toFixed(2).replace('.', ',')}`;
-            return `USD ${(val || 0).toFixed(2).replace('.', ',')}`;
+            return `USD ${Number(val || 0).toFixed(2).replace('.', ',')}`;
           };
 
           const hayMontosStock = stockInmovilizadoFiltrado.items.some(item => (item.valor || 0) > 0);

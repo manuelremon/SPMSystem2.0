@@ -198,7 +198,7 @@ export default function ConsignmentPrograms() {
       sortable: true,
       valueFormatter: (params) => {
         if (params.value == null) return '-';
-        return `${params.value.toFixed(2)}%`;
+        return `${Number(params.value).toFixed(2)}%`;
       },
     },
     {

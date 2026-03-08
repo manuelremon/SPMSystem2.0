@@ -80,7 +80,7 @@ function ScoreBar({ value }) {
         <Box sx={{ width: `${Math.min(v, 100)}%`, height: '100%', bgcolor: color }} />
       </Box>
       <Typography variant="body2" sx={{ fontWeight: 600, color, minWidth: 32, textAlign: 'right', fontSize: '0.8rem' }}>
-        {v.toFixed(1)}
+        {Number(v).toFixed(1)}
       </Typography>
     </Stack>
   );
@@ -276,7 +276,7 @@ export default function SupplierRiskMap() {
             {t('risk_avg_score', 'Score Promedio')}
           </Typography>
           <Typography variant="h3" sx={{ fontWeight: 800, color: getScoreColor(kpis.avgScore), lineHeight: 1.3 }}>
-            {kpis.avgScore.toFixed(1)}
+            {Number(kpis.avgScore).toFixed(1)}
           </Typography>
           <Chip
             size="small"
@@ -310,7 +310,7 @@ export default function SupplierRiskMap() {
                     <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: item.color, transition: 'width 0.5s' }} />
                   </Box>
                   <Typography variant="body2" sx={{ minWidth: 55, textAlign: 'right', fontWeight: 600, fontSize: '0.8rem' }}>
-                    {item.count} ({pct.toFixed(0)}%)
+                    {item.count} ({Number(pct).toFixed(0)}%)
                   </Typography>
                 </Stack>
               );
@@ -336,7 +336,7 @@ export default function SupplierRiskMap() {
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.3 }}>
                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>{dim.label}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: getScoreColor(dim.value), fontSize: '0.8rem' }}>
-                    {dim.value.toFixed(1)}
+                    {Number(dim.value).toFixed(1)}
                   </Typography>
                 </Stack>
                 <LinearProgress

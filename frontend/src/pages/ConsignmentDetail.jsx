@@ -657,7 +657,7 @@ export default function ConsignmentDetail() {
             >
               {stock.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.material_codigo} (Disponible: {s.cantidad_disponible?.toFixed(2)})
+                  {s.material_codigo} (Disponible: {Number(s.cantidad_disponible || 0).toFixed(2)})
                 </MenuItem>
               ))}
             </TextField>

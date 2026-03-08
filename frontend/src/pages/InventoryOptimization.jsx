@@ -262,7 +262,7 @@ export default function InventoryOptimization() {
           <KpiCard
             icon={<TrendingUpIcon fontSize="small" sx={{ color: 'success.main' }} />}
             label={t('inventory_kpi_service', 'Nivel Servicio Promedio')}
-            value={kpis.nivel_servicio_promedio != null ? `${kpis.nivel_servicio_promedio.toFixed(1)}%` : null}
+            value={kpis.nivel_servicio_promedio != null ? `${Number(kpis.nivel_servicio_promedio).toFixed(1)}%` : null}
             color="success.main"
           />
         </Stack>

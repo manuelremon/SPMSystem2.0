@@ -227,7 +227,7 @@ function DonutChart({ data = [], t }) {
           {t("mrp_total", "Total")}
         </text>
         <text x="90" y="105" textAnchor="middle" fontSize="18" fontWeight="bold" fill="var(--fg-strong)">
-          {total.toFixed(0)}%
+          {Number(total).toFixed(0)}%
         </text>
       </svg>
 
@@ -247,7 +247,7 @@ function DonutChart({ data = [], t }) {
               {item.nombre}
             </Typography>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
-              {(item.valor || 0).toFixed(1)}%
+              {Number(item.valor || 0).toFixed(1)}%
             </Typography>
           </Box>
         ))}

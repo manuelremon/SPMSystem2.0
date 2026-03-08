@@ -247,7 +247,7 @@ export default function Consolidation() {
                               {t('tms_utilization', 'Utilizacion')}
                             </Typography>
                             <Typography variant="caption" fontWeight={600}>
-                              {utilization.toFixed(0)}%
+                              {Number(utilization).toFixed(0)}%
                             </Typography>
                           </Box>
                           <LinearProgress

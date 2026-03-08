@@ -94,7 +94,7 @@ function MetricRow({ label, value, sub, color }) {
 function formatMonto(val) {
   if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
   if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-  return val.toFixed(0);
+  return Number(val).toFixed(0);
 }
 
 function getColor(pct, invert = false) {

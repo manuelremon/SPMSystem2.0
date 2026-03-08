@@ -122,19 +122,19 @@ const BenchmarkAnalysis = () => {
       field: 'percentil_25',
       headerName: 'P25',
       width: 100,
-      valueFormatter: (params) => params.value?.toFixed(1) || 'N/A'
+      valueFormatter: (params) => params.value != null ? Number(params.value).toFixed(1) : 'N/A'
     },
     {
       field: 'mediana',
       headerName: t('exec_median', 'Mediana'),
       width: 100,
-      valueFormatter: (params) => params.value?.toFixed(1) || 'N/A'
+      valueFormatter: (params) => params.value != null ? Number(params.value).toFixed(1) : 'N/A'
     },
     {
       field: 'percentil_75',
       headerName: 'P75',
       width: 100,
-      valueFormatter: (params) => params.value?.toFixed(1) || 'N/A'
+      valueFormatter: (params) => params.value != null ? Number(params.value).toFixed(1) : 'N/A'
     },
     { field: 'fuente', headerName: t('exec_source', 'Fuente'), flex: 1 },
     { field: 'periodo_dato', headerName: t('exec_period', 'Periodo'), width: 120 }
@@ -199,15 +199,15 @@ const BenchmarkAnalysis = () => {
                         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                           <Box>
                             <Typography variant="caption" color="text.secondary">P25</Typography>
-                            <Typography variant="body2">{latestBench.percentil_25?.toFixed(1)}</Typography>
+                            <Typography variant="body2">{Number(latestBench.percentil_25 || 0).toFixed(1)}</Typography>
                           </Box>
                           <Box>
                             <Typography variant="caption" color="text.secondary">P50</Typography>
-                            <Typography variant="body2">{latestBench.mediana?.toFixed(1)}</Typography>
+                            <Typography variant="body2">{Number(latestBench.mediana || 0).toFixed(1)}</Typography>
                           </Box>
                           <Box>
                             <Typography variant="caption" color="text.secondary">P75</Typography>
-                            <Typography variant="body2">{latestBench.percentil_75?.toFixed(1)}</Typography>
+                            <Typography variant="body2">{Number(latestBench.percentil_75 || 0).toFixed(1)}</Typography>
                           </Box>
                         </Box>
                       </CardContent>

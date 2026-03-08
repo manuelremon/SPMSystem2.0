@@ -101,7 +101,7 @@ function DatabaseItem({ name, status, latency, tooltip }) {
             color: 'text.primary',
           }}
         >
-          {latency ? `${latency.toFixed(1)}ms` : '--'}
+          {latency ? `${Number(latency).toFixed(1)}ms` : '--'}
         </Typography>
       </Box>
     </Box>
@@ -233,7 +233,7 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
                     color: 'text.primary',
                   }}
                 >
-                  {cacheHitRate.toFixed(0)}% {t('admin_hit', 'hit')}
+                  {Number(cacheHitRate).toFixed(0)}% {t('admin_hit', 'hit')}
                 </Typography>
               </Box>
             </Box>

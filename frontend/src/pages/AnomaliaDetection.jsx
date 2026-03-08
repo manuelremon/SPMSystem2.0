@@ -137,7 +137,7 @@ export default function AnomaliaDetection() {
             </div>
             <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
               <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Proporcion</div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{(anomalias.proporcion_anomalias * 100).toFixed(1)}%</div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{(Number(anomalias.proporcion_anomalias) * 100).toFixed(1)}%</div>
             </div>
             <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
               <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Significativas</div>
@@ -159,7 +159,7 @@ export default function AnomaliaDetection() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-muted)' }}>{exp.fecha?.split('T')[0] || exp.fecha}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', background: getSeverityColor(exp.score), color: 'white', textTransform: 'uppercase' }}>
-                        Score: {(exp.score * 100).toFixed(0)}%
+                        Score: {(Number(exp.score) * 100).toFixed(0)}%
                       </span>
                     </div>
                     <div style={{ fontSize: 13 }}>
@@ -172,7 +172,7 @@ export default function AnomaliaDetection() {
                   </div>
                   <div style={{ textAlign: 'right', minWidth: 80 }}>
                     <div style={{ fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase' }}>Cantidad</div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{exp.cantidad?.toFixed(1)}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>{Number(exp.cantidad || 0).toFixed(1)}</div>
                   </div>
                 </div>
               ))}

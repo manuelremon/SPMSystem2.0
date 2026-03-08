@@ -153,7 +153,7 @@ export default function TripSettlement() {
                         <TableCell align="center">
                           <Chip
                             icon={marginPct >= 0 ? <TrendingUp sx={{ fontSize: 16 }} /> : <TrendingDown sx={{ fontSize: 16 }} />}
-                            label={`${marginPct.toFixed(1)}%`}
+                            label={`${Number(marginPct).toFixed(1)}%`}
                             size="small"
                             color={getMarginChipColor(marginPct)}
                           />
@@ -264,7 +264,7 @@ export default function TripSettlement() {
                       <TableRow>
                         <TableCell sx={{ fontWeight: 600 }}>{t('tms_sett_margen', 'Margen')}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600, color: getMarginColor(marginPct) }}>
-                          {formatCurrency(margen)} ({marginPct.toFixed(1)}%)
+                          {formatCurrency(margen)} ({Number(marginPct).toFixed(1)}%)
                         </TableCell>
                       </TableRow>
                     )

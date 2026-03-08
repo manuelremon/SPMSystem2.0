@@ -410,7 +410,7 @@ export default function Sustainability() {
               color={pct >= 100 ? 'success' : pct >= 50 ? 'warning' : 'error'}
             />
             <Typography variant="caption" sx={{ minWidth: 40, textAlign: 'right' }}>
-              {pct.toFixed(0)}%
+              {Number(pct).toFixed(0)}%
             </Typography>
           </Box>
         );

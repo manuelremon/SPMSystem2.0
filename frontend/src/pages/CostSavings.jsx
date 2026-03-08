@@ -264,7 +264,7 @@ export default function CostSavings() {
                   <div className="flex justify-between text-sm mb-1">
                     <span className="font-medium">{goal.nombre}</span>
                     <span className="text-gray-500">
-                      {fmtMoney(goal.actual)} / {fmtMoney(goal.meta)} ({pct.toFixed(0)}%)
+                      {fmtMoney(goal.actual)} / {fmtMoney(goal.meta)} ({Number(pct).toFixed(0)}%)
                     </span>
                   </div>
                   <LinearProgress

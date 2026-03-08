@@ -399,7 +399,7 @@ export default function ProveedorScorecard() {
                 {scorecard.current && (
                   <Stack direction="row" gap={1} sx={{ mt: 1 }}>
                     <Chip
-                      label={`Score: ${(scorecard.current.score_global || 0).toFixed(1)}`}
+                      label={`Score: ${Number(scorecard.current.score_global || 0).toFixed(1)}`}
                       color={getScoreColor(scorecard.current.score_global || 0)}
                       size="small"
                     />
@@ -426,7 +426,7 @@ export default function ProveedorScorecard() {
                             {dim}
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700, color: val >= 80 ? 'success.main' : val >= 60 ? 'warning.main' : 'error.main' }}>
-                            {val.toFixed(1)}%
+                            {Number(val).toFixed(1)}%
                           </Typography>
                         </Stack>
                         <Box sx={{ height: 6, bgcolor: 'grey.200', overflow: 'hidden' }}>

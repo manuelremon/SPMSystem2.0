@@ -151,7 +151,7 @@ const ABCAnalysis = () => {
         sortable: true,
         filter: 'agNumberColumnFilter',
         width: 150,
-        valueFormatter: (params) => `${params.value?.toFixed(2)}%`,
+        valueFormatter: (params) => `${Number(params.value || 0).toFixed(2)}%`,
       },
       {
         headerName: t('abc_clase', 'Clase'),
@@ -342,7 +342,7 @@ const ABCAnalysis = () => {
             </Card>
             <Card className="p-4">
               <div className="text-sm text-gray-600">{t('abc_pct_valor_a', '% Valor en A')}</div>
-              <div className="text-2xl font-bold text-green-600 mt-1">{kpis.pct_valor_a.toFixed(1)}%</div>
+              <div className="text-2xl font-bold text-green-600 mt-1">{Number(kpis.pct_valor_a).toFixed(1)}%</div>
             </Card>
           </div>
         )}

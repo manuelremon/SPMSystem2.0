@@ -194,7 +194,7 @@ export default function CycleCountDetail() {
             variant="body2"
             sx={{ color: isHighVariance ? 'error.main' : 'text.primary', fontWeight: isHighVariance ? 600 : 400 }}
           >
-            {pct.toFixed(1)}%
+            {Number(pct).toFixed(1)}%
           </Typography>
         );
       },

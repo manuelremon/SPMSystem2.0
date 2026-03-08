@@ -153,7 +153,7 @@ export default function SpendAnalytics() {
             {t('spend_kpi_maverick', '% Gasto Maverick')}
           </Typography>
           <Typography variant="h5" sx={{ fontWeight: 700, color: kpis.maverickPct > 10 ? 'error.main' : 'success.main', mt: 0.5 }}>
-            {kpis.maverickPct.toFixed(1)}%
+            {Number(kpis.maverickPct).toFixed(1)}%
           </Typography>
         </Paper>
         <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>

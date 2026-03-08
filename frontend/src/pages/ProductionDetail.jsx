@@ -199,13 +199,13 @@ const ProductionDetail = () => {
       field: 'cantidad_planificada',
       headerName: t('prod_planned_qty', 'Planned'),
       width: 110,
-      cellRenderer: (params) => params.value.toFixed(2)
+      cellRenderer: (params) => Number(params.value).toFixed(2)
     },
     {
       field: 'cantidad_producida',
       headerName: t('prod_produced_qty', 'Produced'),
       width: 110,
-      cellRenderer: (params) => params.value.toFixed(2)
+      cellRenderer: (params) => Number(params.value).toFixed(2)
     },
     {
       field: 'progress',
@@ -340,7 +340,7 @@ const ProductionDetail = () => {
           {validationResult.valido ? (
             <Typography>
               {t('prod_capacity_valid', 'Capacity validation passed')} - Utilization:{' '}
-              {validationResult.utilizacion_pct.toFixed(1)}%
+              {Number(validationResult.utilizacion_pct).toFixed(1)}%
             </Typography>
           ) : (
             <Box>
@@ -350,8 +350,8 @@ const ProductionDetail = () => {
               </Typography>
               {validationResult.excesos.slice(0, 3).map((exceso, idx) => (
                 <Typography key={idx} variant="body2">
-                  • {exceso.work_center_nombre} ({exceso.fecha}): {exceso.exceso.toFixed(2)}{' '}
-                  {t('prod_units_over', 'units over')} ({exceso.exceso_pct.toFixed(1)}%)
+                  • {exceso.work_center_nombre} ({exceso.fecha}): {Number(exceso.exceso).toFixed(2)}{' '}
+                  {t('prod_units_over', 'units over')} ({Number(exceso.exceso_pct).toFixed(1)}%)
                 </Typography>
               ))}
             </Box>
@@ -500,7 +500,7 @@ const ProductionDetail = () => {
                 </Typography>
                 <Typography variant="body2">
                   <strong>{t('prod_remaining', 'Remaining')}:</strong>{' '}
-                  {(reportItem.cantidad_planificada - reportItem.cantidad_producida).toFixed(2)}
+                  {(Number(reportItem.cantidad_planificada) - Number(reportItem.cantidad_producida)).toFixed(2)}
                 </Typography>
               </Paper>
               <TextField

@@ -191,7 +191,7 @@ export default function OnboardingList() {
         return (
           <Stack direction="row" alignItems="center" gap={0.5}>
             <Typography variant="body2" sx={{ fontWeight: 600, color }}>
-              {score.toFixed(1)}
+              {Number(score).toFixed(1)}
             </Typography>
           </Stack>
         );
@@ -251,7 +251,7 @@ export default function OnboardingList() {
           <KpiCard
             icon={<StarIcon sx={{ color: 'info.main' }} />}
             label={t('onboarding_kpi_avg_score', 'Score Promedio')}
-            value={kpis.avg_score?.toFixed(1)}
+            value={Number(kpis.avg_score || 0).toFixed(1)}
             color="info.main"
           />
           <KpiCard

@@ -99,7 +99,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.mae?.toFixed(2) || '-',
+      valueFormatter: (params) => params.data?.metricas?.mae != null ? Number(params.data.metricas.mae).toFixed(2) : '-',
     },
     {
       field: 'rmse',
@@ -107,7 +107,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.rmse?.toFixed(2) || '-',
+      valueFormatter: (params) => params.data?.metricas?.rmse != null ? Number(params.data.metricas.rmse).toFixed(2) : '-',
     },
     {
       field: 'r2',
@@ -115,7 +115,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.r2?.toFixed(4) || '-',
+      valueFormatter: (params) => params.data?.metricas?.r2 != null ? Number(params.data.metricas.r2).toFixed(4) : '-',
     },
     {
       field: 'prediccionTotal',
@@ -123,7 +123,7 @@ function ResultadosTable({ data }) {
       flex: 0.3,
       minWidth: 100,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.prediccionTotal?.toFixed(0) || '-',
+      valueFormatter: (params) => params.data?.prediccionTotal != null ? Number(params.data.prediccionTotal).toFixed(0) : '-',
     },
   ], [t]);
 
@@ -300,10 +300,10 @@ const ForecastMasivo = () => {
       r.codigo,
       `"${(r.descripcion || '').replace(/"/g, '""')}"`,
       r.exito ? 'OK' : 'Error',
-      r.metricas?.mae?.toFixed(2) || '',
-      r.metricas?.rmse?.toFixed(2) || '',
-      r.metricas?.r2?.toFixed(4) || '',
-      r.prediccionTotal?.toFixed(0) || '',
+      r.metricas?.mae != null ? Number(r.metricas.mae).toFixed(2) : '',
+      r.metricas?.rmse != null ? Number(r.metricas.rmse).toFixed(2) : '',
+      r.metricas?.r2 != null ? Number(r.metricas.r2).toFixed(4) : '',
+      r.prediccionTotal != null ? Number(r.prediccionTotal).toFixed(0) : '',
       r.modelo || ''
     ]);
 
@@ -573,8 +573,8 @@ const ForecastMasivo = () => {
               { label: "Total", value: stats.total, color: "var(--fg-strong)", bg: "var(--card)" },
               { label: "Exitosos", value: stats.exitosos, color: "var(--success)", bg: "var(--success-soft)" },
               { label: "Fallidos", value: stats.fallidos, color: "var(--danger)", bg: "var(--danger-soft)" },
-              { label: "MAE Prom.", value: stats.maePromedio.toFixed(2), color: "var(--primary)", bg: "var(--primary-soft)" },
-              { label: "R² Prom.", value: stats.r2Promedio.toFixed(4), color: "var(--purple)", bg: "var(--purple-soft)" },
+              { label: "MAE Prom.", value: Number(stats.maePromedio).toFixed(2), color: "var(--primary)", bg: "var(--primary-soft)" },
+              { label: "R² Prom.", value: Number(stats.r2Promedio).toFixed(4), color: "var(--purple)", bg: "var(--purple-soft)" },
               { label: "Demanda Total", value: Math.round(stats.prediccionTotal).toLocaleString(), color: "var(--warning)", bg: "var(--warning-soft)" },
             ].map((item, idx, arr) => (
               <Box

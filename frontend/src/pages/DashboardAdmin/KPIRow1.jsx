@@ -478,12 +478,12 @@ function KPIRow1({
           ];
 
           const totalValor = valorStockInterno + valorCompraExterna;
-          const pctInterno = totalValor > 0 ? ((valorStockInterno / totalValor) * 100).toFixed(1) : 0;
+          const pctInterno = totalValor > 0 ? (Number(valorStockInterno) / Number(totalValor) * 100).toFixed(1) : 0;
 
           const formatMontoCorto = (val) => {
             if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
             if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-            return val.toFixed(0);
+            return Number(val).toFixed(0);
           };
 
           const todosLosCentros = centrosSeleccionados.length === filtrosOpciones.centros.length;
@@ -551,7 +551,7 @@ function KPIRow1({
                             callbacks: {
                               label: (context) => {
                                 const value = context.parsed.r;
-                                const pct = totalValor > 0 ? ((value / totalValor) * 100).toFixed(1) : 0;
+                                const pct = totalValor > 0 ? (Number(value) / Number(totalValor) * 100).toFixed(1) : 0;
                                 return `USD ${formatMontoCorto(value)} (${pct}%)`;
                               }
                             }
