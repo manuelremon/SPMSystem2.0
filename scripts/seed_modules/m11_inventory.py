@@ -202,27 +202,32 @@ class InventorySeed(SeedModule):
 
     # ------------------------------------------------------------------
     # cycle_count_item  (~40 records, 5 per cycle_count)
-    # Cols: cycle_count_id, material_codigo, stock_sistema, stock_fisico,
-    #       diferencia, ajustado, notas
+    # Cols: count_id, material_codigo, ubicacion, cantidad_sistema,
+    #       cantidad_contada, varianza, varianza_pct, estado,
+    #       contado_por, fecha_conteo
     # ------------------------------------------------------------------
     def _seed_cycle_count_items(self, count_ids):
         count = 0
 
         for cid in count_ids:
             for _ in range(5):
-                stock_sistema = round(random.uniform(0, 200), 2)
-                stock_fisico = round(stock_sistema * random.uniform(0.85, 1.15), 2)
-                diferencia = round(stock_fisico - stock_sistema, 2)
-                ajustado = random.random() > 0.6
+                cantidad_sistema = round(random.uniform(0, 200), 2)
+                cantidad_contada = round(cantidad_sistema * random.uniform(0.85, 1.15), 2)
+                varianza = round(cantidad_contada - cantidad_sistema, 2)
+                varianza_pct = round((varianza / cantidad_sistema * 100), 2) if cantidad_sistema != 0 else 0
+                is_counted = random.random() > 0.4
 
                 row = {
-                    "cycle_count_id": cid,
+                    "count_id": cid,
                     "material_codigo": self.refs.rand_material(),
-                    "stock_sistema": stock_sistema,
-                    "stock_fisico": stock_fisico,
-                    "diferencia": diferencia,
-                    "ajustado": ajustado,
-                    "notas": f"{fake.sentence(nb_words=5)}",
+                    "ubicacion": f"{pick(['A', 'B', 'C'])}-{random.randint(1, 20):02d}",
+                    "cantidad_sistema": cantidad_sistema,
+                    "cantidad_contada": cantidad_contada if is_counted else None,
+                    "varianza": varianza if is_counted else None,
+                    "varianza_pct": varianza_pct if is_counted else None,
+                    "estado": "counted" if is_counted else "pending",
+                    "contado_por": self.refs.rand_user() if is_counted else None,
+                    "fecha_conteo": rand_datetime(days_back=30) if is_counted else None,
                 }
                 try:
                     self.insert_no_return("cycle_count_item", row)

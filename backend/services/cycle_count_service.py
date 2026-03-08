@@ -69,7 +69,8 @@ def obtener_programas() -> List[Dict[str, Any]]:
 
             cursor.execute("""
                 SELECT id, nombre, tipo, almacen_id, frecuencia_a_dias,
-                       frecuencia_b_dias, frecuencia_c_dias, created_at
+                       frecuencia_b_dias, frecuencia_c_dias, estado,
+                       proximo_conteo, created_at
                 FROM cycle_count_programa
                 ORDER BY created_at DESC
             """)
@@ -81,10 +82,12 @@ def obtener_programas() -> List[Dict[str, Any]]:
                     'nombre': row[1],
                     'tipo': row[2],
                     'almacen_id': row[3],
-                    'frecuencia_a_dias': row[4],
-                    'frecuencia_b_dias': row[5],
-                    'frecuencia_c_dias': row[6],
-                    'created_at': row[7].isoformat() if row[7] else None
+                    'freq_a_dias': row[4],
+                    'freq_b_dias': row[5],
+                    'freq_c_dias': row[6],
+                    'estado': row[7],
+                    'proximo_conteo': row[8].isoformat() if row[8] else None,
+                    'created_at': row[9].isoformat() if row[9] else None
                 })
 
             return programas
@@ -180,7 +183,7 @@ def generar_conteo(tipo: str, almacen_id: int, programa_id: Optional[int] = None
                 INSERT INTO cycle_count (
                     tipo, almacen_id, programa_id, asignado_a, estado
                 ) VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
-            """, (tipo, almacen_id, programa_id, asignado_a, 'pending'))
+            """, (tipo, almacen_id, programa_id, asignado_a, 'planned'))
 
             if is_using_postgresql():
                 cursor.execute("SELECT currval(pg_get_serial_sequence('cycle_count', 'id'))")
@@ -381,13 +384,14 @@ def obtener_conteos(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
             # Get items
             cursor.execute(f"""
                 SELECT cc.id, cc.tipo, cc.almacen_id, cc.programa_id, cc.asignado_a,
-                       cc.estado, cc.fecha_inicio, cc.fecha_cierre,
+                       cc.estado, cc.fecha_planificada, cc.fecha_inicio, cc.fecha_cierre,
                        COUNT(cci.id) as total_items,
                        SUM(CASE WHEN cci.estado = 'counted' THEN 1 ELSE 0 END) as items_contados
                 FROM cycle_count cc
                 LEFT JOIN cycle_count_item cci ON cci.count_id = cc.id
                 WHERE {where_clause}
-                GROUP BY cc.id
+                GROUP BY cc.id, cc.tipo, cc.almacen_id, cc.programa_id, cc.asignado_a,
+                         cc.estado, cc.fecha_planificada, cc.fecha_inicio, cc.fecha_cierre, cc.created_at
                 ORDER BY cc.created_at DESC
                 LIMIT {ph} OFFSET {ph}
             """, params + [per_page, offset])
@@ -401,10 +405,11 @@ def obtener_conteos(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                     'programa_id': row[3],
                     'asignado_a': row[4],
                     'estado': row[5],
-                    'fecha_inicio': row[6].isoformat() if row[6] else None,
-                    'fecha_cierre': row[7].isoformat() if row[7] else None,
-                    'total_items': row[8] or 0,
-                    'items_contados': row[9] or 0
+                    'fecha_planificada': row[6].isoformat() if row[6] else None,
+                    'fecha_inicio': row[7].isoformat() if row[7] else None,
+                    'fecha_cierre': row[8].isoformat() if row[8] else None,
+                    'items_count': row[9] or 0,
+                    'items_contados': row[10] or 0
                 })
 
             return {
@@ -723,7 +728,7 @@ def obtener_kpis() -> Dict[str, Any]:
             cursor.execute(f"""
                 SELECT COUNT(*) FROM cycle_count
                 WHERE estado IN ({ph}, {ph})
-            """, ('pending', 'in_progress'))
+            """, ('planned', 'in_progress'))
             conteos_pendientes = cursor.fetchone()[0] or 0
 
             # Varianza total absoluta
@@ -745,7 +750,7 @@ def obtener_kpis() -> Dict[str, Any]:
             return {
                 'accuracy_rate': round(accuracy_rate, 2),
                 'conteos_pendientes': conteos_pendientes,
-                'varianza_total_abs': round(varianza_total_abs, 2),
+                'varianza_total': round(varianza_total_abs, 2),
                 'ajustes_pendientes': ajustes_pendientes
             }
 

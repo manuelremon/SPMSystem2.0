@@ -27,8 +27,6 @@ import {
   Chip,
   InputAdornment,
   Divider,
-  Backdrop,
-  CircularProgress,
   LinearProgress,
 } from "@mui/material";
 
@@ -210,8 +208,13 @@ export default function Stock() {
   const [filtros, setFiltros] = useState({ centros: [], almacenes: [] });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState("");
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [sortCol, setSortCol] = useState("stock_valorizado");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -299,24 +302,17 @@ export default function Stock() {
     },
   ], []);
 
-  // Load stock data - load all at once for AG-Grid virtualization
+  // Load stock data with server-side pagination
   const loadStock = useCallback(async () => {
     setLoading(true);
-    setLoadingProgress(0);
     setError("");
-
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 30;
-      });
-    }, 200);
 
     try {
       const params = {
-        limit: 999999, // Load all stock data (unlimited)
-        offset: 0,
+        limit: pageSize,
+        offset: page * pageSize,
+        sort: sortCol,
+        order: sortOrder,
       };
 
       if (centro) params.centro = centro;
@@ -347,18 +343,36 @@ export default function Stock() {
       if (resumenRes.data?.ok) {
         setResumen(resumenRes.data.data);
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión");
     } finally {
-      clearInterval(progressInterval);
-      setLoadingProgress(100);
       setLoading(false);
     }
-  }, [centro, almacen, search, inmovilizado, mrp]);
+  }, [centro, almacen, search, inmovilizado, mrp, page, pageSize, sortCol, sortOrder]);
 
   useEffect(() => {
     loadStock();
   }, [loadStock]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [centro, almacen, search, inmovilizado, mrp]);
+
+  const handleSortChanged = useCallback((event) => {
+    const cols = event.api.getColumnState();
+    const sorted = cols.find((c) => c.sort);
+    if (sorted) {
+      setSortCol(sorted.colId);
+      setSortOrder(sorted.sort);
+    } else {
+      setSortCol("stock_valorizado");
+      setSortOrder("desc");
+    }
+    setPage(0);
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const clearFilters = () => {
     setSearch("");
@@ -582,61 +596,87 @@ export default function Stock() {
           columnDefs={columnDefs}
           loading={loading}
           height={560}
-          pagination={true}
-          paginationPageSize={50}
-          paginationPageSizeSelector={[25, 50, 100, 200]}
-          enableQuickFilter={true}
+          pagination={false}
+          enableQuickFilter={false}
           exportFileName="stock"
           emptyMessage="No se encontraron registros de stock"
           defaultColDef={{
             sortable: true,
-            filter: true,
+            filter: false,
             resizable: true,
           }}
+          onSortChanged={handleSortChanged}
         />
+
+        {/* Server-side pagination controls */}
+        <Box sx={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          px: 2, py: 1.5, borderTop: 1, borderColor: "divider", bgcolor: "grey.50",
+        }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              {t("stock_mostrando", "Mostrando")} {Math.min(page * pageSize + 1, total)}-{Math.min((page + 1) * pageSize, total)} {t("stock_de", "de")} {formatNumber(total)}
+            </Typography>
+            <Divider orientation="vertical" flexItem />
+            <FormControl size="small" sx={{ minWidth: 80 }}>
+              <Select
+                value={pageSize}
+                onChange={(e) => { setPageSize(e.target.value); setPage(0); }}
+                variant="standard"
+                sx={{ fontSize: "0.875rem" }}
+              >
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+                <MenuItem value={200}>200</MenuItem>
+                <MenuItem value={500}>500</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography variant="body2" color="text.secondary">/ {t("stock_pagina", "página")}</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Button
+              size="small"
+              disabled={page === 0 || loading}
+              onClick={() => setPage(0)}
+              sx={{ minWidth: 36, textTransform: "none" }}
+            >
+              ««
+            </Button>
+            <Button
+              size="small"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              sx={{ minWidth: 36, textTransform: "none" }}
+            >
+              «
+            </Button>
+            <Typography variant="body2" sx={{ fontWeight: 600, mx: 1 }}>
+              {page + 1} / {totalPages}
+            </Typography>
+            <Button
+              size="small"
+              disabled={page >= totalPages - 1 || loading}
+              onClick={() => setPage((p) => p + 1)}
+              sx={{ minWidth: 36, textTransform: "none" }}
+            >
+              »
+            </Button>
+            <Button
+              size="small"
+              disabled={page >= totalPages - 1 || loading}
+              onClick={() => setPage(totalPages - 1)}
+              sx={{ minWidth: 36, textTransform: "none" }}
+            >
+              »»
+            </Button>
+          </Stack>
+        </Box>
       </Paper>
 
-      {/* Loading Overlay */}
-      <Backdrop
-        sx={{
-          color: "#fff",
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          backdropFilter: "blur(4px)",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-        }}
-        open={loading}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            width: "300px",
-          }}
-        >
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Cargando stock...
-          </Typography>
-          <Box sx={{ width: "100%" }}>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(loadingProgress, 100)}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                "& .MuiLinearProgress-bar": {
-                  borderRadius: 4,
-                },
-              }}
-            />
-          </Box>
-          <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
-            {Math.min(Math.round(loadingProgress), 100)}%
-          </Typography>
-        </Box>
-      </Backdrop>
+      {/* Loading indicator */}
+      {loading && (
+        <LinearProgress sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999 }} />
+      )}
     </Box>
   );
 }
