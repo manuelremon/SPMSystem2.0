@@ -76,7 +76,7 @@ const WarrantyClaimDetail = () => {
     const fetchReclamo = async () => {
       setLoading(true);
       try {
-        const response = await api.get(`/api/warranty/claims/${id}`);
+        const response = await api.get(`/warranty/claims/${id}`);
         setReclamo(response.data);
       } catch (error) {
         alert(t('warranty_error_fetch', 'Error al cargar reclamo'));
@@ -92,8 +92,8 @@ const WarrantyClaimDetail = () => {
   // Handlers
   const handleSubmit = async () => {
     try {
-      await api.put(`/api/warranty/claims/${id}/submit`);
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      await api.put(`/warranty/claims/${id}/submit`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_submit', 'Error al enviar reclamo'));
@@ -102,10 +102,10 @@ const WarrantyClaimDetail = () => {
 
   const handleReview = async () => {
     try {
-      await api.put(`/api/warranty/claims/${id}/review`, { notas: reviewNotes });
+      await api.put(`/warranty/claims/${id}/review`, { notas: reviewNotes });
       setOpenReviewModal(false);
       setReviewNotes('');
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_review', 'Error al revisar reclamo'));
@@ -114,10 +114,10 @@ const WarrantyClaimDetail = () => {
 
   const handleApprove = async () => {
     try {
-      await api.put(`/api/warranty/claims/${id}/approve`, { notas: approveNotes });
+      await api.put(`/warranty/claims/${id}/approve`, { notas: approveNotes });
       setOpenApproveModal(false);
       setApproveNotes('');
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_approve', 'Error al aprobar reclamo'));
@@ -126,10 +126,10 @@ const WarrantyClaimDetail = () => {
 
   const handleReject = async () => {
     try {
-      await api.put(`/api/warranty/claims/${id}/reject`, { notas: rejectNotes });
+      await api.put(`/warranty/claims/${id}/reject`, { notas: rejectNotes });
       setOpenRejectModal(false);
       setRejectNotes('');
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_reject', 'Error al rechazar reclamo'));
@@ -138,14 +138,14 @@ const WarrantyClaimDetail = () => {
 
   const handleResolve = async () => {
     try {
-      await api.put(`/api/warranty/claims/${id}/resolve`, {
+      await api.put(`/warranty/claims/${id}/resolve`, {
         resolucion: resolveForm.resolucion,
         monto_recuperado: parseFloat(resolveForm.monto_recuperado),
         notas: resolveForm.notas
       });
       setOpenResolveModal(false);
       setResolveForm({ resolucion: 'reemplazo', monto_recuperado: '', notas: '' });
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_resolve', 'Error al resolver reclamo'));
@@ -154,10 +154,10 @@ const WarrantyClaimDetail = () => {
 
   const handleAddDocument = async () => {
     try {
-      await api.post(`/api/warranty/claims/${id}/documents`, documentForm);
+      await api.post(`/warranty/claims/${id}/documents`, documentForm);
       setOpenDocumentModal(false);
       setDocumentForm({ nombre: '', tipo: 'foto', path: '' });
-      const response = await api.get(`/api/warranty/claims/${id}`);
+      const response = await api.get(`/warranty/claims/${id}`);
       setReclamo(response.data);
     } catch (error) {
       alert(t('warranty_error_document', 'Error al agregar documento'));

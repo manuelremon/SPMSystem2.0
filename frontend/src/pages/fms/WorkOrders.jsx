@@ -32,6 +32,7 @@ import {
   StarFill,
   AlertTriangle,
 } from '../../components/ui/Icons'
+import { formatDate } from '../../utils/formatters'
 import { useI18n } from '../../context/i18n'
 import { useFmsStore } from '../../store/fmsStore'
 
@@ -64,7 +65,7 @@ const TIPOS_OT = [
 
 const PRIORIDADES = [
   { value: '', label: 'Todas' },
-  { value: '1', label: '1 - Critica' },
+  { value: '1', label: '1 - Crítica' },
   { value: '2', label: '2 - Alta' },
   { value: '3', label: '3 - Media' },
   { value: '4', label: '4 - Baja' },
@@ -158,10 +159,10 @@ export default function WorkOrders() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>
           <Typography variant="h4" fontWeight={700}>
-            {t('fms_workorders_title', 'Ordenes de Trabajo')}
+            {t('fms_workorders_title', 'Órdenes de Trabajo')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {t('fms_workorders_subtitle', 'Gestion de mantenimiento y reparaciones')}
+            {t('fms_workorders_subtitle', 'Gestión de mantenimiento y reparaciones')}
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<Plus />} onClick={() => setCreateOpen(true)}>
@@ -214,7 +215,7 @@ export default function WorkOrders() {
 
           <TextField
             size="small"
-            placeholder={t('fms_search_wo', 'Buscar por vehiculo, codigo...')}
+            placeholder={t('fms_search_wo', 'Buscar por vehículo, código...')}
             value={searchText}
             onChange={(e) => { setSearchText(e.target.value); setPage(0) }}
             InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }}
@@ -235,7 +236,7 @@ export default function WorkOrders() {
         <Paper sx={{ p: 6, textAlign: 'center' }}>
           <ClipboardList sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
           <Typography color="text.secondary">
-            {t('fms_no_workorders', 'No se encontraron ordenes de trabajo')}
+            {t('fms_no_workorders', 'No se encontraron órdenes de trabajo')}
           </Typography>
         </Paper>
       )}
@@ -246,12 +247,12 @@ export default function WorkOrders() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Codigo</TableCell>
-                  <TableCell>Vehiculo</TableCell>
+                  <TableCell>Código</TableCell>
+                  <TableCell>Vehículo</TableCell>
                   <TableCell>Tipo</TableCell>
                   <TableCell>Estado</TableCell>
                   <TableCell>Prioridad</TableCell>
-                  <TableCell>Descripcion</TableCell>
+                  <TableCell>Descripción</TableCell>
                   <TableCell>Fecha Ingreso</TableCell>
                   <TableCell align="right">Costo Total</TableCell>
                 </TableRow>
@@ -291,7 +292,7 @@ export default function WorkOrders() {
                     <TableCell sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {wo.descripcion || '--'}
                     </TableCell>
-                    <TableCell>{wo.fecha_ingreso || wo.created_at || '--'}</TableCell>
+                    <TableCell>{formatDate(wo.fecha_ingreso || wo.created_at)}</TableCell>
                     <TableCell align="right">
                       {wo.costo_total != null ? `$${Number(wo.costo_total).toLocaleString()}` : '--'}
                     </TableCell>
@@ -308,8 +309,8 @@ export default function WorkOrders() {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 25, 50]}
-            labelRowsPerPage="Filas por pagina:"
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mas de ${to}`}`}
+            labelRowsPerPage="Filas por página:"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
           />
         </Paper>
       )}
@@ -321,12 +322,12 @@ export default function WorkOrders() {
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="ID Vehiculo"
+              label="ID Vehículo"
               type="number"
               value={createForm.vehicle_id}
               onChange={(e) => setCreateForm({ ...createForm, vehicle_id: e.target.value })}
               fullWidth
-              helperText="Ingrese el ID del vehiculo"
+              helperText="Ingrese el ID del vehículo"
             />
             <FormControl fullWidth size="small">
               <InputLabel>Tipo</InputLabel>
@@ -347,7 +348,7 @@ export default function WorkOrders() {
                 label="Prioridad"
                 onChange={(e) => setCreateForm({ ...createForm, prioridad: e.target.value })}
               >
-                <MenuItem value={1}>1 - Critica</MenuItem>
+                <MenuItem value={1}>1 - Crítica</MenuItem>
                 <MenuItem value={2}>2 - Alta</MenuItem>
                 <MenuItem value={3}>3 - Media</MenuItem>
                 <MenuItem value={4}>4 - Baja</MenuItem>
@@ -355,7 +356,7 @@ export default function WorkOrders() {
             </FormControl>
             <TextField
               size="small"
-              label="Descripcion"
+              label="Descripción"
               value={createForm.descripcion}
               onChange={(e) => setCreateForm({ ...createForm, descripcion: e.target.value })}
               multiline

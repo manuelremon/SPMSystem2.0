@@ -82,7 +82,7 @@ export default function CostSavings() {
 
   const fetchKpis = useCallback(async () => {
     try {
-      const { data } = await api.get('/api/savings/kpis');
+      const { data } = await api.get('/savings/kpis');
       setKpis(data);
     } catch {
       /* non-critical */
@@ -92,7 +92,7 @@ export default function CostSavings() {
   const fetchSavings = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/api/savings', {
+      const { data } = await api.get('/savings', {
         params: { page, per_page: perPage },
       });
       setSavings(data.items || []);
@@ -106,7 +106,7 @@ export default function CostSavings() {
 
   const fetchGoals = useCallback(async () => {
     try {
-      const { data } = await api.get('/api/savings/goals');
+      const { data } = await api.get('/savings/goals');
       setGoals(data.goals || []);
     } catch {
       /* non-critical */
@@ -124,7 +124,7 @@ export default function CostSavings() {
 
   const handleExport = useCallback(async () => {
     try {
-      const response = await api.get('/api/savings/export', { responseType: 'blob' });
+      const response = await api.get('/savings/export', { responseType: 'blob' });
       const url = URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -144,7 +144,7 @@ export default function CostSavings() {
     }
     setSubmitting(true);
     try {
-      await api.post('/api/savings', {
+      await api.post('/savings', {
         ...form,
         monto: parseFloat(form.monto),
         solicitud_id: form.solicitud_id ? parseInt(form.solicitud_id, 10) : null,

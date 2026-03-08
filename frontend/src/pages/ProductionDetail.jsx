@@ -62,7 +62,7 @@ const ProductionDetail = () => {
   const loadPlanDetail = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/api/production/plans/${id}`);
+      const res = await api.get(`/production/plans/${id}`);
       if (res.data.ok) {
         setPlan(res.data.plan);
         setItems(res.data.plan.items || []);
@@ -76,7 +76,7 @@ const ProductionDetail = () => {
 
   const loadWorkCenters = async () => {
     try {
-      const res = await api.get('/api/production/work-centers?estado=active');
+      const res = await api.get('/production/work-centers?estado=active');
       if (res.data.ok) {
         setWorkCenters(res.data.work_centers);
       }
@@ -91,7 +91,7 @@ const ProductionDetail = () => {
     }
 
     try {
-      const res = await api.post(`/api/production/plans/${id}/items`, newItem);
+      const res = await api.post(`/production/plans/${id}/items`, newItem);
       if (res.data.ok) {
         setAddItemOpen(false);
         setNewItem({
@@ -125,7 +125,7 @@ const ProductionDetail = () => {
     }
 
     try {
-      const res = await api.put(`/api/production/plans/${id}/items/${reportItem.id}/report`, reportData);
+      const res = await api.put(`/production/plans/${id}/items/${reportItem.id}/report`, reportData);
       if (res.data.ok) {
         setReportOpen(false);
         setReportItem(null);
@@ -139,7 +139,7 @@ const ProductionDetail = () => {
 
   const handleValidateCapacity = async () => {
     try {
-      const res = await api.post(`/api/production/plans/${id}/validate`);
+      const res = await api.post(`/production/plans/${id}/validate`);
       if (res.data.ok) {
         setValidationResult(res.data);
       }
@@ -159,7 +159,7 @@ const ProductionDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, open: false }));
         try {
-          const res = await api.put(`/api/production/plans/${id}/publish`);
+          const res = await api.put(`/production/plans/${id}/publish`);
           if (res.data.ok) {
             loadPlanDetail();
           }
@@ -178,7 +178,7 @@ const ProductionDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, open: false }));
         try {
-          const res = await api.put(`/api/production/plans/${id}/complete`);
+          const res = await api.put(`/production/plans/${id}/complete`);
           if (res.data.ok) {
             loadPlanDetail();
           }

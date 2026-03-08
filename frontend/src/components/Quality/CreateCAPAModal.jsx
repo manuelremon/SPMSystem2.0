@@ -30,7 +30,7 @@ export default function CreateCAPAModal({ open, onClose, ncrId, onCreated }) {
     try {
       const payload = { ...form };
       if (payload.responsable_id) payload.responsable_id = parseInt(payload.responsable_id);
-      const { data } = await api.post('/api/quality/capa', payload);
+      const { data } = await api.post('/quality/capa', payload);
       showSuccess(t('capa_created', 'CAPA creada exitosamente'));
       onCreated?.(data);
       onClose();

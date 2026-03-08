@@ -12,7 +12,7 @@ export const useModuleStore = create((set, get) => ({
     if (get().isLoading) return
     set({ isLoading: true })
     try {
-      const res = await api.get('/api/admin/modules')
+      const res = await api.get('/admin/modules')
       set({ modules: res.data.modules || [], isLoaded: true, isLoading: false })
     } catch {
       set({ isLoading: false })
@@ -20,7 +20,7 @@ export const useModuleStore = create((set, get) => ({
   },
 
   updateModules: async (modulesData) => {
-    const res = await api.put('/api/admin/modules', { modules: modulesData })
+    const res = await api.put('/admin/modules', { modules: modulesData })
     set({ modules: res.data.modules || [] })
     return res.data
   },

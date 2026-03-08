@@ -594,6 +594,10 @@ def _configure_default_limits(limiter: RateLimiter) -> None:
     limiter.configure_endpoint("/api/kpis", requests=1000, window_seconds=60, burst=200)
     limiter.configure_endpoint("/api/admin", requests=1000, window_seconds=60, burst=200)
 
+    # Dashboards y analytics (permisivos)
+    limiter.configure_endpoint("/api/control-tower", requests=1000, window_seconds=60, burst=200)
+    limiter.configure_endpoint("/api/dashboard", requests=1000, window_seconds=60, burst=200)
+
     # Health checks (sin limite)
     limiter.configure_endpoint("/health", requests=1000, window_seconds=60, burst=100)
     limiter.configure_endpoint("/api/health", requests=1000, window_seconds=60, burst=100)

@@ -7,7 +7,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import _get_user_id, safe_error_response
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.services import control_tower_service
 
@@ -55,10 +55,12 @@ def obtener_alertas_agregadas():
     try:
         filtros = {
             'estado': request.args.get('estado'),
-            'tipo': request.args.get('tipo')
+            'tipo': request.args.get('tipo'),
+            'categoria': request.args.get('categoria'),
+            'severidad': request.args.get('severidad'),
         }
         alertas = control_tower_service.obtener_alertas_agregadas(filtros)
-        return jsonify({'ok': True, 'items': alertas}), 200
+        return jsonify({'ok': True, 'alerts': alertas}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="obtener_alertas_agregadas")
 

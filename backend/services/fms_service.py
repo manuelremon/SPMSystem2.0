@@ -119,15 +119,15 @@ def listar_vehiculos(filtros: dict = None) -> List[dict]:
     query = "SELECT * FROM fms_vehicles WHERE 1=1"
     params = []
 
-    if "estado" in filtros:
+    if filtros.get("estado"):
         query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 
-    if "tipo" in filtros:
+    if filtros.get("tipo"):
         query += f" AND tipo = {ph}"
         params.append(filtros["tipo"])
 
-    if "activo" in filtros:
+    if filtros.get("activo") is not None:
         query += f" AND activo = {ph}"
         params.append(bool(filtros["activo"]))
 
@@ -269,11 +269,11 @@ def listar_conductores(filtros: dict = None) -> List[dict]:
     query = "SELECT * FROM fms_drivers WHERE 1=1"
     params = []
 
-    if "estado" in filtros:
+    if filtros.get("estado"):
         query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 
-    if "hazmat_cert" in filtros or "capacitacion_hazmat" in filtros:
+    if filtros.get("hazmat_cert") is not None or filtros.get("capacitacion_hazmat") is not None:
         val = filtros.get("hazmat_cert", filtros.get("capacitacion_hazmat"))
         query += f" AND hazmat_cert = {ph}"
         params.append(bool(val))
@@ -419,19 +419,19 @@ def listar_ordenes_trabajo(filtros: dict = None, page: int = 1, per_page: int = 
     query = "SELECT * FROM fms_work_orders WHERE 1=1"
     params = []
 
-    if "estado" in filtros:
+    if filtros.get("estado"):
         query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 
-    if "tipo" in filtros:
+    if filtros.get("tipo"):
         query += f" AND tipo = {ph}"
         params.append(filtros["tipo"])
 
-    if "vehicle_id" in filtros:
+    if filtros.get("vehicle_id"):
         query += f" AND vehicle_id = {ph}"
         params.append(filtros["vehicle_id"])
 
-    if "prioridad" in filtros:
+    if filtros.get("prioridad"):
         query += f" AND prioridad = {ph}"
         params.append(filtros["prioridad"])
 
@@ -912,19 +912,19 @@ def listar_inspecciones(filtros: dict = None) -> List[dict]:
     query = "SELECT * FROM fms_inspections WHERE 1=1"
     params = []
 
-    if "vehicle_id" in filtros:
+    if filtros.get("vehicle_id"):
         query += f" AND vehicle_id = {ph}"
         params.append(filtros["vehicle_id"])
 
-    if "driver_id" in filtros:
+    if filtros.get("driver_id"):
         query += f" AND driver_id = {ph}"
         params.append(filtros["driver_id"])
 
-    if "tipo" in filtros:
+    if filtros.get("tipo"):
         query += f" AND tipo = {ph}"
         params.append(filtros["tipo"])
 
-    if "estado" in filtros:
+    if filtros.get("estado"):
         query += f" AND estado = {ph}"
         params.append(filtros["estado"])
 

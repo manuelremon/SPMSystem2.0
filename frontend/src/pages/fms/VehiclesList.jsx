@@ -1,43 +1,26 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import TextField from '@mui/material/TextField'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Grid from '@mui/material/Grid'
 import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
-import CircularProgress from '@mui/material/CircularProgress'
-import Alert from '@mui/material/Alert'
-import Table from '@mui/material/Table'
-import TableHead from '@mui/material/TableHead'
-import TableBody from '@mui/material/TableBody'
-import TableRow from '@mui/material/TableRow'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
-import {
-  Plus,
-  Truck,
-  Search,
-  LayoutGrid,
-  List,
-  Gauge,
-} from '../../components/ui/Icons'
+import Alert from '@mui/material/Alert'
+import AddIcon from '@mui/icons-material/Add'
 import { useI18n } from '../../context/i18n'
 import { useFmsStore, useFmsVehicles, useFmsLoading } from '../../store/fmsStore'
+import { SPMAgGrid } from '../../components/ui/SPMAgGrid'
 
 const ESTADO_COLORS = {
   disponible: 'success',
   en_ruta: 'primary',
   en_mantenimiento: 'warning',
+  mantenimiento: 'warning',
   fuera_servicio: 'error',
   baja: 'default',
 }
@@ -46,17 +29,20 @@ const ESTADO_LABELS = {
   disponible: 'Disponible',
   en_ruta: 'En Ruta',
   en_mantenimiento: 'En Mantenimiento',
+  mantenimiento: 'En Mantenimiento',
   fuera_servicio: 'Fuera de Servicio',
   baja: 'Baja',
 }
 
 const TIPOS_VEHICULO = [
   { value: '', label: 'Todos los tipos' },
-  { value: 'camion', label: 'Camion' },
+  { value: 'camion', label: 'Camión' },
   { value: 'camioneta', label: 'Camioneta' },
-  { value: 'vehiculo_ligero', label: 'Vehiculo Ligero' },
+  { value: 'furgon', label: 'Furgón' },
+  { value: 'semirremolque', label: 'Semirremolque' },
+  { value: 'vehiculo_ligero', label: 'Vehículo Ligero' },
   { value: 'montacargas', label: 'Montacargas' },
-  { value: 'grua', label: 'Grua' },
+  { value: 'grua', label: 'Grúa' },
 ]
 
 export default function VehiclesList() {
@@ -69,56 +55,141 @@ export default function VehiclesList() {
 
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
-  const [searchText, setSearchText] = useState('')
-  const [viewMode, setViewMode] = useState('grid')
 
   useEffect(() => {
     fetchVehicles()
   }, [fetchVehicles])
 
-  const handleSearch = useCallback(() => {
+  const handleFilterChange = useCallback(() => {
     const params = {}
     if (filtroEstado) params.estado = filtroEstado
     if (filtroTipo) params.tipo = filtroTipo
-    if (searchText) params.q = searchText
     fetchVehicles(params)
-  }, [filtroEstado, filtroTipo, searchText, fetchVehicles])
+  }, [filtroEstado, filtroTipo, fetchVehicles])
 
   useEffect(() => {
-    const timer = setTimeout(handleSearch, 400)
+    const timer = setTimeout(handleFilterChange, 300)
     return () => clearTimeout(timer)
-  }, [filtroEstado, filtroTipo, searchText, handleSearch])
+  }, [filtroEstado, filtroTipo, handleFilterChange])
 
-  const handleRowClick = (id) => {
-    navigate(`/fms/vehicles/${id}`)
-  }
+  const columnDefs = useMemo(() => [
+    {
+      field: 'codigo',
+      headerName: t('fms_col_codigo', 'Código'),
+      flex: 0.4,
+      minWidth: 100,
+      cellRenderer: (params) => (
+        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'patente',
+      headerName: t('fms_col_patente', 'Patente'),
+      flex: 0.5,
+      minWidth: 110,
+      cellRenderer: (params) => (
+        <Typography variant="body2" fontWeight={600}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'tipo',
+      headerName: t('fms_col_tipo', 'Tipo'),
+      flex: 0.5,
+      minWidth: 120,
+      valueFormatter: (params) => params.value ? params.value.replace(/_/g, ' ') : '--',
+    },
+    {
+      field: 'marca',
+      headerName: t('fms_col_marca', 'Marca'),
+      flex: 0.5,
+      minWidth: 120,
+    },
+    {
+      field: 'modelo',
+      headerName: t('fms_col_modelo', 'Modelo'),
+      flex: 0.6,
+      minWidth: 130,
+    },
+    {
+      field: 'anio',
+      headerName: t('fms_col_anio', 'Año'),
+      flex: 0.3,
+      minWidth: 70,
+    },
+    {
+      field: 'capacidad_kg',
+      headerName: t('fms_col_capacidad', 'Capacidad (kg)'),
+      flex: 0.5,
+      minWidth: 120,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value ? Number(params.value).toLocaleString() : '--',
+    },
+    {
+      field: 'km_actual',
+      headerName: t('fms_col_km', 'Km Actual'),
+      flex: 0.5,
+      minWidth: 110,
+      type: 'numericColumn',
+      valueFormatter: (params) => params.value ? `${Number(params.value).toLocaleString()} km` : '--',
+    },
+    {
+      field: 'estado',
+      headerName: t('fms_col_estado', 'Estado'),
+      flex: 0.5,
+      minWidth: 140,
+      cellRenderer: (params) => (
+        <Chip
+          label={ESTADO_LABELS[params.value] || params.value || '--'}
+          color={ESTADO_COLORS[params.value] || 'default'}
+          size="small"
+          sx={{
+            fontSize: '0.625rem',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            height: 20,
+          }}
+        />
+      ),
+    },
+  ], [t])
 
-  const filteredVehicles = vehicles || []
+  const handleRowClick = useCallback((event) => {
+    if (event.data?.id) {
+      navigate(`/fms/vehicles/${event.data.id}`)
+    }
+  }, [navigate])
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Box>
-          <Typography variant="h4" fontWeight={700}>
-            {t('fms_vehicles_title', 'Flota de Vehiculos')}
+          <Typography variant="h5" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t('fms_vehicles_title', 'Flota de Vehículos')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {t('fms_vehicles_subtitle', 'Gestion y monitoreo de vehiculos')}
+            {t('fms_vehicles_subtitle', 'Gestión y monitoreo de vehículos')}
           </Typography>
         </Box>
         <Button
           variant="contained"
-          startIcon={<Plus />}
+          size="small"
+          startIcon={<AddIcon />}
           onClick={() => navigate('/fms/vehicles/new')}
+          sx={{ textTransform: 'none' }}
         >
-          {t('fms_new_vehicle', 'Nuevo Vehiculo')}
+          {t('fms_new_vehicle', 'Nuevo Vehículo')}
         </Button>
       </Stack>
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>{t('fms_filter_estado', 'Estado')}</InputLabel>
             <Select
@@ -126,7 +197,7 @@ export default function VehiclesList() {
               label={t('fms_filter_estado', 'Estado')}
               onChange={(e) => setFiltroEstado(e.target.value)}
             >
-              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="">{t('fms_filter_todos', 'Todos')}</MenuItem>
               {Object.entries(ESTADO_LABELS).map(([k, v]) => (
                 <MenuItem key={k} value={k}>{v}</MenuItem>
               ))}
@@ -140,150 +211,33 @@ export default function VehiclesList() {
               label={t('fms_filter_tipo', 'Tipo')}
               onChange={(e) => setFiltroTipo(e.target.value)}
             >
-              {TIPOS_VEHICULO.map((t) => (
-                <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+              {TIPOS_VEHICULO.map((tipo) => (
+                <MenuItem key={tipo.value} value={tipo.value}>{tipo.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
-
-          <TextField
-            size="small"
-            placeholder={t('fms_search_placeholder', 'Buscar por placa, marca...')}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }}
-            sx={{ flexGrow: 1 }}
-          />
-
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              color={viewMode === 'grid' ? 'primary' : 'default'}
-              onClick={() => setViewMode('grid')}
-            >
-              <LayoutGrid />
-            </IconButton>
-            <IconButton
-              color={viewMode === 'table' ? 'primary' : 'default'}
-              onClick={() => setViewMode('table')}
-            >
-              <List />
-            </IconButton>
-          </Stack>
         </Stack>
       </Paper>
 
       {/* Error */}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error">{error}</Alert>}
 
-      {/* Loading */}
-      {vehiclesLoading && (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Empty state */}
-      {!vehiclesLoading && filteredVehicles.length === 0 && (
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <Truck sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-          <Typography color="text.secondary">
-            {t('fms_no_vehicles', 'No se encontraron vehiculos')}
-          </Typography>
-        </Paper>
-      )}
-
-      {/* Grid View */}
-      {!vehiclesLoading && filteredVehicles.length > 0 && viewMode === 'grid' && (
-        <Grid container spacing={2}>
-          {filteredVehicles.map((v) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={v.id}>
-              <Card
-                sx={{
-                  cursor: 'pointer',
-                  transition: 'box-shadow 0.2s',
-                  '&:hover': { boxShadow: 6 },
-                }}
-                onClick={() => handleRowClick(v.id)}
-              >
-                <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                    <Typography variant="h6" fontWeight={600}>{v.placa}</Typography>
-                    <Chip
-                      label={ESTADO_LABELS[v.estado] || v.estado}
-                      color={ESTADO_COLORS[v.estado] || 'default'}
-                      size="small"
-                    />
-                  </Stack>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {v.tipo ? v.tipo.replace(/_/g, ' ') : '--'}
-                  </Typography>
-                  <Typography variant="body2">
-                    {v.marca} {v.modelo}
-                  </Typography>
-                  {v.capacidad_kg && (
-                    <Typography variant="caption" color="text.secondary">
-                      Capacidad: {Number(v.capacidad_kg).toLocaleString()} kg
-                    </Typography>
-                  )}
-                  <Stack direction="row" alignItems="center" spacing={0.5} mt={1}>
-                    <Gauge sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      {v.odometro_actual ? `${Number(v.odometro_actual).toLocaleString()} km` : 'Sin datos'}
-                    </Typography>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Table View */}
-      {!vehiclesLoading && filteredVehicles.length > 0 && viewMode === 'table' && (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Placa</TableCell>
-                <TableCell>Tipo</TableCell>
-                <TableCell>Marca / Modelo</TableCell>
-                <TableCell align="right">Capacidad (kg)</TableCell>
-                <TableCell align="right">Odometro</TableCell>
-                <TableCell>Estado</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredVehicles.map((v) => (
-                <TableRow
-                  key={v.id}
-                  hover
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => handleRowClick(v.id)}
-                >
-                  <TableCell>
-                    <Typography fontWeight={600}>{v.placa}</Typography>
-                  </TableCell>
-                  <TableCell>{v.tipo ? v.tipo.replace(/_/g, ' ') : '--'}</TableCell>
-                  <TableCell>{v.marca} {v.modelo}</TableCell>
-                  <TableCell align="right">
-                    {v.capacidad_kg ? Number(v.capacidad_kg).toLocaleString() : '--'}
-                  </TableCell>
-                  <TableCell align="right">
-                    {v.odometro_actual ? `${Number(v.odometro_actual).toLocaleString()} km` : '--'}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={ESTADO_LABELS[v.estado] || v.estado}
-                      color={ESTADO_COLORS[v.estado] || 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      {/* Grid */}
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <SPMAgGrid
+          rowData={vehicles || []}
+          columnDefs={columnDefs}
+          loading={vehiclesLoading}
+          height={560}
+          enableQuickFilter={true}
+          exportFileName="flota_vehiculos"
+          emptyMessage={t('fms_no_vehicles', 'No se encontraron vehículos')}
+          onRowClicked={handleRowClick}
+          gridOptions={{
+            rowStyle: { cursor: 'pointer' },
+          }}
+        />
+      </Paper>
     </Box>
   )
 }

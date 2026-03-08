@@ -42,7 +42,7 @@ export default function CashflowSimulator() {
 
     setLoading(true);
     try {
-      const res = await api.post('/api/supplier-finance/simulate', {
+      const res = await api.post('/supplier-finance/simulate', {
         escenario,
         dias_anticipacion: diasAnticipacion,
         descuento_pct: descuentoPct,

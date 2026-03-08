@@ -149,6 +149,13 @@ export function SPMAgGrid({
 }) {
   const gridRef = useRef(null);
 
+  // Ensure paginationPageSize is included in selector to avoid AG Grid warning
+  const resolvedPageSizeSelector = useMemo(() => {
+    if (!pagination || !paginationPageSizeSelector) return paginationPageSizeSelector;
+    if (paginationPageSizeSelector.includes(paginationPageSize)) return paginationPageSizeSelector;
+    return [...paginationPageSizeSelector, paginationPageSize].sort((a, b) => a - b);
+  }, [pagination, paginationPageSize, paginationPageSizeSelector]);
+
   // Smart default para getRowId: usa data.id si existe para evitar
   // warnings de "duplicate node id" en AG Grid
   const hasIdField = rowData?.length > 0 && rowData[0]?.id != null;
@@ -314,7 +321,7 @@ export function SPMAgGrid({
           localeText={AG_GRID_LOCALE_ES}
           pagination={pagination}
           paginationPageSize={paginationPageSize}
-          paginationPageSizeSelector={paginationPageSizeSelector}
+          paginationPageSizeSelector={resolvedPageSizeSelector}
           rowSelection={rowSelection ? { mode: 'singleRow', enableClickSelection: true } : undefined}
           onRowClicked={handleRowClicked}
           onRowDoubleClicked={handleRowDoubleClicked}

@@ -6,7 +6,7 @@
  * Sprint 71
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -43,47 +43,70 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
 const CATEGORIA_OPTIONS = [
   { value: '', label: 'Todas' },
-  { value: 'solicitud', label: 'Solicitud' },
-  { value: 'orden_compra', label: 'Orden de Compra' },
-  { value: 'envio', label: 'Envio' },
-  { value: 'inspeccion', label: 'Inspeccion' },
-  { value: 'contrato', label: 'Contrato' },
-  { value: 'inventario', label: 'Inventario' },
-  { value: 'proveedor', label: 'Proveedor' },
+  { value: 'procurement', label: 'Compras' },
+  { value: 'logistics', label: 'Logistica' },
+  { value: 'quality', label: 'Calidad' },
+  { value: 'planning', label: 'Planificacion' },
+  { value: 'finance', label: 'Finanzas' },
 ];
 
 const SEVERIDAD_OPTIONS = [
   { value: '', label: 'Todas' },
   { value: 'critical', label: 'Critica' },
-  { value: 'high', label: 'Alta' },
-  { value: 'medium', label: 'Media' },
-  { value: 'low', label: 'Baja' },
+  { value: 'warning', label: 'Alerta' },
   { value: 'info', label: 'Informativa' },
+  { value: 'success', label: 'Exito' },
 ];
 
 const SEVERIDAD_COLORS = {
   critical: 'error',
-  high: 'warning',
-  medium: 'default',
-  low: 'info',
-  info: 'success',
+  warning: 'warning',
+  info: 'info',
+  success: 'success',
 };
 
 const PRIORIDAD_COLORS = {
-  critical: 'error',
-  high: 'warning',
-  medium: 'default',
-  low: 'info',
+  critica: 'error',
+  alta: 'warning',
+  media: 'default',
+  baja: 'info',
 };
 
 const CATEGORIA_COLORS = {
-  solicitud: 'primary',
-  orden_compra: 'info',
-  envio: 'warning',
-  inspeccion: 'secondary',
-  contrato: 'success',
-  inventario: 'default',
-  proveedor: 'error',
+  procurement: 'primary',
+  logistics: 'warning',
+  quality: 'secondary',
+  planning: 'info',
+  finance: 'success',
+};
+
+const CATEGORIA_LABELS = {
+  procurement: 'Compras',
+  logistics: 'Logistica',
+  quality: 'Calidad',
+  planning: 'Planificacion',
+  finance: 'Finanzas',
+};
+
+const SEVERIDAD_LABELS = {
+  critical: 'Critica',
+  warning: 'Alerta',
+  info: 'Informativa',
+  success: 'Exito',
+};
+
+const TIPO_EVENTO_LABELS = {
+  budget_exceeded: 'Presupuesto excedido',
+  supplier_risk: 'Riesgo proveedor',
+  ncr_opened: 'NCR abierto',
+  sla_breach: 'SLA vencido',
+  stock_critical: 'Stock critico',
+  quality_issue: 'Problema calidad',
+  delivery_delay: 'Demora entrega',
+  contract_expiry: 'Contrato por vencer',
+  inspection_fail: 'Inspeccion fallida',
+  price_change: 'Cambio de precio',
+  stock_alert: 'Alerta stock',
 };
 
 const ALERTA_ESTADO_COLORS = {
@@ -101,6 +124,8 @@ const ALERTA_ESTADO_LABELS = {
 export default function ControlTower() {
   const { t } = useI18n();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [tabValue, setTabValue] = useState(0);
   const [kpis, setKpis] = useState(null);
@@ -119,6 +144,9 @@ export default function ControlTower() {
     fecha_hasta: '',
   });
 
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
   const fetchKPIs = useCallback(async () => {
     try {
       const res = await api.get('/control-tower/kpis');
@@ -133,38 +161,40 @@ export default function ControlTower() {
   const fetchEvents = useCallback(async () => {
     try {
       setLoadingEvents(true);
+      const f = filtersRef.current;
       const params = {};
-      if (filters.categoria) params.categoria = filters.categoria;
-      if (filters.severidad) params.severidad = filters.severidad;
-      if (filters.fecha_desde) params.fecha_desde = filters.fecha_desde;
-      if (filters.fecha_hasta) params.fecha_hasta = filters.fecha_hasta;
+      if (f.categoria) params.categoria = f.categoria;
+      if (f.severidad) params.severidad = f.severidad;
+      if (f.fecha_desde) params.fecha_desde = f.fecha_desde;
+      if (f.fecha_hasta) params.fecha_hasta = f.fecha_hasta;
       const res = await api.get('/control-tower/events', { params });
       if (res.data?.ok) {
         setEvents(res.data.events || res.data.items || []);
       }
     } catch {
-      toast.error(t('ct_error_events', 'Error al cargar eventos'));
+      toastRef.current.error(t('ct_error_events', 'Error al cargar eventos'));
     } finally {
       setLoadingEvents(false);
     }
-  }, [filters, t, toast]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAlerts = useCallback(async () => {
     setLoadingAlerts(true);
     try {
+      const f = filtersRef.current;
       const params = {};
-      if (filters.categoria) params.categoria = filters.categoria;
-      if (filters.severidad) params.severidad = filters.severidad;
+      if (f.categoria) params.categoria = f.categoria;
+      if (f.severidad) params.severidad = f.severidad;
       const res = await api.get('/control-tower/alerts', { params });
       if (res.data?.ok) {
         setAlerts(res.data.alerts || res.data.items || []);
       }
     } catch {
-      toast.error(t('ct_error_alerts', 'Error al cargar alertas'));
+      toastRef.current.error(t('ct_error_alerts', 'Error al cargar alertas'));
     } finally {
       setLoadingAlerts(false);
     }
-  }, [filters.categoria, filters.severidad, t, toast]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTrends = useCallback(async () => {
     setLoadingTrends(true);
@@ -174,21 +204,33 @@ export default function ControlTower() {
         setTrends(res.data.trends || res.data.items || []);
       }
     } catch {
-      toast.error(t('ct_error_trends', 'Error al cargar tendencias'));
+      toastRef.current.error(t('ct_error_trends', 'Error al cargar tendencias'));
     } finally {
       setLoadingTrends(false);
     }
-  }, [t, toast]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Initial load - runs once
   useEffect(() => {
     fetchKPIs();
     fetchEvents();
-  }, [fetchKPIs, fetchEvents]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Re-fetch events when filters change (skip initial render)
+  const filtersInitRef = useRef(true);
+  useEffect(() => {
+    if (filtersInitRef.current) {
+      filtersInitRef.current = false;
+      return;
+    }
+    fetchEvents();
+  }, [filters.categoria, filters.severidad, filters.fecha_desde, filters.fecha_hasta]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch tab-specific data
   useEffect(() => {
     if (tabValue === 1) fetchAlerts();
     if (tabValue === 2) fetchTrends();
-  }, [tabValue, fetchAlerts, fetchTrends]);
+  }, [tabValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = useCallback((field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -199,32 +241,32 @@ export default function ControlTower() {
     try {
       const res = await api.put(`/control-tower/alerts/${alertId}/acknowledge`);
       if (res.data?.ok) {
-        toast.success(t('ct_alert_acknowledged', 'Alerta reconocida'));
+        toastRef.current.success(t('ct_alert_acknowledged', 'Alerta reconocida'));
         fetchAlerts();
         fetchKPIs();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('ct_error_acknowledge', 'Error al reconocer alerta'));
+      toastRef.current.error(err.response?.data?.error || t('ct_error_acknowledge', 'Error al reconocer alerta'));
     } finally {
       setProcessing((prev) => ({ ...prev, [alertId]: null }));
     }
-  }, [fetchAlerts, fetchKPIs, t, toast]);
+  }, [fetchAlerts, fetchKPIs]);
 
   const handleResolve = useCallback(async (alertId) => {
     setProcessing((prev) => ({ ...prev, [alertId]: 'resolve' }));
     try {
       const res = await api.put(`/control-tower/alerts/${alertId}/resolve`);
       if (res.data?.ok) {
-        toast.success(t('ct_alert_resolved', 'Alerta resuelta'));
+        toastRef.current.success(t('ct_alert_resolved', 'Alerta resuelta'));
         fetchAlerts();
         fetchKPIs();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('ct_error_resolve', 'Error al resolver alerta'));
+      toastRef.current.error(err.response?.data?.error || t('ct_error_resolve', 'Error al resolver alerta'));
     } finally {
       setProcessing((prev) => ({ ...prev, [alertId]: null }));
     }
-  }, [fetchAlerts, fetchKPIs, t, toast]);
+  }, [fetchAlerts, fetchKPIs]);
 
   // Sparkline renderer: simple text-based bar
   const renderSparkline = useCallback((values) => {
@@ -241,10 +283,15 @@ export default function ControlTower() {
     {
       field: 'fecha',
       headerName: t('ct_col_fecha', 'Fecha'),
-      width: 120,
+      width: 150,
       valueFormatter: (p) => formatDate(p.value),
     },
-    { field: 'tipo', headerName: t('ct_col_tipo', 'Tipo'), width: 120 },
+    {
+      field: 'tipo',
+      headerName: t('ct_col_tipo', 'Tipo'),
+      width: 160,
+      valueFormatter: (p) => TIPO_EVENTO_LABELS[p.value] || p.value || '-',
+    },
     {
       field: 'categoria',
       headerName: t('ct_col_categoria', 'Categoria'),
@@ -252,7 +299,7 @@ export default function ControlTower() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={p.value || '-'}
+          label={CATEGORIA_LABELS[p.value] || p.value || '-'}
           color={CATEGORIA_COLORS[p.value] || 'default'}
           variant="outlined"
         />
@@ -261,11 +308,11 @@ export default function ControlTower() {
     {
       field: 'severidad',
       headerName: t('ct_col_severidad', 'Severidad'),
-      width: 120,
+      width: 130,
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={p.value || '-'}
+          label={SEVERIDAD_LABELS[p.value] || p.value || '-'}
           color={SEVERIDAD_COLORS[p.value] || 'default'}
         />
       ),
@@ -275,7 +322,12 @@ export default function ControlTower() {
   ], [t]);
 
   const alertColumnDefs = useMemo(() => [
-    { field: 'tipo', headerName: t('ct_col_tipo', 'Tipo'), width: 130 },
+    {
+      field: 'tipo',
+      headerName: t('ct_col_tipo', 'Tipo'),
+      width: 160,
+      valueFormatter: (p) => TIPO_EVENTO_LABELS[p.value] || p.value || '-',
+    },
     {
       field: 'prioridad',
       headerName: t('ct_col_prioridad', 'Prioridad'),
@@ -410,7 +462,7 @@ export default function ControlTower() {
       <Stack direction="row" alignItems="center" gap={1}>
         <DashboardIcon sx={{ color: 'primary.main' }} />
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-          {t('ct_title', 'Control Tower')}
+          {t('ct_title', 'Torre de Control')}
         </Typography>
       </Stack>
 
@@ -523,7 +575,7 @@ export default function ControlTower() {
       {/* Tabs */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label={t('ct_tab_timeline', 'Timeline')} icon={<TimelineIcon />} iconPosition="start" />
+          <Tab label={t('ct_tab_timeline', 'Linea de Tiempo')} icon={<TimelineIcon />} iconPosition="start" />
           <Tab label={t('ct_tab_alertas', 'Alertas')} icon={<NotificationsActiveIcon />} iconPosition="start" />
           <Tab label={t('ct_tab_tendencias', 'Tendencias')} icon={<TrendingUpIcon />} iconPosition="start" />
         </Tabs>
@@ -534,7 +586,7 @@ export default function ControlTower() {
         <Paper
           elevation={0}
           sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-          aria-label={t('ct_tab_timeline', 'Timeline')}
+          aria-label={t('ct_tab_timeline', 'Linea de Tiempo')}
         >
           <SPMAgGrid
             columnDefs={eventColumnDefs}
@@ -542,7 +594,7 @@ export default function ControlTower() {
             loading={loadingEvents}
             height={480}
             pagination={true}
-            paginationPageSize={20}
+            paginationPageSize={25}
             enableQuickFilter={true}
             exportFileName="control_tower_events"
             emptyMessage={t('ct_empty_events', 'No hay eventos registrados')}
@@ -564,7 +616,7 @@ export default function ControlTower() {
             loading={loadingAlerts}
             height={480}
             pagination={true}
-            paginationPageSize={20}
+            paginationPageSize={25}
             enableQuickFilter={true}
             exportFileName="control_tower_alertas"
             emptyMessage={t('ct_empty_alerts', 'No hay alertas activas')}

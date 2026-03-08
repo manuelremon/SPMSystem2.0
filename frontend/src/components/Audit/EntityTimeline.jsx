@@ -38,7 +38,7 @@ export default function EntityTimeline({ entidad, entidadId }) {
     if (!entidad || !entidadId) return;
     setLoading(true);
     try {
-      const { data } = await api.get(`/api/audit/logs/${entidad}/${entidadId}`);
+      const { data } = await api.get(`/audit/logs/${entidad}/${entidadId}`);
       setTimeline(data.timeline || data.items || []);
     } catch {
       setTimeline([]);

@@ -12,6 +12,21 @@ from backend.core.db import get_db_connection, get_db_transaction
 logger = logging.getLogger(__name__)
 
 
+def _safe_json(value, default=None):
+    """Parse JSON de forma segura; si falla, devuelve el texto como lista/dict o el default."""
+    if not value:
+        return default if default is not None else []
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        # Si es texto plano, devolver como lista de un elemento o como string
+        if isinstance(default, list):
+            return [str(value)]
+        if isinstance(default, dict):
+            return {'raw': str(value)}
+        return str(value)
+
+
 def obtener_kpis_configurados() -> List[Dict[str, Any]]:
     """Obtiene KPIs configurados activos"""
     conn = get_db_connection()
@@ -29,17 +44,17 @@ def obtener_kpis_configurados() -> List[Dict[str, Any]]:
         kpis = []
         for row in cursor.fetchall():
             kpis.append({
-                'id': row[0],
-                'categoria': row[1],
-                'kpi_key': row[2],
-                'nombre': row[3],
-                'descripcion': row[4],
-                'unidad': row[5],
-                'formula': row[6],
-                'target_value': row[7],
-                'warning_threshold': row[8],
-                'critical_threshold': row[9],
-                'activo': row[10]
+                'id': row['id'],
+                'categoria': row['categoria'],
+                'kpi_key': row['kpi_key'],
+                'nombre': row['nombre'],
+                'descripcion': row['descripcion'],
+                'unidad': row['unidad'],
+                'formula': row['formula'],
+                'target_value': row['target_value'],
+                'warning_threshold': row['warning_threshold'],
+                'critical_threshold': row['critical_threshold'],
+                'activo': row['activo']
             })
 
         return kpis
@@ -335,9 +350,9 @@ def obtener_dashboard() -> Dict[str, Any]:
             kpi_key = kpi['kpi_key']
             valor_actual = kpis_valores.get(kpi_key, 0)
 
-            # Obtener ultimo snapshot para trend
+            # Obtener ultimo snapshot para trend y valor fallback
             cursor.execute("""
-                SELECT variacion_pct, trend
+                SELECT valor, variacion_pct, trend
                 FROM executive_snapshot
                 WHERE kpi_key = ?
                 ORDER BY periodo DESC
@@ -345,8 +360,13 @@ def obtener_dashboard() -> Dict[str, Any]:
             """, (kpi_key,))
 
             snapshot = cursor.fetchone()
-            variacion = snapshot[0] if snapshot else 0
-            trend = snapshot[1] if snapshot else 'stable'
+            snapshot_valor = snapshot['valor'] if snapshot else None
+            variacion = snapshot['variacion_pct'] if snapshot else 0
+            trend = snapshot['trend'] if snapshot else 'stable'
+
+            # Usar valor del snapshot si calcular_kpis_actuales no tiene este kpi_key
+            if (valor_actual == 0 or valor_actual is None) and snapshot_valor is not None:
+                valor_actual = snapshot_valor
 
             # Obtener benchmark
             cursor.execute("""
@@ -361,11 +381,11 @@ def obtener_dashboard() -> Dict[str, Any]:
             benchmark = None
             if benchmark_row:
                 benchmark = {
-                    'mediana': benchmark_row[0],
-                    'percentil_25': benchmark_row[1],
-                    'percentil_75': benchmark_row[2],
-                    'industria': benchmark_row[3],
-                    'region': benchmark_row[4]
+                    'mediana': benchmark_row['mediana'],
+                    'percentil_25': benchmark_row['percentil_25'],
+                    'percentil_75': benchmark_row['percentil_75'],
+                    'industria': benchmark_row['industria'],
+                    'region': benchmark_row['region']
                 }
 
             # Determinar estado basado en thresholds
@@ -416,7 +436,7 @@ def obtener_tendencias(kpi_key: str, meses: int = 12) -> List[Dict[str, Any]]:
                 'valor': row[1],
                 'variacion_pct': row[2],
                 'trend': row[3],
-                'detalles': json.loads(row[4]) if row[4] else {}
+                'detalles': _safe_json(row[4], {})
             })
 
         return list(reversed(tendencias))  # Orden cronologico
@@ -578,11 +598,11 @@ def obtener_scorecards(limit: int = 10) -> List[Dict[str, Any]]:
                 'id': row[0],
                 'nombre': row[1],
                 'periodo': row[2],
-                'categorias_evaluadas': json.loads(row[3]) if row[3] else [],
+                'categorias_evaluadas': _safe_json(row[3], []),
                 'score_total': row[4],
-                'fortalezas': json.loads(row[5]) if row[5] else [],
-                'debilidades': json.loads(row[6]) if row[6] else [],
-                'recomendaciones': json.loads(row[7]) if row[7] else [],
+                'fortalezas': _safe_json(row[5], []),
+                'debilidades': _safe_json(row[6], []),
+                'recomendaciones': _safe_json(row[7], []),
                 'generado_por': row[8],
                 'created_at': row[9]
             })
@@ -613,11 +633,11 @@ def obtener_scorecard_detalle(scorecard_id: int) -> Optional[Dict[str, Any]]:
             'id': row[0],
             'nombre': row[1],
             'periodo': row[2],
-            'categorias_evaluadas': json.loads(row[3]) if row[3] else [],
+            'categorias_evaluadas': _safe_json(row[3], []),
             'score_total': row[4],
-            'fortalezas': json.loads(row[5]) if row[5] else [],
-            'debilidades': json.loads(row[6]) if row[6] else [],
-            'recomendaciones': json.loads(row[7]) if row[7] else [],
+            'fortalezas': _safe_json(row[5], []),
+            'debilidades': _safe_json(row[6], []),
+            'recomendaciones': _safe_json(row[7], []),
             'generado_por': row[8],
             'created_at': row[9]
         }

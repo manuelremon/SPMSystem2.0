@@ -1,7 +1,17 @@
 """
 Servicio de Supply Chain Control Tower.
 Agrega eventos, KPIs y alertas de toda la cadena de suministro.
+
+Esquema real (migración 064):
+- control_tower_event: id, evento_tipo, entidad_tipo, entidad_id, severidad(info/warning/critical/success),
+    titulo, descripcion, centro_id, proveedor_cuit, categoria(procurement/logistics/quality/planning/finance),
+    metadata, leido, created_at
+- control_tower_alerta_agregada: id, tipo(sla_breach/stock_critical/quality_issue/supplier_risk),
+    prioridad(baja/media/alta/critica), cantidad, titulo, entidades, categoria,
+    ultima_ocurrencia, estado(active/acknowledged/resolved), created_at
+- control_tower_kpi_snapshot: id, periodo, kpi_key, valor, categoria, created_at
 """
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -9,6 +19,37 @@ from typing import Any, Dict, List, Optional
 from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
 
 logger = logging.getLogger(__name__)
+
+# Mapeo de severidad del servicio a valores válidos en la BD
+_SEVERIDAD_MAP = {
+    'info': 'info',
+    'low': 'info',
+    'medium': 'warning',
+    'warning': 'warning',
+    'high': 'critical',
+    'error': 'critical',
+    'critical': 'critical',
+    'success': 'success',
+}
+
+# Mapeo de prioridad numérica a texto válido en la BD
+_PRIORIDAD_MAP = {
+    range(0, 4): 'baja',
+    range(4, 6): 'media',
+    range(6, 8): 'alta',
+    range(8, 11): 'critica',
+}
+
+
+def _map_severidad(sev: str) -> str:
+    return _SEVERIDAD_MAP.get(sev, 'info')
+
+
+def _map_prioridad_num(num: int) -> str:
+    for rng, label in _PRIORIDAD_MAP.items():
+        if num in rng:
+            return label
+    return 'media'
 
 
 def registrar_evento(
@@ -23,39 +64,23 @@ def registrar_evento(
     categoria: str = 'procurement',
     metadata: Optional[Dict[str, Any]] = None
 ) -> Optional[int]:
-    """
-    Registra un evento en el Control Tower.
-
-    Args:
-        evento_tipo: Tipo de evento (ej: 'sla_breach', 'stock_alert')
-        entidad_tipo: Tipo de entidad (ej: 'solicitud', 'orden_compra')
-        entidad_id: ID de la entidad
-        severidad: Severidad ('info', 'warning', 'error', 'critical')
-        titulo: Título del evento
-        descripcion: Descripción detallada
-        centro_id: ID del centro (opcional)
-        proveedor_cuit: CUIT del proveedor (opcional)
-        categoria: Categoría ('procurement', 'logistics', 'quality', 'finance')
-        metadata: Metadata JSON adicional
-
-    Returns:
-        ID del evento creado o None si falla
-    """
+    """Registra un evento en el Control Tower."""
     try:
         placeholder = '%s' if is_using_postgresql() else '?'
+        sev = _map_severidad(severidad)
 
         with get_db_transaction() as (conn, cursor):
             cursor.execute(f"""
                 INSERT INTO control_tower_event
                 (evento_tipo, entidad_tipo, entidad_id, severidad, titulo, descripcion,
-                 centro_id, proveedor_cuit, categoria, metadata, timestamp)
+                 centro_id, proveedor_cuit, categoria, metadata, created_at)
                 VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder},
                         {placeholder}, {placeholder}, {placeholder}, {placeholder},
                         {placeholder}, {placeholder}, {placeholder})
             """, (
-                evento_tipo, entidad_tipo, entidad_id, severidad, titulo, descripcion,
+                evento_tipo, entidad_tipo, entidad_id, sev, titulo, descripcion,
                 centro_id, proveedor_cuit, categoria,
-                str(metadata) if metadata else None,
+                json.dumps(metadata) if metadata else None,
                 datetime.utcnow()
             ))
 
@@ -74,22 +99,14 @@ def registrar_evento(
 
 
 def obtener_eventos_timeline(filtros: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Obtiene eventos del timeline con paginación y filtros.
+    """Obtiene eventos del timeline con paginación y filtros."""
+    page = filtros.get('page', 1)
+    per_page = filtros.get('per_page', 50)
 
-    Args:
-        filtros: Dict con categoria, severidad, fecha_desde, fecha_hasta, page, per_page
-
-    Returns:
-        Dict con items, total, page, per_page
-    """
     try:
         placeholder = '%s' if is_using_postgresql() else '?'
-        page = filtros.get('page', 1)
-        per_page = filtros.get('per_page', 50)
         offset = (page - 1) * per_page
 
-        # Build WHERE clause
         conditions = []
         params = []
 
@@ -98,15 +115,16 @@ def obtener_eventos_timeline(filtros: Dict[str, Any]) -> Dict[str, Any]:
             params.append(filtros['categoria'])
 
         if filtros.get('severidad'):
+            sev = _map_severidad(filtros['severidad'])
             conditions.append(f"severidad = {placeholder}")
-            params.append(filtros['severidad'])
+            params.append(sev)
 
         if filtros.get('fecha_desde'):
-            conditions.append(f"timestamp >= {placeholder}")
+            conditions.append(f"created_at >= {placeholder}")
             params.append(filtros['fecha_desde'])
 
         if filtros.get('fecha_hasta'):
-            conditions.append(f"timestamp <= {placeholder}")
+            conditions.append(f"created_at <= {placeholder}")
             params.append(filtros['fecha_hasta'])
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -114,29 +132,40 @@ def obtener_eventos_timeline(filtros: Dict[str, Any]) -> Dict[str, Any]:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Get total count
             cursor.execute(f"""
                 SELECT COUNT(*) FROM control_tower_event
                 WHERE {where_clause}
             """, params)
             total = cursor.fetchone()[0]
 
-            # Get paginated items
             cursor.execute(f"""
                 SELECT id, evento_tipo, entidad_tipo, entidad_id, severidad,
                        titulo, descripcion, centro_id, proveedor_cuit, categoria,
-                       metadata, timestamp
+                       metadata, created_at
                 FROM control_tower_event
                 WHERE {where_clause}
-                ORDER BY timestamp DESC
+                ORDER BY created_at DESC
                 LIMIT {placeholder} OFFSET {placeholder}
             """, params + [per_page, offset])
 
-            columns = [desc[0] for desc in cursor.description]
-            items = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+
+            # Mapear a formato esperado por frontend
+            events = []
+            for row in rows:
+                events.append({
+                    'id': row['id'],
+                    'fecha': str(row['created_at']) if row.get('created_at') else None,
+                    'tipo': row.get('evento_tipo', ''),
+                    'categoria': row.get('categoria', ''),
+                    'severidad': row.get('severidad', ''),
+                    'titulo': row.get('titulo', ''),
+                    'entidad': f"{row.get('entidad_tipo', '')} #{row.get('entidad_id', '')}",
+                    'descripcion': row.get('descripcion', ''),
+                })
 
             return {
-                'items': items,
+                'events': events,
                 'total': total,
                 'page': page,
                 'per_page': per_page
@@ -144,25 +173,20 @@ def obtener_eventos_timeline(filtros: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error obteniendo eventos timeline: {str(e)}", exc_info=True)
-        return {'items': [], 'total': 0, 'page': page, 'per_page': per_page}
+        return {'events': [], 'total': 0, 'page': page, 'per_page': per_page}
 
 
 def obtener_kpis_agregados() -> Dict[str, Any]:
-    """
-    Obtiene KPIs agregados de toda la cadena de suministro.
-
-    Returns:
-        Dict con todos los KPIs
-    """
+    """Obtiene KPIs agregados de toda la cadena de suministro."""
     kpis = {
         'solicitudes_pendientes': 0,
-        'ordenes_compra_activas': 0,
+        'ocs_activas': 0,
         'envios_en_transito': 0,
         'inspecciones_pendientes': 0,
         'alertas_activas': 0,
-        'sla_cumplimiento': 0.0,
+        'sla_porcentaje': 0.0,
         'contratos_por_vencer': 0,
-        'rfq_abiertas': 0
+        'rfqs_abiertas': 0
     }
 
     try:
@@ -172,32 +196,40 @@ def obtener_kpis_agregados() -> Dict[str, Any]:
             # Solicitudes pendientes
             try:
                 cursor.execute("""
-                    SELECT COUNT(*) FROM solicitud
+                    SELECT COUNT(*) FROM solicitudes
                     WHERE status IN ('submitted', 'approved')
                 """)
                 kpis['solicitudes_pendientes'] = cursor.fetchone()[0]
             except Exception as e:
                 logger.debug(f"Error contando solicitudes: {e}")
 
-            # Órdenes de compra activas
+            # Ordenes de compra activas
             try:
                 cursor.execute("""
                     SELECT COUNT(*) FROM orden_compra
                     WHERE estado IN ('draft', 'approved', 'in_progress')
                 """)
-                kpis['ordenes_compra_activas'] = cursor.fetchone()[0]
+                kpis['ocs_activas'] = cursor.fetchone()[0]
             except Exception as e:
-                logger.debug(f"Error contando órdenes: {e}")
+                logger.debug(f"Error contando ordenes: {e}")
 
-            # Envíos en tránsito
+            # Envios en transito (tabla envio puede no existir)
             try:
                 cursor.execute("""
                     SELECT COUNT(*) FROM envio
                     WHERE estado = 'in_transit'
                 """)
                 kpis['envios_en_transito'] = cursor.fetchone()[0]
-            except Exception as e:
-                logger.debug(f"Tabla envio no disponible: {e}")
+            except Exception:
+                # Intentar con ordenes de compra en estado enviado
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM orden_compra
+                        WHERE estado = 'shipped'
+                    """)
+                    kpis['envios_en_transito'] = cursor.fetchone()[0]
+                except Exception as e:
+                    logger.debug(f"No se pudo obtener envios en transito: {e}")
 
             # Inspecciones pendientes
             try:
@@ -219,23 +251,26 @@ def obtener_kpis_agregados() -> Dict[str, Any]:
             except Exception as e:
                 logger.debug(f"Error contando alertas: {e}")
 
-            # SLA cumplimiento (últimos 30 días)
+            # SLA cumplimiento: % solicitudes cerradas vs total (ultimos 30 dias)
             try:
                 fecha_inicio = datetime.utcnow() - timedelta(days=30)
                 placeholder = '%s' if is_using_postgresql() else '?'
                 cursor.execute(f"""
                     SELECT
-                        COUNT(CASE WHEN sla_cumplido = 1 THEN 1 END) * 100.0 / COUNT(*)
-                    FROM solicitud
+                        CASE WHEN COUNT(*) > 0
+                            THEN COUNT(CASE WHEN status = 'closed' THEN 1 END) * 100.0 / COUNT(*)
+                            ELSE 0
+                        END
+                    FROM solicitudes
                     WHERE created_at >= {placeholder}
-                    AND status = 'closed'
+                    AND status != 'draft'
                 """, (fecha_inicio,))
                 result = cursor.fetchone()[0]
-                kpis['sla_cumplimiento'] = round(result or 0.0, 2)
+                kpis['sla_porcentaje'] = round(float(result or 0.0), 1)
             except Exception as e:
                 logger.debug(f"Error calculando SLA: {e}")
 
-            # Contratos por vencer (próximos 30 días)
+            # Contratos por vencer (proximos 30 dias)
             try:
                 fecha_limite = datetime.utcnow() + timedelta(days=30)
                 placeholder = '%s' if is_using_postgresql() else '?'
@@ -255,7 +290,7 @@ def obtener_kpis_agregados() -> Dict[str, Any]:
                     SELECT COUNT(*) FROM rfq
                     WHERE estado IN ('draft', 'published')
                 """)
-                kpis['rfq_abiertas'] = cursor.fetchone()[0]
+                kpis['rfqs_abiertas'] = cursor.fetchone()[0]
             except Exception as e:
                 logger.debug(f"Tabla rfq no disponible: {e}")
 
@@ -267,15 +302,7 @@ def obtener_kpis_agregados() -> Dict[str, Any]:
 
 
 def obtener_alertas_agregadas(filtros: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """
-    Obtiene alertas agregadas con filtros opcionales.
-
-    Args:
-        filtros: Dict opcional con estado, tipo
-
-    Returns:
-        Lista de alertas
-    """
+    """Obtiene alertas agregadas con filtros opcionales."""
     try:
         filtros = filtros or {}
         placeholder = '%s' if is_using_postgresql() else '?'
@@ -297,33 +324,52 @@ def obtener_alertas_agregadas(filtros: Optional[Dict[str, Any]] = None) -> List[
             cursor = conn.cursor()
 
             cursor.execute(f"""
-                SELECT id, tipo, titulo, descripcion, severidad, prioridad,
-                       estado, entidad_tipo, entidad_id, metadata,
-                       fecha_creacion, fecha_actualizacion
+                SELECT id, tipo, prioridad, cantidad, titulo, entidades,
+                       categoria, ultima_ocurrencia, estado, created_at
                 FROM control_tower_alerta_agregada
                 WHERE {where_clause}
-                ORDER BY prioridad DESC, fecha_creacion DESC
+                ORDER BY
+                    CASE estado
+                        WHEN 'active' THEN 0
+                        WHEN 'acknowledged' THEN 1
+                        WHEN 'resolved' THEN 2
+                    END,
+                    CASE prioridad
+                        WHEN 'critica' THEN 0
+                        WHEN 'alta' THEN 1
+                        WHEN 'media' THEN 2
+                        WHEN 'baja' THEN 3
+                    END,
+                    created_at DESC
             """, params)
 
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+
+            # Mapear a formato esperado por frontend
+            alerts = []
+            for row in rows:
+                alerts.append({
+                    'id': row['id'],
+                    'tipo': row.get('tipo', ''),
+                    'prioridad': row.get('prioridad', ''),
+                    'cantidad': row.get('cantidad', 0),
+                    'titulo': row.get('titulo', ''),
+                    'estado': row.get('estado', 'active'),
+                    'categoria': row.get('categoria', ''),
+                    'entidades': row.get('entidades', ''),
+                    'ultima_ocurrencia': str(row['ultima_ocurrencia']) if row.get('ultima_ocurrencia') else None,
+                    'created_at': str(row['created_at']) if row.get('created_at') else None,
+                })
+
+            return alerts
 
     except Exception as e:
         logger.error(f"Error obteniendo alertas agregadas: {str(e)}", exc_info=True)
         return []
 
 
-def marcar_alerta(alerta_id: int, nuevo_estado: str) -> bool:
-    """
-    Marca una alerta con un nuevo estado.
-
-    Args:
-        alerta_id: ID de la alerta
-        nuevo_estado: Nuevo estado ('active', 'acknowledged', 'resolved')
-
-    Returns:
-        True si se actualizó exitosamente
-    """
+def marcar_alerta(alerta_id: int, nuevo_estado: str) -> Dict[str, Any]:
+    """Marca una alerta con un nuevo estado."""
     try:
         placeholder = '%s' if is_using_postgresql() else '?'
 
@@ -331,28 +377,25 @@ def marcar_alerta(alerta_id: int, nuevo_estado: str) -> bool:
             cursor.execute(f"""
                 UPDATE control_tower_alerta_agregada
                 SET estado = {placeholder},
-                    fecha_actualizacion = {placeholder}
+                    ultima_ocurrencia = {placeholder}
                 WHERE id = {placeholder}
             """, (nuevo_estado, datetime.utcnow(), alerta_id))
 
+            if cursor.rowcount == 0:
+                return {'ok': False, 'error': 'Alerta no encontrada'}
+
             logger.info(f"Alerta {alerta_id} marcada como {nuevo_estado}")
-            return True
+            return {'ok': True}
 
     except Exception as e:
         logger.error(f"Error marcando alerta {alerta_id}: {str(e)}", exc_info=True)
-        return False
+        return {'ok': False, 'error': 'Error interno'}
 
 
-def obtener_tendencias(kpi_key: Optional[str] = None, periodos: int = 24) -> List[Dict[str, Any]]:
+def obtener_tendencias(kpi_key: Optional[str] = None, periodos: int = 12) -> Dict[str, Any]:
     """
-    Obtiene tendencias de KPIs históricos.
-
-    Args:
-        kpi_key: Clave específica de KPI (opcional, None = todos)
-        periodos: Número de períodos a retornar
-
-    Returns:
-        Lista de {periodo, kpi_key, valor}
+    Obtiene tendencias de KPIs historicos.
+    Agrupa por kpi_key y devuelve valor_actual, variacion y sparkline.
     """
     try:
         placeholder = '%s' if is_using_postgresql() else '?'
@@ -374,23 +417,69 @@ def obtener_tendencias(kpi_key: Optional[str] = None, periodos: int = 24) -> Lis
                     FROM control_tower_kpi_snapshot
                     ORDER BY periodo DESC
                     LIMIT {placeholder}
-                """, (periodos,))
+                """, (periodos * 10,))
 
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+
+        # Agrupar por kpi_key
+        kpi_groups: Dict[str, List] = {}
+        for row in rows:
+            key = row['kpi_key']
+            if key not in kpi_groups:
+                kpi_groups[key] = []
+            kpi_groups[key].append(row)
+
+        # Construir trends para frontend
+        _KPI_LABELS = {
+            'solicitudes_pendientes': 'Solicitudes Pendientes',
+            'ocs_activas': 'OCs Activas',
+            'ordenes_compra_activas': 'OCs Activas',
+            'envios_en_transito': 'Envios en Transito',
+            'inspecciones_pendientes': 'Inspecciones Pendientes',
+            'alertas_activas': 'Alertas Activas',
+            'sla_porcentaje': 'Cumplimiento SLA %',
+            'sla_cumplimiento': 'Cumplimiento SLA %',
+            'contratos_por_vencer': 'Contratos por Vencer',
+            'rfqs_abiertas': 'RFQs Abiertas',
+            'rfq_abiertas': 'RFQs Abiertas',
+            'otif_pct': 'OTIF %',
+            'lead_time_avg': 'Tiempo de Entrega Promedio',
+            'quality_defect_rate': 'Tasa de Defectos %',
+            'stock_turnover': 'Rotacion de Inventario',
+            'cost_savings_pct': 'Ahorro de Costos %',
+            'supplier_risk_score': 'Score Riesgo Proveedor',
+        }
+
+        trends = []
+        for key, snapshots in kpi_groups.items():
+            # Ordenar por periodo ascendente para sparkline
+            snapshots.sort(key=lambda x: x['periodo'])
+            valores = [float(s['valor'] or 0) for s in snapshots]
+
+            valor_actual = valores[-1] if valores else 0
+            if len(valores) >= 2 and valores[-2] != 0:
+                variacion = ((valores[-1] - valores[-2]) / abs(valores[-2])) * 100
+            else:
+                variacion = 0
+
+            trends.append({
+                'id': key,
+                'nombre': _KPI_LABELS.get(key, key.replace('_', ' ').title()),
+                'valor_actual': round(valor_actual, 1),
+                'variacion': round(variacion, 1),
+                'sparkline': valores[-periodos:],
+                'periodo': snapshots[-1]['periodo'] if snapshots else '',
+            })
+
+        return {'trends': trends}
 
     except Exception as e:
         logger.error(f"Error obteniendo tendencias: {str(e)}", exc_info=True)
-        return []
+        return {'trends': []}
 
 
 def snapshot_kpis() -> bool:
-    """
-    Toma snapshot de KPIs actuales (llamado por Celery).
-
-    Returns:
-        True si se completó exitosamente
-    """
+    """Toma snapshot de KPIs actuales (llamado por Celery)."""
     try:
         kpis = obtener_kpis_agregados()
         periodo_actual = datetime.utcnow().strftime('%Y-%m-%d %H:00')
@@ -413,7 +502,7 @@ def snapshot_kpis() -> bool:
                         VALUES ({placeholder}, {placeholder}, {placeholder})
                     """, (periodo_actual, kpi_key, valor))
 
-            logger.info(f"Snapshot de KPIs completado para período {periodo_actual}")
+            logger.info(f"Snapshot de KPIs completado para periodo {periodo_actual}")
             return True
 
     except Exception as e:
@@ -422,12 +511,7 @@ def snapshot_kpis() -> bool:
 
 
 def actualizar_alertas_agregadas() -> bool:
-    """
-    Actualiza alertas agregadas basadas en condiciones de negocio (llamado por Celery).
-
-    Returns:
-        True si se completó exitosamente
-    """
+    """Actualiza alertas agregadas basadas en condiciones de negocio (llamado por Celery)."""
     try:
         placeholder = '%s' if is_using_postgresql() else '?'
         alertas_creadas = 0
@@ -437,78 +521,64 @@ def actualizar_alertas_agregadas() -> bool:
             try:
                 fecha_limite = datetime.utcnow() - timedelta(hours=72)
                 cursor.execute(f"""
-                    SELECT id, material_codigo, centro_id
-                    FROM solicitud
+                    SELECT COUNT(*) FROM solicitudes
                     WHERE status = 'submitted'
                     AND created_at < {placeholder}
                 """, (fecha_limite,))
-
-                for row in cursor.fetchall():
-                    sol_id, material, centro = row
+                count = cursor.fetchone()[0]
+                if count > 0:
                     _upsert_alerta(
                         cursor,
                         tipo='sla_breach',
-                        titulo=f'SLA vencido - Solicitud {sol_id}',
-                        descripcion=f'Solicitud {sol_id} lleva más de 72h sin aprobar',
-                        severidad='high',
-                        prioridad=8,
-                        entidad_tipo='solicitud',
-                        entidad_id=sol_id,
-                        metadata={'material': material, 'centro_id': centro}
+                        prioridad='critica',
+                        cantidad=count,
+                        titulo=f'{count} solicitudes con SLA vencido (>72h)',
+                        entidades=None,
+                        categoria='procurement',
                     )
                     alertas_creadas += 1
             except Exception as e:
                 logger.debug(f"Error verificando SLA breaches: {e}")
 
-            # 2. Stock crítico (< 30% punto de pedido)
+            # 2. Stock critico (materiales con stock = 0 marcados como criticos)
             try:
                 cursor.execute("""
-                    SELECT s.material_codigo, s.stock_disponible, m.punto_pedido
-                    FROM stock s
-                    LEFT JOIN materiales_bbdd m ON s.material_codigo = m.codigo_sap
-                    WHERE m.punto_pedido IS NOT NULL
-                    AND s.stock_disponible < (m.punto_pedido * 0.3)
+                    SELECT COUNT(*)
+                    FROM sap_stock
+                    WHERE critico = 'SI'
+                    AND (stock <= 0 OR stock IS NULL)
                 """)
-
-                for row in cursor.fetchall():
-                    material, stock, rop = row
+                count = cursor.fetchone()[0]
+                if count > 0:
                     _upsert_alerta(
                         cursor,
                         tipo='stock_critical',
-                        titulo=f'Stock crítico - {material}',
-                        descripcion=f'Stock ({stock}) por debajo del 30% del punto de pedido ({rop})',
-                        severidad='critical',
-                        prioridad=9,
-                        entidad_tipo='material',
-                        entidad_id=0,
-                        metadata={'material_codigo': material, 'stock': stock, 'rop': rop}
+                        prioridad='alta',
+                        cantidad=count,
+                        titulo=f'{count} materiales criticos sin stock',
+                        entidades=None,
+                        categoria='planning',
                     )
                     alertas_creadas += 1
             except Exception as e:
-                logger.debug(f"Error verificando stock crítico: {e}")
+                logger.debug(f"Error verificando stock critico: {e}")
 
             # 3. Quality Issues (NCRs activos)
             try:
                 cursor.execute("""
-                    SELECT COUNT(*), proveedor_cuit
-                    FROM ncr
+                    SELECT COUNT(*) FROM ncr
                     WHERE estado IN ('open', 'in_progress')
-                    GROUP BY proveedor_cuit
-                    HAVING COUNT(*) > 2
                 """)
-
-                for row in cursor.fetchall():
-                    count, cuit = row
+                count = cursor.fetchone()[0]
+                if count > 0:
                     _upsert_alerta(
                         cursor,
                         tipo='quality_issue',
-                        titulo=f'Problemas de calidad - Proveedor {cuit}',
-                        descripcion=f'Proveedor tiene {count} NCRs activos',
-                        severidad='medium',
-                        prioridad=6,
-                        entidad_tipo='proveedor',
-                        entidad_id=0,
-                        metadata={'proveedor_cuit': cuit, 'ncr_count': count}
+                        prioridad='media',
+                        cantidad=count,
+                        titulo=f'{count} NCRs activos',
+                        entidades=None,
+                        categoria='quality',
                     )
                     alertas_creadas += 1
             except Exception as e:
@@ -517,29 +587,25 @@ def actualizar_alertas_agregadas() -> bool:
             # 4. Supplier Risk (high risk)
             try:
                 cursor.execute("""
-                    SELECT proveedor_cuit, overall_score
-                    FROM proveedor_riesgo
+                    SELECT COUNT(*) FROM proveedor_riesgo
                     WHERE overall_score > 70
                 """)
-
-                for row in cursor.fetchall():
-                    cuit, score = row
+                count = cursor.fetchone()[0]
+                if count > 0:
                     _upsert_alerta(
                         cursor,
                         tipo='supplier_risk',
-                        titulo=f'Riesgo alto - Proveedor {cuit}',
-                        descripcion=f'Proveedor con score de riesgo {score}',
-                        severidad='high',
-                        prioridad=7,
-                        entidad_tipo='proveedor',
-                        entidad_id=0,
-                        metadata={'proveedor_cuit': cuit, 'risk_score': score}
+                        prioridad='alta',
+                        cantidad=count,
+                        titulo=f'{count} proveedores con riesgo alto',
+                        entidades=None,
+                        categoria='procurement',
                     )
                     alertas_creadas += 1
             except Exception as e:
                 logger.debug(f"Tabla proveedor_riesgo no disponible: {e}")
 
-            logger.info(f"Actualización de alertas completada: {alertas_creadas} alertas procesadas")
+            logger.info(f"Actualizacion de alertas completada: {alertas_creadas} alertas procesadas")
             return True
 
     except Exception as e:
@@ -547,64 +613,36 @@ def actualizar_alertas_agregadas() -> bool:
         return False
 
 
-def _upsert_alerta(cursor, tipo, titulo, descripcion, severidad, prioridad,
-                   entidad_tipo, entidad_id, metadata):
-    """Helper para insertar o actualizar alerta."""
+def _upsert_alerta(cursor, tipo, prioridad, cantidad, titulo, entidades, categoria):
+    """Helper para insertar o actualizar alerta agregada (SELECT+UPDATE/INSERT pattern)."""
     placeholder = '%s' if is_using_postgresql() else '?'
+    now = datetime.utcnow()
 
-    if is_using_postgresql():
+    # Buscar alerta existente no resuelta del mismo tipo
+    cursor.execute(f"""
+        SELECT id FROM control_tower_alerta_agregada
+        WHERE tipo = {placeholder} AND estado != 'resolved'
+        LIMIT 1
+    """, (tipo,))
+
+    existing = cursor.fetchone()
+
+    if existing:
+        cursor.execute(f"""
+            UPDATE control_tower_alerta_agregada
+            SET prioridad = {placeholder},
+                cantidad = {placeholder},
+                titulo = {placeholder},
+                entidades = {placeholder},
+                categoria = {placeholder},
+                ultima_ocurrencia = {placeholder}
+            WHERE id = {placeholder}
+        """, (prioridad, cantidad, titulo, entidades, categoria, now, existing[0]))
+    else:
         cursor.execute(f"""
             INSERT INTO control_tower_alerta_agregada
-            (tipo, titulo, descripcion, severidad, prioridad, estado,
-             entidad_tipo, entidad_id, metadata, fecha_creacion, fecha_actualizacion)
+            (tipo, prioridad, cantidad, titulo, entidades, categoria,
+             ultima_ocurrencia, estado, created_at)
             VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder},
-                    {placeholder}, 'active', {placeholder}, {placeholder},
-                    {placeholder}, {placeholder}, {placeholder})
-            ON CONFLICT (tipo, entidad_tipo, entidad_id)
-            DO UPDATE SET
-                titulo = {placeholder},
-                descripcion = {placeholder},
-                severidad = {placeholder},
-                prioridad = {placeholder},
-                fecha_actualizacion = {placeholder}
-        """, (
-            tipo, titulo, descripcion, severidad, prioridad,
-            entidad_tipo, entidad_id, str(metadata),
-            datetime.utcnow(), datetime.utcnow(),
-            titulo, descripcion, severidad, prioridad, datetime.utcnow()
-        ))
-    else:
-        # SQLite: check if exists first
-        cursor.execute(f"""
-            SELECT id FROM control_tower_alerta_agregada
-            WHERE tipo = {placeholder}
-            AND entidad_tipo = {placeholder}
-            AND entidad_id = {placeholder}
-        """, (tipo, entidad_tipo, entidad_id))
-
-        existing = cursor.fetchone()
-
-        if existing:
-            cursor.execute(f"""
-                UPDATE control_tower_alerta_agregada
-                SET titulo = {placeholder},
-                    descripcion = {placeholder},
-                    severidad = {placeholder},
-                    prioridad = {placeholder},
-                    fecha_actualizacion = {placeholder}
-                WHERE id = {placeholder}
-            """, (titulo, descripcion, severidad, prioridad,
-                  datetime.utcnow(), existing[0]))
-        else:
-            cursor.execute(f"""
-                INSERT INTO control_tower_alerta_agregada
-                (tipo, titulo, descripcion, severidad, prioridad, estado,
-                 entidad_tipo, entidad_id, metadata, fecha_creacion, fecha_actualizacion)
-                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder},
-                        {placeholder}, 'active', {placeholder}, {placeholder},
-                        {placeholder}, {placeholder}, {placeholder})
-            """, (
-                tipo, titulo, descripcion, severidad, prioridad,
-                entidad_tipo, entidad_id, str(metadata),
-                datetime.utcnow(), datetime.utcnow()
-            ))
+                    {placeholder}, {placeholder}, {placeholder}, 'active', {placeholder})
+        """, (tipo, prioridad, cantidad, titulo, entidades, categoria, now, now))

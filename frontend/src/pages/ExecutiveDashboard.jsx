@@ -50,7 +50,7 @@ const ExecutiveDashboard = () => {
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/executive/dashboard');
+      const res = await api.get('/executive/dashboard');
       setDashboard(res.data);
     } catch (error) {
     } finally {
@@ -60,7 +60,7 @@ const ExecutiveDashboard = () => {
 
   const fetchScorecards = useCallback(async () => {
     try {
-      const res = await api.get('/api/executive/scorecards?limit=5');
+      const res = await api.get('/executive/scorecards?limit=5');
       setScorecards(res.data.scorecards || []);
     } catch (error) {
     }
@@ -75,7 +75,7 @@ const ExecutiveDashboard = () => {
     setModalTrend(kpi);
     setLoadingTrends(true);
     try {
-      const res = await api.get(`/api/executive/trends/${kpi.kpi_key}?meses=12`);
+      const res = await api.get(`/executive/trends/${kpi.kpi_key}?meses=12`);
       setTrendsData(res.data.tendencias || []);
     } catch (error) {
       setTrendsData([]);
@@ -87,7 +87,7 @@ const ExecutiveDashboard = () => {
   const handleGenerateScorecard = async () => {
     setGeneratingScorecard(true);
     try {
-      await api.post('/api/executive/scorecards/generate', {});
+      await api.post('/executive/scorecards/generate', {});
       alert(t('exec_scorecard_generated', 'Scorecard generado exitosamente'));
       fetchScorecards();
     } catch (error) {

@@ -58,26 +58,26 @@ export default function SupplierFinance() {
     setLoading(true);
     try {
       // Load KPIs
-      const kpisRes = await api.get('/api/supplier-finance/kpis');
+      const kpisRes = await api.get('/supplier-finance/kpis');
       if (kpisRes.data.ok) {
         setKpis(kpisRes.data.kpis);
       }
 
       if (activeTab === 0) {
         // Load programs
-        const programsRes = await api.get('/api/supplier-finance/programs');
+        const programsRes = await api.get('/supplier-finance/programs');
         if (programsRes.data.ok) {
           setProgramas(programsRes.data.programas);
         }
       } else if (activeTab === 1) {
         // Load offers
-        const offersRes = await api.get('/api/supplier-finance/offers');
+        const offersRes = await api.get('/supplier-finance/offers');
         if (offersRes.data.ok) {
           setOfertas(offersRes.data.ofertas);
         }
       } else if (activeTab === 2) {
         // Load payment terms
-        const termsRes = await api.get('/api/supplier-finance/payment-terms');
+        const termsRes = await api.get('/supplier-finance/payment-terms');
         if (termsRes.data.ok) {
           setTerminos(termsRes.data.terminos);
         }
@@ -91,7 +91,7 @@ export default function SupplierFinance() {
 
   const handleCreateProgram = async () => {
     try {
-      const res = await api.post('/api/supplier-finance/programs', newProgram);
+      const res = await api.post('/supplier-finance/programs', newProgram);
       if (res.data.ok) {
         addToast('Programa creado exitosamente', 'success');
         setProgramDialogOpen(false);
@@ -113,7 +113,7 @@ export default function SupplierFinance() {
   const handleGenerateOffers = async () => {
     try {
       const res = await api.post(
-        `/api/supplier-finance/programs/${selectedProgramId}/generate-offers`,
+        `/supplier-finance/programs/${selectedProgramId}/generate-offers`,
         { dias_horizonte: diasHorizonte }
       );
       if (res.data.ok) {
@@ -129,7 +129,7 @@ export default function SupplierFinance() {
 
   const handleAcceptOffer = async (ofertaId) => {
     try {
-      const res = await api.put(`/api/supplier-finance/offers/${ofertaId}/accept`);
+      const res = await api.put(`/supplier-finance/offers/${ofertaId}/accept`);
       if (res.data.ok) {
         addToast('Oferta aceptada', 'success');
         loadData();
@@ -141,7 +141,7 @@ export default function SupplierFinance() {
 
   const handleRejectOffer = async (ofertaId) => {
     try {
-      const res = await api.put(`/api/supplier-finance/offers/${ofertaId}/reject`);
+      const res = await api.put(`/supplier-finance/offers/${ofertaId}/reject`);
       if (res.data.ok) {
         addToast('Oferta rechazada', 'success');
         loadData();
@@ -153,7 +153,7 @@ export default function SupplierFinance() {
 
   const handleMarkPaid = async (ofertaId) => {
     try {
-      const res = await api.put(`/api/supplier-finance/offers/${ofertaId}/pay`);
+      const res = await api.put(`/supplier-finance/offers/${ofertaId}/pay`);
       if (res.data.ok) {
         addToast('Oferta marcada como pagada', 'success');
         loadData();
@@ -167,7 +167,7 @@ export default function SupplierFinance() {
     const { proveedor_cuit, field, newValue } = params;
     try {
       const body = { [field]: newValue };
-      const res = await api.put(`/api/supplier-finance/payment-terms/${proveedor_cuit}`, body);
+      const res = await api.put(`/supplier-finance/payment-terms/${proveedor_cuit}`, body);
       if (res.data.ok) {
         addToast('Términos actualizados', 'success');
         loadData();

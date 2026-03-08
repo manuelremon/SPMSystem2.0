@@ -72,7 +72,7 @@ const ABCAnalysis = () => {
       if (filters.sector) params.append('sector', filters.sector);
       params.append('periodo_meses', filters.periodo_meses);
 
-      const response = await api.get(`/api/ai/abc-analysis?${params.toString()}`);
+      const response = await api.get(`/ai/abc-analysis?${params.toString()}`);
 
       if (response.data.ok) {
         setData(response.data.data);

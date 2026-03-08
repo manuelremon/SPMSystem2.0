@@ -72,8 +72,8 @@ const PackingDetail = () => {
     setLoading(true);
     try {
       const [packingRes, templatesRes] = await Promise.all([
-        api.get(`/api/packaging/packing-lists/${id}`),
-        api.get('/api/packaging/templates')
+        api.get(`/packaging/packing-lists/${id}`),
+        api.get('/packaging/templates')
       ]);
 
       if (packingRes.data.ok) setPacking(packingRes.data.packing_list);
@@ -90,7 +90,7 @@ const PackingDetail = () => {
 
   const handleAddItem = async () => {
     try {
-      const res = await api.post(`/api/packaging/packing-lists/${id}/items`, newItem);
+      const res = await api.post(`/packaging/packing-lists/${id}/items`, newItem);
       if (res.data.ok) {
         setOpenAddItem(false);
         setNewItem({
@@ -116,7 +116,7 @@ const PackingDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, open: false }));
         try {
-          await api.delete(`/api/packaging/packing-lists/${id}/items/${itemId}`);
+          await api.delete(`/packaging/packing-lists/${id}/items/${itemId}`);
           loadData();
         } catch (error) {
           alert(error.response?.data?.error || 'Error al eliminar item');
@@ -127,7 +127,7 @@ const PackingDetail = () => {
 
   const handleOptimize = async () => {
     try {
-      const res = await api.post(`/api/packaging/packing-lists/${id}/optimize`);
+      const res = await api.post(`/packaging/packing-lists/${id}/optimize`);
       if (res.data.ok) {
         const { resultado } = res.data;
         alert(
@@ -151,7 +151,7 @@ const PackingDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, open: false }));
         try {
-          const res = await api.put(`/api/packaging/packing-lists/${id}/pack`);
+          const res = await api.put(`/packaging/packing-lists/${id}/pack`);
           if (res.data.ok) {
             loadData();
           }
@@ -170,7 +170,7 @@ const PackingDetail = () => {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, open: false }));
         try {
-          const res = await api.put(`/api/packaging/packing-lists/${id}/dispatch`);
+          const res = await api.put(`/packaging/packing-lists/${id}/dispatch`);
           if (res.data.ok) {
             loadData();
           }
@@ -183,7 +183,7 @@ const PackingDetail = () => {
 
   const handleGenerateLabel = async () => {
     try {
-      const res = await api.post(`/api/packaging/packing-lists/${id}/labels`, labelConfig);
+      const res = await api.post(`/packaging/packing-lists/${id}/labels`, labelConfig);
       if (res.data.ok) {
         setOpenGenerateLabel(false);
         setLabelConfig({ bulto_numero: '', tipo: 'shipping', formato: 'pdf' });

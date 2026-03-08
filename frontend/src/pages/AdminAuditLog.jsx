@@ -70,7 +70,7 @@ export default function AdminAuditLog() {
       Object.entries(filters).forEach(([k, v]) => {
         if (v) params[k] = v;
       });
-      const { data } = await api.get('/api/audit/logs', { params });
+      const { data } = await api.get('/audit/logs', { params });
       setLogs(data.items || []);
       setTotal(data.total || 0);
     } catch {
@@ -83,7 +83,7 @@ export default function AdminAuditLog() {
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const { data } = await api.get('/api/audit/stats');
+      const { data } = await api.get('/audit/stats');
       setStats(data);
     } catch {
       /* stats are non-critical */
@@ -106,7 +106,7 @@ export default function AdminAuditLog() {
       Object.entries(filters).forEach(([k, v]) => {
         if (v) params[k] = v;
       });
-      const response = await api.get('/api/audit/export', {
+      const response = await api.get('/audit/export', {
         params,
         responseType: 'blob',
       });

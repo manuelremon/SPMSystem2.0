@@ -52,7 +52,7 @@ const KanbanConfig = () => {
 
   const fetchTableros = useCallback(async () => {
     try {
-      const res = await api.get('/api/kanban/boards');
+      const res = await api.get('/kanban/boards');
       setTableros(res.data);
       if (res.data.length > 0 && !selectedTablero) {
         setSelectedTablero(res.data[0].id);
@@ -64,7 +64,7 @@ const KanbanConfig = () => {
   const fetchTarjetas = useCallback(async () => {
     if (!selectedTablero) return;
     try {
-      const res = await api.get(`/api/kanban/boards/${selectedTablero}`);
+      const res = await api.get(`/kanban/boards/${selectedTablero}`);
       setTarjetas(res.data.tarjetas || []);
     } catch (error) {
     }
@@ -82,7 +82,7 @@ const KanbanConfig = () => {
 
   const handleCreateTablero = async () => {
     try {
-      await api.post('/api/kanban/boards', tableroForm);
+      await api.post('/kanban/boards', tableroForm);
       setOpenTableroDialog(false);
       setTableroForm({ nombre: '', almacen_id: '', centro_id: '', descripcion: '' });
       fetchTableros();
@@ -93,7 +93,7 @@ const KanbanConfig = () => {
 
   const handleCreateTarjeta = async () => {
     try {
-      await api.post(`/api/kanban/boards/${selectedTablero}/cards`, tarjetaForm);
+      await api.post(`/kanban/boards/${selectedTablero}/cards`, tarjetaForm);
       setOpenTarjetaDialog(false);
       setTarjetaForm({
         material_codigo: '',
@@ -119,7 +119,7 @@ const KanbanConfig = () => {
         ubicacion_supermarket: tarjetaForm.ubicacion_supermarket,
         proveedor_cuit: tarjetaForm.proveedor_cuit
       };
-      await api.put(`/api/kanban/cards/${editingTarjeta}`, updateData);
+      await api.put(`/kanban/cards/${editingTarjeta}`, updateData);
       setOpenTarjetaDialog(false);
       setEditingTarjeta(null);
       setTarjetaForm({

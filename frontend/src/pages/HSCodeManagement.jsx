@@ -68,7 +68,7 @@ const HSCodeManagement = () => {
 
   const cargarHsCodes = async (search = '') => {
     try {
-      const response = await api.get('/api/customs/hs-codes', {
+      const response = await api.get('/customs/hs-codes', {
         params: { search, per_page: 100 }
       });
       setHsCodes(response.data.codes || []);
@@ -78,7 +78,7 @@ const HSCodeManagement = () => {
 
   const cargarAcuerdos = async () => {
     try {
-      const response = await api.get('/api/customs/agreements');
+      const response = await api.get('/customs/agreements');
       setAcuerdos(response.data || []);
     } catch (error) {
     }
@@ -90,7 +90,7 @@ const HSCodeManagement = () => {
 
   const handleCreateHsCode = async () => {
     try {
-      await api.post('/api/customs/hs-codes', {
+      await api.post('/customs/hs-codes', {
         ...hsCodeForm,
         arancel_pct: parseFloat(hsCodeForm.arancel_pct)
       });
@@ -119,7 +119,7 @@ const HSCodeManagement = () => {
         return;
       }
 
-      await api.post('/api/customs/classifications', classifyForm);
+      await api.post('/customs/classifications', classifyForm);
 
       setClassifyMaterialOpen(false);
       setClassifyForm({
@@ -137,7 +137,7 @@ const HSCodeManagement = () => {
 
   const handleCalculateDuties = async () => {
     try {
-      const response = await api.post('/api/customs/calculate-duties', {
+      const response = await api.post('/customs/calculate-duties', {
         valor_fob: parseFloat(calculatorForm.valor_fob),
         flete: parseFloat(calculatorForm.flete),
         seguro: parseFloat(calculatorForm.seguro),

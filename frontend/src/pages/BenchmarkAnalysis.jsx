@@ -46,7 +46,7 @@ const BenchmarkAnalysis = () => {
   const fetchBenchmarks = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/executive/benchmarks');
+      const res = await api.get('/executive/benchmarks');
       setBenchmarks(res.data.benchmarks || []);
     } catch (error) {
     } finally {
@@ -56,7 +56,7 @@ const BenchmarkAnalysis = () => {
 
   const fetchKpis = useCallback(async () => {
     try {
-      const res = await api.get('/api/executive/kpis');
+      const res = await api.get('/executive/kpis');
       setKpis(res.data.kpis || []);
     } catch (error) {
     }
@@ -69,7 +69,7 @@ const BenchmarkAnalysis = () => {
 
   const handleCreate = async () => {
     try {
-      await api.post('/api/executive/benchmarks', {
+      await api.post('/executive/benchmarks', {
         ...formData,
         percentil_25: parseFloat(formData.percentil_25),
         mediana: parseFloat(formData.mediana),

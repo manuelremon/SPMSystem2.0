@@ -43,6 +43,7 @@ import {
   Settings,
   History,
 } from '../../components/ui/Icons'
+import { formatDate } from '../../utils/formatters'
 import { useI18n } from '../../context/i18n'
 import { useFmsStore, useFmsCurrentVehicle } from '../../store/fmsStore'
 import * as fmsService from '../../services/fms'
@@ -175,7 +176,7 @@ export default function VehicleDetail() {
   if (!v) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">{t('fms_vehicle_not_found', 'Vehiculo no encontrado')}</Alert>
+        <Alert severity="error">{t('fms_vehicle_not_found', 'Vehículo no encontrado')}</Alert>
         <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/vehicles')} sx={{ mt: 2 }}>
           Volver
         </Button>
@@ -215,7 +216,7 @@ export default function VehicleDetail() {
       {/* Tabs */}
       <Paper sx={{ mb: 2 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-          <Tab label={t('fms_tab_info', 'Informacion')} icon={<Truck sx={{ fontSize: 18 }} />} iconPosition="start" />
+          <Tab label={t('fms_tab_info', 'Información')} icon={<Truck sx={{ fontSize: 18 }} />} iconPosition="start" />
           <Tab label={t('fms_tab_docs', 'Documentos')} icon={<FileText sx={{ fontSize: 18 }} />} iconPosition="start" />
           <Tab label={t('fms_tab_maintenance', 'Mantenimiento')} icon={<Settings sx={{ fontSize: 18 }} />} iconPosition="start" />
           <Tab label={t('fms_tab_history', 'Historial')} icon={<History sx={{ fontSize: 18 }} />} iconPosition="start" />
@@ -240,7 +241,7 @@ export default function VehicleDetail() {
                 <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
                 <Typography variant="body1" mb={2}>{v.modelo || '--'}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Anio</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Año</Typography>
                 <Typography variant="body1" mb={2}>{v.anio || '--'}</Typography>
 
                 <Typography variant="subtitle2" color="text.secondary">VIN</Typography>
@@ -253,12 +254,12 @@ export default function VehicleDetail() {
                   {v.capacidad_kg ? Number(v.capacidad_kg).toLocaleString() : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Capacidad Volumen (m3)</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Capacidad Volumen (m³)</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.capacidad_volumen_m3 ? Number(v.capacidad_volumen_m3).toLocaleString() : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Odometro Actual</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Odómetro Actual</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.odometro_actual ? `${Number(v.odometro_actual).toLocaleString()} km` : '--'}
                 </Typography>
@@ -296,7 +297,7 @@ export default function VehicleDetail() {
       {/* Tab 2: Documentos */}
       <TabPanel value={tab} index={1}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Documentos del Vehiculo</Typography>
+          <Typography variant="h6">Documentos del Vehículo</Typography>
           <Button variant="contained" size="small" startIcon={<Plus />} onClick={() => setDocDialogOpen(true)}>
             Agregar Documento
           </Button>
@@ -306,8 +307,8 @@ export default function VehicleDetail() {
             <TableHead>
               <TableRow>
                 <TableCell>Tipo</TableCell>
-                <TableCell>Numero</TableCell>
-                <TableCell>Emision</TableCell>
+                <TableCell>Número</TableCell>
+                <TableCell>Emisión</TableCell>
                 <TableCell>Vencimiento</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Notas</TableCell>
@@ -329,8 +330,8 @@ export default function VehicleDetail() {
                   <TableRow key={doc.id || i}>
                     <TableCell>{doc.tipo_documento}</TableCell>
                     <TableCell>{doc.numero_documento || '--'}</TableCell>
-                    <TableCell>{doc.fecha_emision || '--'}</TableCell>
-                    <TableCell>{doc.fecha_vencimiento || '--'}</TableCell>
+                    <TableCell>{formatDate(doc.fecha_emision)}</TableCell>
+                    <TableCell>{formatDate(doc.fecha_vencimiento)}</TableCell>
                     <TableCell>
                       <Chip label={status.label} color={status.color} size="small" />
                     </TableCell>
@@ -356,11 +357,11 @@ export default function VehicleDetail() {
             <TableHead>
               <TableRow>
                 <TableCell>Tipo</TableCell>
-                <TableCell>Descripcion</TableCell>
+                <TableCell>Descripción</TableCell>
                 <TableCell align="right">Intervalo (km)</TableCell>
-                <TableCell align="right">Intervalo (dias)</TableCell>
-                <TableCell>Proximo km</TableCell>
-                <TableCell>Proxima Fecha</TableCell>
+                <TableCell align="right">Intervalo (días)</TableCell>
+                <TableCell>Próximo km</TableCell>
+                <TableCell>Próxima Fecha</TableCell>
                 <TableCell>Estado</TableCell>
               </TableRow>
             </TableHead>
@@ -383,7 +384,7 @@ export default function VehicleDetail() {
                   <TableCell align="right">{plan.intervalo_km ? Number(plan.intervalo_km).toLocaleString() : '--'}</TableCell>
                   <TableCell align="right">{plan.intervalo_dias || '--'}</TableCell>
                   <TableCell>{plan.proximo_km ? Number(plan.proximo_km).toLocaleString() : '--'}</TableCell>
-                  <TableCell>{plan.proxima_fecha || '--'}</TableCell>
+                  <TableCell>{formatDate(plan.proxima_fecha)}</TableCell>
                   <TableCell>
                     <Chip
                       label={plan.activo !== false ? 'Activo' : 'Inactivo'}
@@ -400,14 +401,14 @@ export default function VehicleDetail() {
 
       {/* Tab 4: Historial */}
       <TabPanel value={tab} index={3}>
-        <Typography variant="h6" mb={2}>Ordenes de Trabajo Recientes</Typography>
+        <Typography variant="h6" mb={2}>Órdenes de Trabajo Recientes</Typography>
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Codigo</TableCell>
+                <TableCell>Código</TableCell>
                 <TableCell>Tipo</TableCell>
-                <TableCell>Descripcion</TableCell>
+                <TableCell>Descripción</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Fecha</TableCell>
                 <TableCell align="right">Costo Total</TableCell>
@@ -418,7 +419,7 @@ export default function VehicleDetail() {
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="text.secondary" py={2}>
-                      No hay ordenes de trabajo
+                      No hay órdenes de trabajo
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -440,7 +441,7 @@ export default function VehicleDetail() {
                   <TableCell>
                     <Chip label={wo.estado || '--'} size="small" />
                   </TableCell>
-                  <TableCell>{wo.fecha_ingreso || wo.created_at || '--'}</TableCell>
+                  <TableCell>{formatDate(wo.fecha_ingreso || wo.created_at)}</TableCell>
                   <TableCell align="right">
                     {wo.costo_total != null ? `$${Number(wo.costo_total).toLocaleString()}` : '--'}
                   </TableCell>
@@ -463,23 +464,23 @@ export default function VehicleDetail() {
                 label="Tipo de Documento"
                 onChange={(e) => setDocForm({ ...docForm, tipo_documento: e.target.value })}
               >
-                <MenuItem value="tarjeta_circulacion">Tarjeta de Circulacion</MenuItem>
+                <MenuItem value="tarjeta_circulacion">Tarjeta de Circulación</MenuItem>
                 <MenuItem value="seguro">Seguro</MenuItem>
-                <MenuItem value="verificacion">Verificacion</MenuItem>
+                <MenuItem value="verificacion">Verificación</MenuItem>
                 <MenuItem value="permiso_carga">Permiso de Carga</MenuItem>
                 <MenuItem value="otro">Otro</MenuItem>
               </Select>
             </FormControl>
             <TextField
               size="small"
-              label="Numero de Documento"
+              label="Número de Documento"
               value={docForm.numero_documento}
               onChange={(e) => setDocForm({ ...docForm, numero_documento: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="Fecha de Emision"
+              label="Fecha de Emisión"
               type="date"
               value={docForm.fecha_emision}
               onChange={(e) => setDocForm({ ...docForm, fecha_emision: e.target.value })}
@@ -532,7 +533,7 @@ export default function VehicleDetail() {
             </FormControl>
             <TextField
               size="small"
-              label="Descripcion"
+              label="Descripción"
               value={planForm.descripcion}
               onChange={(e) => setPlanForm({ ...planForm, descripcion: e.target.value })}
               multiline
@@ -549,7 +550,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Intervalo (dias)"
+              label="Intervalo (días)"
               type="number"
               value={planForm.intervalo_dias}
               onChange={(e) => setPlanForm({ ...planForm, intervalo_dias: e.target.value })}
@@ -557,7 +558,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Proximo km"
+              label="Próximo km"
               type="number"
               value={planForm.proximo_km}
               onChange={(e) => setPlanForm({ ...planForm, proximo_km: e.target.value })}
@@ -565,7 +566,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Proxima Fecha"
+              label="Próxima Fecha"
               type="date"
               value={planForm.proxima_fecha}
               onChange={(e) => setPlanForm({ ...planForm, proxima_fecha: e.target.value })}
@@ -584,7 +585,7 @@ export default function VehicleDetail() {
 
       {/* Change Status Dialog */}
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Cambiar Estado del Vehiculo</DialogTitle>
+        <DialogTitle>Cambiar Estado del Vehículo</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
             Estado actual: <Chip label={ESTADO_LABELS[v.estado] || v.estado} color={ESTADO_COLORS[v.estado] || 'default'} size="small" />

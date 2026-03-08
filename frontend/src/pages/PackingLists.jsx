@@ -74,11 +74,11 @@ const PackingLists = () => {
     setLoading(true);
     try {
       const [kpisRes, packingsRes, templatesRes] = await Promise.all([
-        api.get('/api/packaging/kpis'),
-        api.get('/api/packaging/packing-lists', {
+        api.get('/packaging/kpis'),
+        api.get('/packaging/packing-lists', {
           params: estadoFilter !== 'all' ? { estado: estadoFilter } : {}
         }),
-        api.get('/api/packaging/templates')
+        api.get('/packaging/templates')
       ]);
 
       if (kpisRes.data.ok) setKpis(kpisRes.data.kpis);
@@ -96,7 +96,7 @@ const PackingLists = () => {
 
   const handleCreatePacking = async () => {
     try {
-      const res = await api.post('/api/packaging/packing-lists', newPacking);
+      const res = await api.post('/packaging/packing-lists', newPacking);
       if (res.data.ok) {
         setOpenCreatePacking(false);
         setNewPacking({ orden_compra_id: '', envio_id: '', notas: '' });
@@ -111,7 +111,7 @@ const PackingLists = () => {
 
   const handleCreateTemplate = async () => {
     try {
-      const res = await api.post('/api/packaging/templates', newTemplate);
+      const res = await api.post('/packaging/templates', newTemplate);
       if (res.data.ok) {
         setOpenCreateTemplate(false);
         setNewTemplate({
