@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.db import get_db_connection
+from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.helpers import safe_error_response
 
 logger = logging.getLogger(__name__)
@@ -79,13 +79,20 @@ def _get_consumo_filtrado(codigo: str, centro: str = None, almacen: str = None) 
                 where_sql += " AND almacen = ?"
                 params.append(almacen)
 
-            # Query agregada
+            # Query agregada (PG usa EXTRACT, SQLite usa substr)
+            if is_using_postgresql():
+                year_min = "MIN(EXTRACT(YEAR FROM fecha))::int"
+                year_max = "MAX(EXTRACT(YEAR FROM fecha))::int"
+            else:
+                year_min = "MIN(substr(fecha, 1, 4))"
+                year_max = "MAX(substr(fecha, 1, 4))"
+
             cur.execute(
                 f"""
                 SELECT
                     COALESCE(SUM(cantidad), 0) as total,
-                    MIN(substr(fecha, 1, 4)) as anio_min,
-                    MAX(substr(fecha, 1, 4)) as anio_max
+                    {year_min} as anio_min,
+                    {year_max} as anio_max
                 FROM consumo_historico
                 {where_sql}
                 AND fecha IS NOT NULL
@@ -120,7 +127,7 @@ def _get_consumo_filtrado(codigo: str, centro: str = None, almacen: str = None) 
             )
             registros = [
                 {
-                    "fecha": row["fecha"][:10] if row["fecha"] else "",
+                    "fecha": str(row["fecha"])[:10] if row["fecha"] else "",
                     "cantidad": float(row["cantidad"] or 0),
                     "centro": row["centro"],
                     "almacen": row["almacen"],
@@ -150,15 +157,21 @@ def _get_consumo_por_ubicacion(codigo: str) -> List[Dict[str, Any]]:
             cur = conn.cursor()
 
             # Query agrupada por centro, almacen con promedio anual
+            # PG usa EXTRACT(YEAR FROM fecha), SQLite usa substr(fecha, 1, 4)
+            if is_using_postgresql():
+                year_expr = "EXTRACT(YEAR FROM fecha)::int"
+            else:
+                year_expr = "substr(fecha, 1, 4)"
+
             cur.execute(
-                """
+                f"""
                 SELECT
                     centro,
                     almacen,
                     COALESCE(SUM(cantidad), 0) as total,
-                    MIN(substr(fecha, 1, 4)) as anio_min,
-                    MAX(substr(fecha, 1, 4)) as anio_max,
-                    COUNT(DISTINCT substr(fecha, 1, 4)) as n_anios
+                    MIN({year_expr}) as anio_min,
+                    MAX({year_expr}) as anio_max,
+                    COUNT(DISTINCT {year_expr}) as n_anios
                 FROM consumo_historico
                 WHERE material LIKE ?
                 AND fecha IS NOT NULL
