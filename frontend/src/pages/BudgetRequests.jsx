@@ -265,7 +265,7 @@ export default function BudgetRequests() {
   const ledgerColumnDefs = useMemo(() => [
     {
       field: "created_at",
-      headerName: "Fecha",
+      headerName: t('common_fecha', 'Fecha'),
       flex: 0.7,
       minWidth: 100,
       cellRenderer: (params) => (
@@ -276,7 +276,7 @@ export default function BudgetRequests() {
     },
     {
       field: "tipo_movimiento",
-      headerName: "Tipo",
+      headerName: t('common_tipo', 'Tipo'),
       flex: 0.8,
       minWidth: 120,
       cellRenderer: (params) => {
@@ -294,21 +294,21 @@ export default function BudgetRequests() {
     },
     {
       field: "centro",
-      headerName: "Centro",
+      headerName: t('common_centro', 'Centro'),
       flex: 0.5,
       minWidth: 80,
       valueGetter: (params) => params.data.centro || "-",
     },
     {
       field: "sector",
-      headerName: "Sector",
+      headerName: t('common_sector', 'Sector'),
       flex: 0.5,
       minWidth: 80,
       valueGetter: (params) => params.data.sector || "-",
     },
     {
       field: "monto_cents",
-      headerName: "Monto",
+      headerName: t('common_monto', 'Monto'),
       flex: 0.7,
       minWidth: 110,
       cellRenderer: (params) => {
@@ -332,7 +332,7 @@ export default function BudgetRequests() {
     },
     {
       field: "saldo_posterior_cents",
-      headerName: "Saldo",
+      headerName: t('common_saldo', 'Saldo'),
       flex: 0.7,
       minWidth: 110,
       cellRenderer: (params) => (
@@ -346,7 +346,7 @@ export default function BudgetRequests() {
     },
     {
       field: "referencia_id",
-      headerName: "Referencia",
+      headerName: t('common_referencia', 'Referencia'),
       flex: 0.6,
       minWidth: 100,
       cellRenderer: (params) => {
@@ -363,18 +363,18 @@ export default function BudgetRequests() {
     },
     {
       field: "motivo",
-      headerName: "Motivo",
+      headerName: t('common_motivo', 'Motivo'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.data.motivo || "-",
     },
-  ], []);
+  ], [t]);
 
   // AG Grid Column Definitions - BUR (Incorporaciones)
   const burColumnDefs = useMemo(() => [
     {
       field: "id",
-      headerName: "ID",
+      headerName: t('common_id', 'ID'),
       flex: 0.4,
       minWidth: 60,
       cellRenderer: (params) => (
@@ -397,21 +397,21 @@ export default function BudgetRequests() {
     },
     {
       field: "centro",
-      headerName: "Centro",
+      headerName: t('common_centro', 'Centro'),
       flex: 0.5,
       minWidth: 80,
       valueGetter: (params) => params.data.centro || "-",
     },
     {
       field: "sector",
-      headerName: "Sector",
+      headerName: t('common_sector', 'Sector'),
       flex: 0.5,
       minWidth: 80,
       valueGetter: (params) => params.data.sector || "-",
     },
     {
       field: "monto_solicitado_usd",
-      headerName: "Monto",
+      headerName: t('common_monto', 'Monto'),
       flex: 0.7,
       minWidth: 110,
       cellRenderer: (params) => (
@@ -430,7 +430,7 @@ export default function BudgetRequests() {
     },
     {
       field: "nivel_aprobacion_requerido",
-      headerName: "Nivel",
+      headerName: t('common_nivel', 'Nivel'),
       flex: 0.5,
       minWidth: 80,
       cellRenderer: (params) => (
@@ -444,7 +444,7 @@ export default function BudgetRequests() {
     },
     {
       field: "estado",
-      headerName: "Estado",
+      headerName: t('common_estado', 'Estado'),
       flex: 0.6,
       minWidth: 100,
       cellRenderer: (params) => (
@@ -458,7 +458,7 @@ export default function BudgetRequests() {
     },
     {
       field: "created_at",
-      headerName: "Fecha",
+      headerName: t('common_fecha', 'Fecha'),
       flex: 0.6,
       minWidth: 100,
       cellRenderer: (params) => (
@@ -469,7 +469,7 @@ export default function BudgetRequests() {
     },
     {
       field: "acciones",
-      headerName: "Acciones",
+      headerName: t('common_acciones', 'Acciones'),
       flex: 0.9,
       minWidth: 180,
       sortable: false,
@@ -485,7 +485,7 @@ export default function BudgetRequests() {
               onClick={() => navigate(`/presupuestos/${params.data.id}`)}
               sx={{ fontSize: 11, py: 0.5, textTransform: 'none' }}
             >
-              Ver
+              {t('common_ver', 'Ver')}
             </Button>
             {canAct && (
               <>
@@ -511,7 +511,7 @@ export default function BudgetRequests() {
         );
       },
     },
-  ], [navigate]);
+  ], [navigate, t]);
 
   // Get selected BUR for approve drawer
   const selectedBur = useMemo(() => {
@@ -687,7 +687,7 @@ export default function BudgetRequests() {
         >
           <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Aprobar Incorporacion
+              {t('bur_aprobar_incorporacion', 'Aprobar Incorporación')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Solicitud #{approveDrawer.id}
@@ -708,7 +708,7 @@ export default function BudgetRequests() {
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
-                  Resumen de la operacion
+                  {t('bur_resumen_operacion', 'Resumen de la operación')}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
@@ -720,11 +720,11 @@ export default function BudgetRequests() {
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedBur.sector}</Typography>
                   </Paper>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Monto a incorporar</Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>{t('bur_monto_incorporar', 'Monto a incorporar')}</Typography>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>+{formatCurrency(selectedBur.monto_solicitado_usd || 0)}</Typography>
                   </Paper>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Saldo actual</Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>{t('bur_saldo_actual', 'Saldo actual')}</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(selectedBur.saldo_actual_usd || 0)}</Typography>
                   </Paper>
                 </Box>
@@ -745,7 +745,7 @@ export default function BudgetRequests() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Nuevo saldo estimado:</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('bur_nuevo_saldo', 'Nuevo saldo estimado:')}</Typography>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
                     {formatCurrency((selectedBur.saldo_actual_usd || 0) + (selectedBur.monto_solicitado_usd || 0))}
                   </Typography>
@@ -755,7 +755,7 @@ export default function BudgetRequests() {
               {/* Comment Field */}
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', mb: 1, display: 'block' }}>
-                  Comentario (opcional)
+                  {t('bur_comentario_opcional', 'Comentario (opcional)')}
                 </Typography>
                 <TextField
                   fullWidth
@@ -775,7 +775,7 @@ export default function BudgetRequests() {
                   variant="outlined"
                   onClick={() => setApproveDrawer({ open: false, id: null, comentario: "" })}
                 >
-                  Cancelar
+                  {t('common_cancelar', 'Cancelar')}
                 </Button>
                 <Button
                   fullWidth
@@ -785,7 +785,7 @@ export default function BudgetRequests() {
                   disabled={actionLoading}
                   startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 >
-                  {actionLoading ? "Procesando..." : "Confirmar Aprobacion"}
+                  {actionLoading ? "Procesando..." : t('bur_confirmar_aprobacion', 'Confirmar Aprobación')}
                 </Button>
               </Stack>
             </Box>
@@ -803,7 +803,7 @@ export default function BudgetRequests() {
         >
           <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Rechazar Incorporacion
+              {t('bur_rechazar_incorporacion', 'Rechazar Incorporación')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Solicitud #{rejectDrawer.id}
@@ -817,14 +817,14 @@ export default function BudgetRequests() {
               icon={<WarningAmberIcon />}
               sx={{ '& .MuiAlert-message': { flex: 1 } }}
             >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Accion irreversible</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('bur_accion_irreversible', 'Acción irreversible')}</Typography>
               <Typography variant="body2">Una vez rechazada, la solicitud no podra ser aprobada posteriormente.</Typography>
             </Alert>
 
             {/* Reason Field */}
             <Box>
               <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', mb: 1, display: 'block' }}>
-                Motivo de rechazo <Typography component="span" color="error.main">*</Typography>
+                {t('bur_motivo_rechazo', 'Motivo de rechazo')} <Typography component="span" color="error.main">*</Typography>
               </Typography>
               <TextField
                 fullWidth
@@ -837,7 +837,7 @@ export default function BudgetRequests() {
                 error={rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5}
                 helperText={
                   rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5
-                    ? "Minimo 5 caracteres requeridos"
+                    ? t('bur_minimo_caracteres', 'Mínimo 5 caracteres requeridos')
                     : "El solicitante sera notificado con este motivo"
                 }
               />
@@ -861,7 +861,7 @@ export default function BudgetRequests() {
                 variant="outlined"
                 onClick={() => setRejectDrawer({ open: false, id: null, motivo: "" })}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 fullWidth
@@ -871,7 +871,7 @@ export default function BudgetRequests() {
                 disabled={actionLoading || rejectDrawer.motivo.trim().length < 5}
                 startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
               >
-                {actionLoading ? "Procesando..." : "Confirmar Rechazo"}
+                {actionLoading ? "Procesando..." : t('bur_confirmar_rechazo', 'Confirmar Rechazo')}
               </Button>
             </Stack>
           </Box>

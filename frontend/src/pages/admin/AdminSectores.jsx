@@ -96,6 +96,7 @@ function LoadingSkeleton() {
 }
 
 function EmptyState({ onClear, hasFilters }) {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
@@ -109,7 +110,7 @@ function EmptyState({ onClear, hasFilters }) {
     >
       <CategoryIcon sx={{ width: 48, height: 48, mb: 1.5, color: "action.disabled" }} />
       <Typography variant="body2" fontWeight={500}>
-        No se encontraron sectores
+        {t('admin_no_results', 'No se encontraron sectores')}
       </Typography>
       {hasFilters && (
         <Button
@@ -117,7 +118,7 @@ function EmptyState({ onClear, hasFilters }) {
           onClick={onClear}
           sx={{ mt: 1, textTransform: "none" }}
         >
-          Limpiar búsqueda
+          {t('admin_clear_search', 'Limpiar búsqueda')}
         </Button>
       )}
     </Box>
@@ -159,7 +160,7 @@ function SectorRow({ sector, onEdit, onDelete, isDeleting, onCancelDelete, onCon
                 onClick={onCancelDelete}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 size="small"
@@ -168,7 +169,7 @@ function SectorRow({ sector, onEdit, onDelete, isDeleting, onCancelDelete, onCon
                 onClick={onConfirmDelete}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Eliminar
+                {t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           </Box>
@@ -203,7 +204,7 @@ function SectorRow({ sector, onEdit, onDelete, isDeleting, onCancelDelete, onCon
       >
         <Chip
           size="small"
-          label={isActivo ? "Activo" : "Inactivo"}
+          label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
           sx={{
             height: 20,
             fontSize: "0.625rem",
@@ -442,10 +443,10 @@ return (
                   color="text.primary"
                   sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
-                  Sectores
+                  {t('admin_sectores', 'Sectores')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Gestión de sectores del sistema
+                  {t('admin_sectores_subtitle', 'Gestión de sectores del sistema')}
                 </Typography>
               </Box>
             </Box>
@@ -458,7 +459,7 @@ return (
                 fontWeight: 600,
               }}
             >
-              Nuevo
+              {t('common_nuevo', 'Nuevo')}
             </Button>
           </Box>
         </Box>
@@ -563,7 +564,7 @@ return (
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Nombre
+                      {t('common_nombre', 'Nombre')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -581,7 +582,7 @@ return (
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Estado
+                      {t('common_estado', 'Estado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -599,7 +600,7 @@ return (
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Creado
+                      {t('common_creado', 'Creado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -672,7 +673,7 @@ return (
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
-              {editingId ? "Editar Sector" : "Nuevo Sector"}
+              {editingId ? `${t('common_editar', 'Editar')} Sector` : `${t('common_nuevo', 'Nuevo')} Sector`}
             </Typography>
             {editingId && (
               <Typography variant="caption" color="text.secondary">
@@ -709,17 +710,17 @@ return (
               color="text.secondary"
               sx={{ display: "block", mb: 2 }}
             >
-              Datos del Sector
+              {t('admin_datos_sector', 'Datos del Sector')}
             </Typography>
             <Stack spacing={3}>
               <FormControl size="small" fullWidth required disabled={!!editingId}>
-                <InputLabel id="nombre-label">Nombre</InputLabel>
+                <InputLabel id="nombre-label">{t('common_nombre', 'Nombre')}</InputLabel>
                 <Select
                   labelId="nombre-label"
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
-                  label="Nombre"
+                  label={t('common_nombre', 'Nombre')}
                 >
                   <MenuItem value="">
                     <em>Seleccionar sector...</em>
@@ -744,7 +745,7 @@ return (
                 }
                 label={
                   <Typography variant="body2" color="text.primary">
-                    Sector activo
+                    {t('admin_sector_activo', 'Sector activo')}
                   </Typography>
                 }
               />
@@ -770,7 +771,7 @@ return (
             disabled={submitting}
             sx={{ textTransform: "none" }}
           >
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
             type="submit"
@@ -782,7 +783,7 @@ return (
             }
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {submitting ? "Guardando..." : "Guardar"}
+            {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}
           </Button>
         </Box>
       </Drawer>

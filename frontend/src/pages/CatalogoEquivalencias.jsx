@@ -436,7 +436,7 @@ function FormModal({
 
         <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
           <Button onClick={onClose} disabled={formLoading} color="inherit">
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
             type="submit"
@@ -444,7 +444,7 @@ function FormModal({
             disabled={formLoading || (!isEditing && (!formData.codigo_original || !formData.codigo_equivalente))}
             startIcon={formLoading ? <CircularProgress size={16} color="inherit" /> : null}
           >
-            {formLoading ? "Guardando..." : isEditing ? "Actualizar" : "Crear"}
+            {formLoading ? "Guardando..." : isEditing ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
           </Button>
         </DialogActions>
       </form>
@@ -456,6 +456,7 @@ function FormModal({
    Delete Modal Component
 --------------------------------------------------------------- */
 function DeleteModal({ open, item, onClose, onConfirm, loading }) {
+  const { t } = useI18n();
   if (!item) return null;
 
   return (
@@ -471,7 +472,7 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Eliminar Equivalencia
+          {t('equiv_eliminar_titulo', 'Eliminar Equivalencia')}
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: "grey.400" }}>
           <CloseIcon />
@@ -494,7 +495,7 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
         <Button onClick={onClose} disabled={loading} color="inherit">
-          Cancelar
+          {t('common_cancelar', 'Cancelar')}
         </Button>
         <Button
           onClick={onConfirm}
@@ -503,7 +504,7 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {loading ? "Eliminando..." : "Eliminar"}
+          {loading ? "Eliminando..." : t('common_eliminar', 'Eliminar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -694,7 +695,7 @@ export default function CatalogoEquivalencias() {
     () => [
       {
         field: "codigo_original",
-        headerName: "Material Original",
+        headerName: t('equiv_material_original', 'Material Original'),
         flex: 1,
         minWidth: 220,
         cellRenderer: (params) => (
@@ -732,7 +733,7 @@ export default function CatalogoEquivalencias() {
       },
       {
         field: "codigo_equivalente",
-        headerName: "Material Equivalente",
+        headerName: t('equiv_material_equivalente', 'Material Equivalente'),
         flex: 1,
         minWidth: 220,
         cellRenderer: (params) => (
@@ -760,7 +761,7 @@ export default function CatalogoEquivalencias() {
       },
       {
         field: "tipo_equivalencia",
-        headerName: "Tipo",
+        headerName: t('common_tipo', 'Tipo'),
         width: 140,
         maxWidth: 140,
         cellRenderer: (params) => {
@@ -785,7 +786,7 @@ export default function CatalogoEquivalencias() {
         ? [
             {
               field: "acciones",
-              headerName: "Acciones",
+              headerName: t('common_acciones', 'Acciones'),
               width: 160,
               maxWidth: 160,
               sortable: false,
@@ -799,7 +800,7 @@ export default function CatalogoEquivalencias() {
                     onClick={() => openEditModal(params.data)}
                     sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
                   >
-                    Editar
+                    {t('common_editar', 'Editar')}
                   </Button>
                   <Button
                     size="small"
@@ -808,7 +809,7 @@ export default function CatalogoEquivalencias() {
                     onClick={() => setDeleteDialog({ open: true, item: params.data })}
                     sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
                   >
-                    Eliminar
+                    {t('common_eliminar', 'Eliminar')}
                   </Button>
                 </Stack>
               ),
@@ -817,7 +818,7 @@ export default function CatalogoEquivalencias() {
           ]
         : []),
     ],
-    [canManage, openEditModal]
+    [canManage, openEditModal, t]
   );
 
   const handleSubmit = useCallback(
@@ -930,7 +931,7 @@ export default function CatalogoEquivalencias() {
           </Box>
           {canManage && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
-              Nueva Equivalencia
+              {t('equiv_nueva', 'Nueva Equivalencia')}
             </Button>
           )}
         </Box>
@@ -1077,7 +1078,7 @@ export default function CatalogoEquivalencias() {
               </Typography>
               {canManage && !hasFilters && (
                 <Button variant="outlined" onClick={openCreateModal}>
-                  Crear la primera equivalencia
+                  {t('equiv_crear_primera', 'Crear la primera equivalencia')}
                 </Button>
               )}
             </Box>

@@ -96,13 +96,13 @@ const BenchmarkAnalysis = () => {
   const getPositionIndicator = (value, benchmark) => {
     if (!value || !benchmark) return null;
     if (value >= benchmark.percentil_75) {
-      return <Chip label="Top 25%" color="success" size="small" />;
+      return <Chip label={t('benchmark_top25', 'Top 25%')} color="success" size="small" />;
     } else if (value >= benchmark.mediana) {
-      return <Chip label="Top 50%" color="primary" size="small" />;
+      return <Chip label={t('benchmark_top50', 'Top 50%')} color="primary" size="small" />;
     } else if (value >= benchmark.percentil_25) {
-      return <Chip label="Bottom 50%" color="warning" size="small" />;
+      return <Chip label={t('benchmark_bottom50', 'Bottom 50%')} color="warning" size="small" />;
     } else {
-      return <Chip label="Bottom 25%" color="error" size="small" />;
+      return <Chip label={t('benchmark_bottom25', 'Bottom 25%')} color="error" size="small" />;
     }
   };
 

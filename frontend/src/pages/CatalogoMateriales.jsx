@@ -239,13 +239,13 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
             >
               <Stack direction="row" spacing={4} sx={{ mb: 2 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Stock Total</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('cat_stock_total', 'Stock Total')}</Typography>
                   <Typography variant="h5" fontWeight={700} color="text.primary">
                     {detail?.stock_total ?? "N/D"}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Pedidos en Curso</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('cat_pedidos_en_curso', 'Pedidos en Curso')}</Typography>
                   <Typography variant="h5" fontWeight={700} color="text.primary">
                     {detail?.pedidos_en_curso ?? "N/D"}
                   </Typography>
@@ -267,13 +267,13 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                           bgcolor: idx % 2 ? "grey.50" : "background.paper",
                         }}
                       >
-                        <Typography variant="body2">Centro {row.centro}</Typography>
+                        <Typography variant="body2">{t('common_centro', 'Centro')} {row.centro}</Typography>
                         <Typography variant="body2" color="text.secondary">
-                          / Almacen {formatAlmacen(row.almacen_consultado || row.almacen)}
+                          / {t('common_almacen', 'Almacén')} {formatAlmacen(row.almacen_consultado || row.almacen)}
                         </Typography>
-                        {row.lote && <Typography variant="body2" color="text.secondary">/ Lote {row.lote}</Typography>}
+                        {row.lote && <Typography variant="body2" color="text.secondary">/ {t('cat_lote', 'Lote')} {row.lote}</Typography>}
                         <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ ml: "auto" }}>
-                          Stock: {row.stock}
+                          {t('cat_stock', 'Stock')}: {row.stock}
                         </Typography>
                       </ListItem>
                     ))}
@@ -296,8 +296,8 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                   {detail.mrp_list.map((mrp, idx) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                        <Typography variant="body2" fontWeight={600}>Centro: {mrp.centro}</Typography>
-                        <Typography variant="body2" color="text.secondary">| Almacen: {mrp.almacen}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{t('common_centro', 'Centro')}: {mrp.centro}</Typography>
+                        <Typography variant="body2" color="text.secondary">| {t('common_almacen', 'Almacén')}: {mrp.almacen}</Typography>
                         {mrp.sector && (
                           <Chip label={mrp.sector} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
                         )}
@@ -340,8 +340,8 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                   {detail.consumo_list.map((c, idx) => (
                     <Paper key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
                       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                        <Typography variant="body2" fontWeight={600}>Centro: {c.centro}</Typography>
-                        <Typography variant="body2" color="text.secondary">| Almacen: {c.almacen}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{t('common_centro', 'Centro')}: {c.centro}</Typography>
+                        <Typography variant="body2" color="text.secondary">| {t('common_almacen', 'Almacén')}: {c.almacen}</Typography>
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
                         <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }} elevation={0}>
@@ -586,7 +586,7 @@ export default function CatalogoMateriales() {
     () => [
       {
         field: "codigo",
-        headerName: "Codigo",
+        headerName: t('common_codigo', 'Código'),
         flex: 0.6,
         minWidth: 120,
         cellStyle: { textAlign: 'center' },
@@ -599,7 +599,7 @@ export default function CatalogoMateriales() {
       },
       {
         field: "descripcion",
-        headerName: "Descripcion",
+        headerName: t('common_descripcion', 'Descripción'),
         flex: 1.5,
         minWidth: 250,
         cellRenderer: (params) => (
@@ -615,7 +615,7 @@ export default function CatalogoMateriales() {
       },
       {
         field: "unidad_medida",
-        headerName: "Unidad",
+        headerName: t('common_unidad', 'Unidad'),
         flex: 0.4,
         minWidth: 80,
         cellStyle: { textAlign: 'center' },
@@ -624,7 +624,7 @@ export default function CatalogoMateriales() {
       },
       {
         field: "precio_usd",
-        headerName: "Precio USD",
+        headerName: t('common_precio_usd', 'Precio USD'),
         flex: 0.5,
         minWidth: 100,
         cellStyle: { textAlign: 'right' },
@@ -635,7 +635,7 @@ export default function CatalogoMateriales() {
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.5,
         minWidth: 120,
         cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
@@ -652,12 +652,12 @@ export default function CatalogoMateriales() {
             }}
             sx={{ textTransform: "uppercase", fontSize: "0.75rem", fontWeight: 600 }}
           >
-            Ver Detalle
+            {t('common_detalle', 'Ver Detalle')}
           </Button>
         ),
       },
     ],
-    [loadDetail]
+    [loadDetail, t]
   );
 
   return (

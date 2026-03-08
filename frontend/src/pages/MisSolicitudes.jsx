@@ -199,7 +199,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 color="text.secondary"
                 sx={{ mb: 1.5, display: "block" }}
               >
-                Informacion General
+                {t('sol_info_general', 'Información General')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -230,7 +230,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 color="text.secondary"
                 sx={{ mb: 1.5, display: "block" }}
               >
-                Ubicacion
+                {t('sol_ubicacion', 'Ubicación')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -270,7 +270,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 color="text.secondary"
                 sx={{ mb: 1, display: "block" }}
               >
-                Justificacion
+                {t('common_justificacion', 'Justificación')}
               </Typography>
               <Typography variant="body2" color="text.primary">
                 {solicitud.justificacion}
@@ -286,26 +286,26 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 color="text.secondary"
                 sx={{ mb: 1.5, display: "block" }}
               >
-                Materiales ({solicitud.items.length})
+                {t('sol_materiales', 'Materiales')} ({solicitud.items.length})
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: "grey.50" }}>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Codigo
+                        {t('common_codigo', 'Código')}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Descripcion
+                        {t('common_descripcion', 'Descripción')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Cant.
+                        {t('sol_cant', 'Cant.')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Precio
+                        {t('common_precio', 'Precio')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Subtotal
+                        {t('sol_subtotal', 'Subtotal')}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -333,7 +333,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                   <TableFooter>
                     <TableRow sx={{ bgcolor: "grey.50" }}>
                       <TableCell colSpan={4} align="right" sx={{ fontWeight: 700, color: "text.primary", borderTop: 1, borderColor: "divider" }}>
-                        Total:
+                        {t('common_total', 'Total')}:
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: "primary.main", borderTop: 1, borderColor: "divider" }}>
                         {formatCurrency(solicitud.total_monto || 0)}
@@ -354,7 +354,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
           size="small"
           sx={{ textTransform: "none" }}
         >
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
         <Button
           onClick={onViewFull}
@@ -362,7 +362,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
           size="small"
           sx={{ textTransform: "none" }}
         >
-          Ver detalle completo
+          {t('sol_ver_detalle', 'Ver detalle completo')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -436,12 +436,12 @@ export default function MisSolicitudes() {
 
   // Mapeo de tabs a estados (cubre valores en ingles y espanol legacy)
   const tabFilters = [
-    { label: "Todas", key: "todas", filter: () => true },
-    { label: "Borradores", key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
-    { label: "Enviadas", key: "enviadas", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
-    { label: "Aprobadas", key: "aprobadas", filter: (e) => ["approved", "aprobada", "in_planning", "in_treatment", "treated", "en_planificacion", "en_tratamiento", "tratado"].includes(e) },
-    { label: "Rechazadas", key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
-    { label: "Cerradas", key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
+    { label: t('sol_tab_todas', 'Todas'), key: "todas", filter: () => true },
+    { label: t('sol_tab_borradores', 'Borradores'), key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
+    { label: t('sol_tab_enviadas', 'Enviadas'), key: "enviadas", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
+    { label: t('sol_tab_aprobadas', 'Aprobadas'), key: "aprobadas", filter: (e) => ["approved", "aprobada", "in_planning", "in_treatment", "treated", "en_planificacion", "en_tratamiento", "tratado"].includes(e) },
+    { label: t('sol_tab_rechazadas', 'Rechazadas'), key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
+    { label: t('sol_tab_cerradas', 'Cerradas'), key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
   ];
 
   // Calcular estadisticas
@@ -511,13 +511,13 @@ export default function MisSolicitudes() {
     () => [
       {
         field: "id",
-        headerName: "ID",
+        headerName: t('common_id', 'ID'),
         flex: 0.4,
         minWidth: 60,
       },
       {
         field: "fecha_creacion",
-        headerName: "Fecha",
+        headerName: t('common_fecha', 'Fecha'),
         flex: 0.6,
         minWidth: 90,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
@@ -529,7 +529,7 @@ export default function MisSolicitudes() {
       },
       {
         field: "justificacion",
-        headerName: "Justificacion",
+        headerName: t('common_justificacion', 'Justificación'),
         flex: 1.5,
         minWidth: 150,
         cellRenderer: (params) => {
@@ -549,28 +549,28 @@ export default function MisSolicitudes() {
       },
       {
         field: "centro",
-        headerName: "Centro",
+        headerName: t('common_centro', 'Centro'),
         flex: 0.5,
         minWidth: 70,
         valueGetter: (params) => params.data.centro || params.data.centro_id || "-",
       },
       {
         field: "almacen_virtual",
-        headerName: "Almacen",
+        headerName: t('common_almacen', 'Almacén'),
         flex: 0.5,
         minWidth: 70,
         cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
       },
       {
         field: "sector",
-        headerName: "Sector",
+        headerName: t('common_sector', 'Sector'),
         flex: 0.8,
         minWidth: 100,
         valueGetter: (params) => getSectorNombre(params.data.sector || params.data.sector_id, sectores),
       },
       {
         field: "criticidad",
-        headerName: "Criticidad",
+        headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
         minWidth: 80,
         cellRenderer: (params) => {
@@ -589,7 +589,7 @@ export default function MisSolicitudes() {
       },
       {
         field: "total_monto",
-        headerName: "Monto",
+        headerName: t('common_monto', 'Monto'),
         flex: 0.7,
         minWidth: 100,
         cellStyle: { textAlign: 'right', paddingRight: '16px' },
@@ -601,7 +601,7 @@ export default function MisSolicitudes() {
       },
       {
         field: "status",
-        headerName: "Estado",
+        headerName: t('common_estado', 'Estado'),
         flex: 0.7,
         minWidth: 100,
         valueGetter: (params) => params.data.estado || params.data.status || "pendiente",
@@ -624,7 +624,7 @@ export default function MisSolicitudes() {
       },
       {
         field: "planner_nombre",
-        headerName: "Planificador",
+        headerName: t('common_planificador', 'Planificador'),
         flex: 0.8,
         minWidth: 120,
         valueGetter: (params) => {
@@ -635,7 +635,7 @@ export default function MisSolicitudes() {
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 1,
         minWidth: 180,
         sortable: false,
@@ -662,7 +662,7 @@ export default function MisSolicitudes() {
                       "&:hover": { bgcolor: "warning.lighter" },
                     }}
                   >
-                    Editar
+                    {t('common_editar', 'Editar')}
                   </Button>
                   <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
                   <Button
@@ -679,7 +679,7 @@ export default function MisSolicitudes() {
                       "&:hover": { bgcolor: "error.lighter" },
                     }}
                   >
-                    Borrar
+                    {t('common_borrar', 'Borrar')}
                   </Button>
                 </>
               ) : (
@@ -697,7 +697,7 @@ export default function MisSolicitudes() {
                     "&:hover": { bgcolor: "primary.lighter" },
                   }}
                 >
-                  Ver
+                  {t('common_ver', 'Ver')}
                 </Button>
               )}
             </Stack>
@@ -705,7 +705,7 @@ export default function MisSolicitudes() {
         },
       },
     ],
-    [navigate, sectores]
+    [navigate, sectores, t]
   );
 
   // Rows para DataGrid

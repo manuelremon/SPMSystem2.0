@@ -11,6 +11,13 @@ vi.mock('../../../utils/formatters', () => ({
   formatAlmacen: vi.fn((val) => val || ''),
 }))
 
+// Mock de i18n
+vi.mock('../../../context/i18n', () => ({
+  useI18n: () => ({
+    t: (key, fallback) => fallback || key,
+  }),
+}))
+
 describe('Paso2DecisionAbastecimiento', () => {
   const defaultProps = {
     solicitud: { id: 1, centro: '1008', sector: 'Mantenimiento' },

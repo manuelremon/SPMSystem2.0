@@ -131,7 +131,7 @@ describe('Login', () => {
       expect(passwordInput.type).toBe('password');
 
       // Find toggle button by aria-label
-      const toggleButton = screen.getByLabelText('toggle password visibility');
+      const toggleButton = screen.getByLabelText('Alternar visibilidad de contrase\u00f1a');
 
       fireEvent.click(toggleButton);
       expect(passwordInput.type).toBe('text');

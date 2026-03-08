@@ -140,29 +140,29 @@ function PlanificadoresTable({
     () => [
       {
         field: "usuario_id",
-        headerName: "Usuario ID",
+        headerName: t('admin_usuario_id', 'Usuario ID'),
         flex: 0.25,
         minWidth: 100,
         valueFormatter: (params) => params.value || "-",
       },
       {
         field: "nombre",
-        headerName: "Nombre",
+        headerName: t('common_nombre', 'Nombre'),
         flex: 0.4,
         minWidth: 150,
         valueFormatter: (params) => params.value || "-",
       },
       {
         field: "activo",
-        headerName: "Estado",
+        headerName: t('common_estado', 'Estado'),
         flex: 0.25,
         minWidth: 100,
         cellRenderer: (params) => (
           <Chip
             label={
               params.data.activo === 1 || params.data.activo === true
-                ? "Activo"
-                : "Inactivo"
+                ? t('common_activo', 'Activo')
+                : t('common_inactivo', 'Inactivo')
             }
             size="small"
             sx={{
@@ -185,7 +185,7 @@ function PlanificadoresTable({
       },
       {
         field: "asignaciones_text",
-        headerName: "Asignaciones",
+        headerName: t('common_asignaciones', 'Asignaciones'),
         flex: 0.6,
         minWidth: 200,
         cellRenderer: (params) =>
@@ -209,7 +209,7 @@ function PlanificadoresTable({
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.25,
         minWidth: 100,
         sortable: false,
@@ -231,7 +231,7 @@ function PlanificadoresTable({
                 "&:hover": { bgcolor: "primary.lighter" },
               }}
             >
-              Editar
+              {t('common_editar', 'Editar')}
             </Button>
             <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
             <Button
@@ -249,13 +249,13 @@ function PlanificadoresTable({
                 "&:hover": { bgcolor: "error.lighter" },
               }}
             >
-              Eliminar
+              {t('common_eliminar', 'Eliminar')}
             </Button>
           </Stack>
         ),
       },
     ],
-    [onEdit, onDelete, deletingId]
+    [onEdit, onDelete, deletingId, t]
   );
 
   return (
@@ -294,7 +294,7 @@ function PlanificadoresTable({
                 fontSize: "0.75rem",
               }}
             >
-              Cancelar
+              {t('common_cancelar', 'Cancelar')}
             </Button>
             <Button
               size="small"
@@ -308,7 +308,7 @@ function PlanificadoresTable({
                 fontSize: "0.75rem",
               }}
             >
-              {submitting ? "..." : "Eliminar"}
+              {submitting ? "..." : t('common_eliminar', 'Eliminar')}
             </Button>
           </Stack>
         </Box>
@@ -615,9 +615,9 @@ return (
             <TableSkeleton rows={5} />
           ) : filteredPlanificadores.length === 0 ? (
             <EmptyState
-              message={searchTerm ? "No se encontraron planificadores" : "No hay planificadores registrados"}
+              message={searchTerm ? t('admin_no_results', 'No se encontraron planificadores') : t('admin_no_planificadores', 'No hay planificadores registrados')}
               onAction={!searchTerm ? handleNew : undefined}
-              actionLabel="Crear primer planificador"
+              actionLabel={t('admin_crear_primer_planificador', 'Crear primer planificador')}
             />
           ) : (
             <PlanificadoresTable
@@ -674,7 +674,7 @@ return (
               color: "text.primary",
             }}
           >
-            {editingId ? "Editar Planificador" : "Nuevo Planificador"}
+            {editingId ? `${t('common_editar', 'Editar')} Planificador` : `${t('common_nuevo', 'Nuevo')} Planificador`}
           </Typography>
           <IconButton
             size="small"
@@ -702,7 +702,7 @@ return (
             )}
 
             <TextField
-              label="Usuario ID"
+              label={t('admin_usuario_id', 'Usuario ID')}
               name="usuario_id"
               value={form.usuario_id}
               onChange={handleChange}
@@ -722,7 +722,7 @@ return (
             />
 
             <TextField
-              label="Nombre"
+              label={t('common_nombre', 'Nombre')}
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
@@ -751,13 +751,13 @@ return (
               }
               label={
                 <Typography variant="body2" sx={{ color: "text.primary" }}>
-                  Activo
+                  {t('common_activo', 'Activo')}
                 </Typography>
               }
             />
 
             <TextField
-              label="Asignaciones"
+              label={t('common_asignaciones', 'Asignaciones')}
               name="asignaciones_text"
               value={form.asignaciones_text}
               onChange={handleChange}
@@ -809,7 +809,7 @@ return (
                   fontSize: "0.75rem",
                 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 type="submit"
@@ -822,7 +822,7 @@ return (
                   fontSize: "0.75rem",
                 }}
               >
-                {submitting ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+                {submitting ? t('common_guardando', 'Guardando...') : editingId ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
               </Button>
             </Stack>
           </Stack>

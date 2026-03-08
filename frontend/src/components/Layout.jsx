@@ -392,7 +392,7 @@ export default function Layout({ children }) {
                 height: 43,
                 borderLeft: '1px solid var(--header-border, #424242)',
               }}
-              title={isConnected ? "Real Time" : "Offline"}
+              title={isConnected ? t('status_real_time', 'Tiempo Real') : t('status_offline', 'Desconectado')}
             >
               <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
                 <Wifi style={{ width: 16, height: 16, color: 'var(--fg-muted)', position: 'absolute' }} />

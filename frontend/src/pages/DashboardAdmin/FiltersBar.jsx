@@ -65,7 +65,7 @@ function FiltersBar({
           {/* Slider de rango de fechas - con debounce */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, minWidth: 320, ml: '180px' }}>
             <Typography variant="caption" sx={{ fontWeight: 500, color: 'grey.600', mt: 1 }}>
-              Desde <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> hasta <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
+              {t('common_desde', 'Desde')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> {t('common_hasta', 'hasta')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
             </Typography>
             <Slider
               size="small"
@@ -75,7 +75,7 @@ function FiltersBar({
               max={365}
               valueLabelDisplay="auto"
               valueLabelFormat={(value) => sliderAFecha(value)}
-              getAriaLabel={() => 'Rango de fechas'}
+              getAriaLabel={() => t('dash_rango_fechas', 'Rango de fechas')}
               sx={{
                 color: 'var(--primary)',
                 '& .MuiSlider-thumb': {
@@ -88,8 +88,8 @@ function FiltersBar({
               }}
             />
             <Stack direction="row" justifyContent="space-between" sx={{ mt: -0.5 }}>
-              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>Hace 1 ano</Typography>
-              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>Hoy</Typography>
+              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>{t('dash_hace_1_ano', 'Hace 1 año')}</Typography>
+              <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'grey.400' }}>{t('dash_hoy', 'Hoy')}</Typography>
             </Stack>
           </Box>
 
@@ -98,7 +98,7 @@ function FiltersBar({
 
           {/* Centro Multiselect */}
           <FormControl size="small" sx={{ minWidth: 160, ml: '40px' }}>
-            <InputLabel id="centro-label" sx={{ fontSize: FONT_SIZES.md }}>Centro</InputLabel>
+            <InputLabel id="centro-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_centro', 'Centro')}</InputLabel>
             <Select
               labelId="centro-label"
               multiple
@@ -115,14 +115,14 @@ function FiltersBar({
                   setCentrosSeleccionados(typeof value === 'string' ? value.split(',') : value);
                 }
               }}
-              input={<OutlinedInput label="Centro" />}
+              input={<OutlinedInput label={t('common_centro', 'Centro')} />}
               renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
               MenuProps={MenuProps}
               sx={{ fontSize: FONT_SIZES.md }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={centrosSeleccionados.length === filtrosOpciones.centros.length && filtrosOpciones.centros.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
               </MenuItem>
               {filtrosOpciones.centros.map((centro) => (
                 <MenuItem key={centro} value={centro}>
@@ -135,7 +135,7 @@ function FiltersBar({
 
           {/* Almacen Multiselect */}
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="almacen-label" sx={{ fontSize: FONT_SIZES.md }}>Almacen</InputLabel>
+            <InputLabel id="almacen-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_almacen', 'Almacén')}</InputLabel>
             <Select
               labelId="almacen-label"
               multiple
@@ -152,14 +152,14 @@ function FiltersBar({
                   setAlmacenesSeleccionados(typeof value === 'string' ? value.split(',') : value);
                 }
               }}
-              input={<OutlinedInput label="Almacen" />}
+              input={<OutlinedInput label={t('common_almacen', 'Almacén')} />}
               renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
               MenuProps={MenuProps}
               sx={{ fontSize: FONT_SIZES.md }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={almacenesSeleccionados.length === filtrosOpciones.almacenes.length && filtrosOpciones.almacenes.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
               </MenuItem>
               {filtrosOpciones.almacenes.map((almacen) => (
                 <MenuItem key={almacen} value={almacen}>
@@ -172,7 +172,7 @@ function FiltersBar({
 
           {/* Sector Multiselect */}
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="sector-label" sx={{ fontSize: FONT_SIZES.md }}>Sector</InputLabel>
+            <InputLabel id="sector-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_sector', 'Sector')}</InputLabel>
             <Select
               labelId="sector-label"
               multiple
@@ -189,14 +189,14 @@ function FiltersBar({
                   setSectoresSeleccionados(typeof value === 'string' ? value.split(',') : value);
                 }
               }}
-              input={<OutlinedInput label="Sector" />}
+              input={<OutlinedInput label={t('common_sector', 'Sector')} />}
               renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
               MenuProps={MenuProps}
               sx={{ fontSize: FONT_SIZES.md }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={sectoresSeleccionados.length === filtrosOpciones.sectores.length && filtrosOpciones.sectores.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
               </MenuItem>
               {filtrosOpciones.sectores.map((sector) => (
                 <MenuItem key={sector} value={sector}>
@@ -209,7 +209,7 @@ function FiltersBar({
 
           {/* Solicitante Multiselect */}
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="solicitante-label" sx={{ fontSize: FONT_SIZES.md }}>Solicitante</InputLabel>
+            <InputLabel id="solicitante-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_solicitante', 'Solicitante')}</InputLabel>
             <Select
               labelId="solicitante-label"
               multiple
@@ -226,14 +226,14 @@ function FiltersBar({
                   setSolicitantesSeleccionados(typeof value === 'string' ? value.split(',') : value);
                 }
               }}
-              input={<OutlinedInput label="Solicitante" />}
+              input={<OutlinedInput label={t('common_solicitante', 'Solicitante')} />}
               renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(', ')}
               MenuProps={MenuProps}
               sx={{ fontSize: FONT_SIZES.md }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={solicitantesSeleccionados.length === filtrosOpciones.solicitantes.length && filtrosOpciones.solicitantes.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
               </MenuItem>
               {filtrosOpciones.solicitantes.map((solicitante) => (
                 <MenuItem key={solicitante} value={solicitante}>
@@ -270,7 +270,7 @@ function FiltersBar({
               textTransform: 'none',
             }}
           >
-            Limpiar Filtros
+            {t('dash_limpiar_filtros', 'Limpiar Filtros')}
           </Button>
         </Stack>
       </Box>

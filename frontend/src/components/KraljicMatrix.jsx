@@ -20,28 +20,28 @@ import Tooltip from '@mui/material/Tooltip';
 
 const QUADRANT_CONFIG = {
   strategic: {
-    label: 'Strategic',
+    label: 'Estrat\u00e9gico',
     i18nKey: 'kraljic_strategic',
     color: '#ef4444',
     bgColor: 'rgba(239, 68, 68, 0.06)',
     borderColor: 'rgba(239, 68, 68, 0.20)',
   },
   leverage: {
-    label: 'Leverage',
+    label: 'Apalancamiento',
     i18nKey: 'kraljic_leverage',
     color: '#3b82f6',
     bgColor: 'rgba(59, 130, 246, 0.06)',
     borderColor: 'rgba(59, 130, 246, 0.20)',
   },
   bottleneck: {
-    label: 'Bottleneck',
+    label: 'Cuello de Botella',
     i18nKey: 'kraljic_bottleneck',
     color: '#f97316',
     bgColor: 'rgba(249, 115, 22, 0.06)',
     borderColor: 'rgba(249, 115, 22, 0.20)',
   },
   'non-critical': {
-    label: 'Non-critical',
+    label: 'No Cr\u00edtico',
     i18nKey: 'kraljic_noncritical',
     color: '#22c55e',
     bgColor: 'rgba(34, 197, 94, 0.06)',

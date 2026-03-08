@@ -35,8 +35,8 @@ vi.mock('../../hooks/useRealtime', () => ({
   useRealtimeEvent: vi.fn(),
 }))
 
-vi.mock('../../hooks/useDebounced', () => ({
-  useDebounced: (value) => value,
+vi.mock('../../hooks/useDebouncedValue', () => ({
+  useDebouncedValue: (value) => value,
 }))
 
 vi.mock('../../utils/formatters', () => ({

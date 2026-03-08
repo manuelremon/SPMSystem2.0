@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "../../context/i18n";
 
 // MUI Icons
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -108,6 +109,7 @@ export default function Paso4AccionesPendientes({
   loading = false,
   onEjecutarAcciones,
 }) {
+  const { t } = useI18n();
   const [ejecutando, setEjecutando] = useState(false);
   const [resultadoAcciones, setResultadoAcciones] = useState(acciones);
   const [enviarResumenSolicitante, setEnviarResumenSolicitante] = useState(false);
@@ -259,7 +261,7 @@ export default function Paso4AccionesPendientes({
             <Stack direction="row" spacing={1.5} alignItems="center">
               <CheckCircleOutlinedIcon sx={{ fontSize: 20, color: "var(--success)" }} />
               <Typography sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
-                Acciones Ejecutadas
+                {t('planner_acciones_ejecutadas', 'Acciones Ejecutadas')}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={2} sx={{ fontSize: 14 }}>
@@ -315,7 +317,7 @@ export default function Paso4AccionesPendientes({
           <Stack spacing={1.5}>
             <SectionHeader
               icon={Inventory2Icon}
-              title="NOTIFICACIONES ENVIADAS"
+              title={t('planner_notificaciones_enviadas', 'NOTIFICACIONES ENVIADAS')}
               subtitle="Traspasos y consultas de stock"
               variant="success"
             />
@@ -328,7 +330,7 @@ export default function Paso4AccionesPendientes({
           <Stack spacing={1.5}>
             <SectionHeader
               icon={ShoppingCartIcon}
-              title="PENDIENTES SAP"
+              title={t('planner_pendientes_sap', 'PENDIENTES SAP')}
               subtitle="Materiales que requieren SOLPED"
               variant="info"
             />
@@ -339,7 +341,7 @@ export default function Paso4AccionesPendientes({
         {accionesStock.length === 0 && accionesCompra.length === 0 && (
           <Box sx={{ textAlign: "center", py: 6 }}>
             <Typography sx={{ color: "var(--fg-muted)" }}>
-              No hay acciones pendientes para esta solicitud.
+              {t('planner_sin_acciones_pendientes', 'No hay acciones pendientes para esta solicitud.')}
             </Typography>
           </Box>
         )}
@@ -378,7 +380,7 @@ export default function Paso4AccionesPendientes({
           <Stack direction="row" spacing={1.5} alignItems="center">
             <AccessTimeIcon sx={{ fontSize: 20, color: "var(--primary)" }} />
             <Typography sx={{ fontWeight: 500, color: "var(--fg-strong)" }}>
-              Acciones Pendientes de Ejecutar
+              {t('planner_acciones_pendientes', 'Acciones Pendientes de Ejecutar')}
             </Typography>
           </Stack>
           <Stack direction="row" spacing={2} sx={{ fontSize: 14 }}>
@@ -409,7 +411,7 @@ export default function Paso4AccionesPendientes({
         <Stack spacing={1.5}>
           <SectionHeader
             icon={Inventory2Icon}
-            title="TRASPASOS DE ALMACEN"
+            title={t('planner_traspasos_almacen', 'TRASPASOS DE ALMACÉN')}
             subtitle="Se notificara al almacen para realizar el traspaso"
             variant="success"
           />
@@ -422,7 +424,7 @@ export default function Paso4AccionesPendientes({
         <Stack spacing={1.5}>
           <SectionHeader
             icon={EmailIcon}
-            title="CONSULTAS A REFERENTES"
+            title={t('planner_consultas_referentes', 'CONSULTAS A REFERENTES')}
             subtitle="Se enviara consulta de disponibilidad a otros centros"
             variant="warning"
           />
@@ -435,7 +437,7 @@ export default function Paso4AccionesPendientes({
         <Stack spacing={1.5}>
           <SectionHeader
             icon={DescriptionIcon}
-            title="SOLPED A GENERAR"
+            title={t('planner_generar_solped', 'SOLPED A GENERAR')}
             subtitle="Pendiente generacion de pedido en SAP"
             variant="info"
           />
@@ -447,7 +449,7 @@ export default function Paso4AccionesPendientes({
       {totalAccionesPendientes === 0 && (
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography sx={{ color: "var(--fg-muted)" }}>
-            No hay acciones pendientes para ejecutar.
+            {t('planner_sin_acciones_pendientes', 'No hay acciones pendientes para esta solicitud.')}
           </Typography>
         </Box>
       )}
@@ -481,10 +483,10 @@ export default function Paso4AccionesPendientes({
               <Stack direction="row" spacing={1} alignItems="center">
                 <HowToRegIcon sx={{ fontSize: 16, color: "var(--primary)" }} />
                 <Typography sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
-                  Enviar resumen al solicitante para aceptacion
+                  {t('planner_enviar_resumen', 'Enviar resumen al solicitante para aceptación')}
                 </Typography>
                 <Chip
-                  label="Opcional"
+                  label={t('common_opcional', 'Opcional')}
                   size="small"
                   sx={{
                     height: 18,
@@ -946,6 +948,7 @@ function AccionesTable({ acciones, tipo = "stock", onEstadoClick }) {
 }
 
 function MensajeAccionModal({ accion, isOpen, onClose }) {
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   if (!accion) return null;
@@ -976,7 +979,7 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
-              Detalle de Accion
+              {t('planner_detalle_accion', 'Detalle de Acción')}
             </Typography>
             <Chip
               label={estadoConfig.label}
@@ -1005,7 +1008,7 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
                 letterSpacing: 0.5,
               }}
             >
-              Material
+              {t('common_material', 'Material')}
             </Typography>
             <Typography
               variant="body1"
@@ -1032,7 +1035,7 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
                 letterSpacing: 0.5,
               }}
             >
-              Destinatario
+              {t('common_destinatario', 'Destinatario')}
             </Typography>
             <Typography variant="body1" sx={{ color: "var(--fg-strong)" }}>
               {accion.destinatario || "No especificado"}
@@ -1109,7 +1112,7 @@ function MensajeAccionModal({ accion, isOpen, onClose }) {
       </DialogContent>
       <DialogActions sx={{ p: 2, gap: 1 }}>
         <MuiButton onClick={onClose} sx={{ color: "var(--fg-muted)" }}>
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </MuiButton>
         <MuiButton
           variant="contained"

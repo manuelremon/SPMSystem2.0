@@ -61,12 +61,12 @@ function ExpandedCardDialog({
             else estados.enProceso++;
           });
           const data = [
-            { id: 'borrador', label: 'Borrador', value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
-            { id: 'enviadas', label: 'Enviadas', value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
-            { id: 'aprobadas', label: 'Aprobadas', value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
-            { id: 'enProceso', label: 'En Proceso', value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
-            { id: 'rechazadas', label: 'Rechazadas', value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
-            { id: 'cerradas', label: 'Cerradas', value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
+            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
+            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
+            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
+            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
+            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
+            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
           ];
           return (
             <Box sx={{ height: 400 }}>
@@ -97,20 +97,20 @@ function ExpandedCardDialog({
               <Stack direction="row" justifyContent="space-around" alignItems="center">
                 <Stack alignItems="center" sx={{ width: 140 }}>
                   <SPMGauge value={p.percentage || 0} max={100} height={120} color={BUDGET_COLORS.total} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>Total MUSD {fmt(p.total)}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>{t('dash_total', 'Total')} MUSD {fmt(p.total)}</Typography>
                 </Stack>
                 <Stack alignItems="center" sx={{ width: 140 }}>
                   <SPMGauge value={p.total > 0 ? Math.round((p.utilizado / p.total) * 100) : 0} max={100} height={120} color={BUDGET_COLORS.utilizado} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>Utilizado MUSD {fmt(p.utilizado)}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>{t('dash_utilizado', 'Utilizado')} MUSD {fmt(p.utilizado)}</Typography>
                 </Stack>
                 <Stack alignItems="center" sx={{ width: 140 }}>
                   <SPMGauge value={p.total > 0 ? Math.round((p.disponible / p.total) * 100) : 0} max={100} height={120} color={BUDGET_COLORS.disponible} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>Disponible MUSD {fmt(p.disponible)}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, mt: 0.5 }}>{t('dash_disponible', 'Disponible')} MUSD {fmt(p.disponible)}</Typography>
                 </Stack>
               </Stack>
               {topC.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Top Centros</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>{t('dash_top_centros', 'Top Centros')}</Typography>
                   {topC.map((c, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                       <Typography variant="caption" sx={{ width: 80, flexShrink: 0 }}>{c.nombre}</Typography>
@@ -124,7 +124,7 @@ function ExpandedCardDialog({
               )}
               {topS.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Top Sectores</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>{t('dash_top_sectores', 'Top Sectores')}</Typography>
                   {topS.map((s, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                       <Typography variant="caption" sx={{ width: 100, flexShrink: 0 }}>{s.nombre}</Typography>
@@ -173,7 +173,7 @@ function ExpandedCardDialog({
           const total = avgA + avgP + avgPr || 1;
           return (
             <Stack spacing={3} sx={{ py: 2 }}>
-              <Typography variant="body1" sx={{ fontWeight: 600, textAlign: 'center' }}>Promedio total: {total}d</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600, textAlign: 'center' }}>{t('dash_promedio', 'Promedio')} total: {total}d</Typography>
               <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 32, borderRadius: 2, overflow: 'hidden' }}>
                 <Box sx={{ flex: avgA, bgcolor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.75rem' }}>{avgA}d</Typography>
@@ -186,7 +186,7 @@ function ExpandedCardDialog({
                 </Box>
               </Stack>
               <Stack direction="row" justifyContent="space-around">
-                {[{ label: 'Aprobacion', val: avgA, color: '#3b82f6' }, { label: 'Planificacion', val: avgP, color: '#f59e0b' }, { label: 'Proveedor', val: avgPr, color: '#10b981' }].map(item => (
+                {[{ label: t('dash_aprobacion', 'Aprobación'), val: avgA, color: '#3b82f6' }, { label: t('dash_planificacion', 'Planificación'), val: avgP, color: '#f59e0b' }, { label: t('common_proveedor', 'Proveedor'), val: avgPr, color: '#10b981' }].map(item => (
                   <Stack key={item.label} alignItems="center" spacing={0.5}>
                     <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: item.color }} />
                     <Typography variant="body2" sx={{ fontWeight: 700, color: item.color }}>{item.val}d</Typography>
@@ -214,8 +214,8 @@ function ExpandedCardDialog({
           const valExt = externas.reduce((sum, s) => sum + (Number(s.monto_total) || Number(s.valor_estimado) || 0), 0);
           const itemsExt = externas.length;
           const polar = [
-            { label: 'Stock interno', value: valInt || 0.01, color: SPM_COLORS.success },
-            { label: 'Compra externa', value: valExt || 0.01, color: SPM_COLORS.warning },
+            { label: t('dash_stock_interno', 'Stock interno'), value: valInt || 0.01, color: SPM_COLORS.success },
+            { label: t('dash_compra_externa', 'Compra externa'), value: valExt || 0.01, color: SPM_COLORS.warning },
           ];
           const tot = valInt + valExt;
           const fmt = (v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : (v || 0).toFixed(0);
@@ -228,7 +228,7 @@ function ExpandedCardDialog({
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: SPM_COLORS.success }} />
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>Stock interno</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{t('dash_stock_interno', 'Stock interno')}</Typography>
                   </Stack>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: SPM_COLORS.success, ml: 3.5 }}>USD {fmt(valInt)}</Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', ml: 3.5 }}>{itemsInt} items ({tot > 0 ? ((valInt / tot) * 100).toFixed(1) : 0}%)</Typography>
@@ -236,7 +236,7 @@ function ExpandedCardDialog({
                 <Box>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: SPM_COLORS.warning }} />
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>Compra externa</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{t('dash_compra_externa', 'Compra externa')}</Typography>
                   </Stack>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: SPM_COLORS.warning, ml: 3.5 }}>USD {fmt(valExt)}</Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary', ml: 3.5 }}>{itemsExt} solicitudes ({tot > 0 ? ((valExt / tot) * 100).toFixed(1) : 0}%)</Typography>

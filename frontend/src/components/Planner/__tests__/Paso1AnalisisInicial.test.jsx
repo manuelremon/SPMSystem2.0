@@ -6,6 +6,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import Paso1AnalisisInicial from '../Paso1AnalisisInicial'
 
+// Mock i18n
+vi.mock('../../../context/i18n', () => ({
+  useI18n: () => ({ t: (key, fallback) => fallback || key, lang: 'es' }),
+}))
+
 // Mock api and csrf (used by PresupuestoInsuficienteModal)
 vi.mock('../../../services/api', () => ({
   default: { post: vi.fn(), patch: vi.fn() },

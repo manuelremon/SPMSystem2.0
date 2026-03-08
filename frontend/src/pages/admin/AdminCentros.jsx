@@ -150,7 +150,7 @@ export default function AdminCentros() {
     () => [
       {
         field: "codigo",
-        headerName: "Codigo",
+        headerName: t('common_codigo', 'Código'),
         flex: 0.5,
         minWidth: 100,
         cellRenderer: (params) => (
@@ -164,21 +164,21 @@ export default function AdminCentros() {
       },
       {
         field: "nombre",
-        headerName: "Nombre",
+        headerName: t('common_nombre', 'Nombre'),
         flex: 1,
         minWidth: 200,
         valueFormatter: (params) => params.value || "-",
       },
       {
         field: "activo",
-        headerName: "Estado",
+        headerName: t('common_estado', 'Estado'),
         flex: 0.4,
         minWidth: 100,
         cellRenderer: (params) => {
           const isActivo = params.value === 1 || params.value === true;
           return (
             <Chip
-              label={isActivo ? "Activo" : "Inactivo"}
+              label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
               size="small"
               color={isActivo ? "success" : "default"}
               sx={{
@@ -194,13 +194,13 @@ export default function AdminCentros() {
       },
       {
         field: "created_at",
-        headerName: "Creado",
+        headerName: t('common_creado', 'Creado'),
         flex: 0.5,
         minWidth: 120,
         valueFormatter: (params) => params.value || "-",
       },
       {
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.4,
         minWidth: 100,
         sortable: false,
@@ -210,7 +210,7 @@ export default function AdminCentros() {
             <IconButton
               size="small"
               onClick={() => handleEdit(params.data)}
-              title="Editar"
+              title={t('common_editar', 'Editar')}
               sx={{
                 color: "text.secondary",
                 "&:hover": { color: "primary.main", bgcolor: "primary.lighter" },
@@ -221,7 +221,7 @@ export default function AdminCentros() {
             <IconButton
               size="small"
               onClick={() => setDeletingId(params.data.codigo)}
-              title="Eliminar"
+              title={t('common_eliminar', 'Eliminar')}
               sx={{
                 color: "text.secondary",
                 "&:hover": { color: "error.main", bgcolor: "error.lighter" },
@@ -233,7 +233,7 @@ export default function AdminCentros() {
         ),
       },
     ],
-    []
+    [t]
   );
 
   // ─── Render ───────────────────────────────────────────────
@@ -304,7 +304,7 @@ export default function AdminCentros() {
                 disabled={submitting}
                 sx={{ textTransform: "none" }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 size="small"
@@ -314,7 +314,7 @@ export default function AdminCentros() {
                 disabled={submitting}
                 sx={{ textTransform: "none" }}
               >
-                {submitting ? "..." : "Eliminar"}
+                {submitting ? "..." : t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           }
@@ -338,7 +338,7 @@ export default function AdminCentros() {
           height={500}
           enableQuickFilter={true}
           exportFileName="centros"
-          emptyMessage="No hay centros registrados"
+          emptyMessage={t('admin_no_results', 'No hay centros registrados')}
         />
       </Paper>
 
@@ -375,7 +375,7 @@ export default function AdminCentros() {
               color: "text.primary",
             }}
           >
-            {editingId ? "Editar Centro" : "Nuevo Centro"}
+            {editingId ? `${t('common_editar', 'Editar')} Centro` : `${t('common_nuevo', 'Nuevo')} Centro`}
           </Typography>
           <IconButton
             onClick={() => setDrawerOpen(false)}
@@ -403,7 +403,7 @@ export default function AdminCentros() {
             )}
 
             <TextField
-              label="Codigo"
+              label={t('common_codigo', 'Código')}
               name="codigo"
               value={form.codigo}
               onChange={handleChange}
@@ -415,7 +415,7 @@ export default function AdminCentros() {
               InputLabelProps={{ shrink: true }}
             />
             <TextField
-              label="Nombre"
+              label={t('common_nombre', 'Nombre')}
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
@@ -439,7 +439,7 @@ export default function AdminCentros() {
               }
               label={
                 <Typography variant="body2" color="text.primary">
-                  Activo
+                  {t('common_activo', 'Activo')}
                 </Typography>
               }
             />
@@ -460,7 +460,7 @@ export default function AdminCentros() {
                 fullWidth
                 sx={{ textTransform: "none" }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 type="submit"
@@ -470,10 +470,10 @@ export default function AdminCentros() {
                 sx={{ textTransform: "none" }}
               >
                 {submitting
-                  ? "Guardando..."
+                  ? t('common_guardando', 'Guardando...')
                   : editingId
-                  ? "Actualizar"
-                  : "Crear"}
+                  ? t('common_actualizar', 'Actualizar')
+                  : t('common_crear', 'Crear')}
               </Button>
             </Box>
           </Stack>

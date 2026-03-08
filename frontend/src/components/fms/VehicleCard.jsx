@@ -4,6 +4,7 @@
 import React from 'react'
 import { Card, CardContent, CardActionArea, Box, Typography, Chip, LinearProgress } from '@mui/material'
 import { Truck, Fuel, Gauge } from '../ui/Icons'
+import { useI18n } from '../../context/i18n'
 
 const STATUS_CONFIG = {
   disponible: { label: 'Disponible', color: 'success' },
@@ -25,6 +26,7 @@ const TYPE_LABELS = {
 }
 
 export default function VehicleCard({ vehicle, onClick }) {
+  const { t } = useI18n()
   const status = STATUS_CONFIG[vehicle.estado] || STATUS_CONFIG.disponible
 
   return (
@@ -81,7 +83,7 @@ export default function VehicleCard({ vehicle, onClick }) {
           {/* Special capabilities */}
           <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
             {vehicle.cadena_frio ? <Chip label="Frio" size="small" color="info" variant="outlined" sx={{ fontSize: '0.65rem' }} /> : null}
-            {vehicle.hazmat_cert ? <Chip label="Hazmat" size="small" color="error" variant="outlined" sx={{ fontSize: '0.65rem' }} /> : null}
+            {vehicle.hazmat_cert ? <Chip label={t('fms_hazmat', 'Mat. Peligroso')} size="small" color="error" variant="outlined" sx={{ fontSize: '0.65rem' }} /> : null}
           </Box>
         </CardContent>
       </CardActionArea>

@@ -53,13 +53,13 @@ const BacktestResults = ({ data, loading = false }) => {
     },
     {
       field: 'n_train',
-      headerName: 'Train',
+      headerName: t('forecast_train', 'Entrenamiento'),
       width: 90,
       type: 'numericColumn',
     },
     {
       field: 'n_test',
-      headerName: 'Test',
+      headerName: t('forecast_test', 'Prueba'),
       width: 90,
       type: 'numericColumn',
     },

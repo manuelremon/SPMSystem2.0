@@ -3,6 +3,7 @@ import { ScrollReveal } from "../../components/ui/ScrollReveal";
 import { WeeklyRequestsKpiCard } from "../../components/dashboard/WeeklyRequestsKpiCard";
 import { SPMPolarArea, SPM_COLORS, PHASE_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../../components/ui/SPMChartJS';
 import ExpandCardButton from './ExpandCardButton';
+import { useI18n } from "../../context/i18n";
 // MUI Components
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -58,6 +59,7 @@ function KPIRow1({
   // Drill-down handler
   onKpiDrillDown,
 }) {
+  const { t } = useI18n();
   return (
     <ScrollReveal delay={100}>
       <Stack direction="row" gap={1.5} flexWrap="wrap">
@@ -106,7 +108,7 @@ function KPIRow1({
                 <ExpandCardButton
                   onClick={() => {
                     setExpandedCard('solicitudes');
-                    setExpandedTitle('Solicitudes Creadas');
+                    setExpandedTitle(t('dash_solicitudes_creadas', 'Solicitudes Creadas'));
                   }}
                 />
               </Box>
@@ -157,16 +159,16 @@ function KPIRow1({
                   <Box sx={{ flexShrink: 0, minWidth: 120 }}>
                     <Box sx={{ mb: 1 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                        Cumplimiento Proveedores
+                        {t('dash_cumplimiento_proveedores', 'Cumplimiento Proveedores')}
                       </Typography>
-                      <Tooltip title={totalPedidos > 0 ? `${entregasATiempo} entregas a tiempo de ${totalPedidos} pedidos totales` : 'Sin datos de pedidos'} arrow placement="right">
+                      <Tooltip title={totalPedidos > 0 ? `${entregasATiempo} ${t('dash_entregas_a_tiempo', 'entregas a tiempo')} de ${totalPedidos} pedidos totales` : t('common_sin_datos', 'Sin datos')} arrow placement="right">
                       <Typography variant="h5" sx={{ fontWeight: 700, color: 'grey.800' }}>
                         {totalPedidos > 0 ? `${pctCumplimiento}%` : 'N/A'}
                       </Typography>
                     </Tooltip>
                     </Box>
                     <Typography variant="caption" sx={{ color: 'grey.500' }}>
-                      {totalPedidos > 0 ? `${entregasATiempo}/${totalPedidos} a tiempo` : `${cumplimientoProveedores.length} proveedores`}
+                      {totalPedidos > 0 ? `${entregasATiempo}/${totalPedidos} ${t('dash_a_tiempo', 'a tiempo')}` : `${cumplimientoProveedores.length} proveedores`}
                     </Typography>
                   </Box>
 
@@ -201,7 +203,7 @@ function KPIRow1({
                       >
                         <MenuItem value="__todos__">
                           <Checkbox checked={proveedoresSeleccionados.length === cumplimientoProveedores.length && cumplimientoProveedores.length > 0} size="small" />
-                          <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                          <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
                         </MenuItem>
                         {cumplimientoProveedores.map((p) => (
                           <MenuItem key={p.proveedor_cuit || p.proveedor_nombre} value={p.proveedor_cuit || p.proveedor_nombre}>
@@ -228,7 +230,7 @@ function KPIRow1({
                                 </Typography>
                               </Tooltip>
                               {pct !== null ? (
-                                <Tooltip title={`${pct >= 90 ? 'Excelente' : pct >= 70 ? 'Aceptable' : 'Bajo'}: ${p.entregas_a_tiempo || 0} de ${p.total_pedidos || 0}`} arrow>
+                                <Tooltip title={`${pct >= 90 ? t('dash_excelente', 'Excelente') : pct >= 70 ? t('dash_aceptable', 'Aceptable') : t('dash_bajo', 'Bajo')}: ${p.entregas_a_tiempo || 0} de ${p.total_pedidos || 0}`} arrow>
                                   <Typography
                                     variant="caption"
                                     sx={{
@@ -241,7 +243,7 @@ function KPIRow1({
                                   </Typography>
                                 </Tooltip>
                               ) : (
-                                <Typography variant="caption" sx={{ color: 'grey.400', ml: 1, fontSize: FONT_SIZES.xs }}>Sin datos</Typography>
+                                <Typography variant="caption" sx={{ color: 'grey.400', ml: 1, fontSize: FONT_SIZES.xs }}>{t('common_sin_datos', 'Sin datos')}</Typography>
                               )}
                             </Stack>
                           );
@@ -350,7 +352,7 @@ function KPIRow1({
                 {/* Header */}
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                    Tiempos de Gesti&oacute;n
+                    {t('dash_tiempos_gestion', 'Tiempos de Gesti\u00f3n')}
                   </Typography>
                   <Stack direction="row" alignItems="center" gap={0.5}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: SPM_COLORS.primary, fontSize: FONT_SIZES.sm }}>
@@ -359,7 +361,7 @@ function KPIRow1({
                     <ExpandCardButton
                       onClick={() => {
                         setExpandedCard('tiempos');
-                        setExpandedTitle('Tiempos de Gesti\u00f3n');
+                        setExpandedTitle(t('dash_tiempos_gestion', 'Tiempos de Gesti\u00f3n'));
                       }}
                     />
                   </Stack>
@@ -388,7 +390,7 @@ function KPIRow1({
                       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.aprobacion.bg, flexShrink: 0 }} />
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
-                          Aprobaci&oacute;n
+                          {t('dash_aprobacion', 'Aprobaci\u00f3n')}
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
@@ -406,7 +408,7 @@ function KPIRow1({
                       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.planificacion.bg, flexShrink: 0 }} />
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
-                          Planificaci&oacute;n
+                          {t('dash_planificacion', 'Planificaci\u00f3n')}
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
@@ -424,7 +426,7 @@ function KPIRow1({
                       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: colores.proveedor.bg, flexShrink: 0 }} />
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
-                          Proveedor
+                          {t('common_proveedor', 'Proveedor')}
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
@@ -473,8 +475,8 @@ function KPIRow1({
           const itemsCompraExterna = solicitudesConCompra.length;
 
           const polarData = [
-            { label: 'Stock interno', value: valorStockInterno || 0.01, color: SPM_COLORS.success },
-            { label: 'Compra externa', value: valorCompraExterna || 0.01, color: SPM_COLORS.warning },
+            { label: t('dash_stock_interno', 'Stock interno'), value: valorStockInterno || 0.01, color: SPM_COLORS.success },
+            { label: t('dash_compra_externa', 'Compra externa'), value: valorCompraExterna || 0.01, color: SPM_COLORS.warning },
           ];
 
           const totalValor = valorStockInterno + valorCompraExterna;
@@ -518,7 +520,7 @@ function KPIRow1({
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
                   <Stack direction="row" alignItems="center" gap={0.5}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                      Fuente de Abastecimiento
+                      {t('dash_fuente_abastecimiento', 'Fuente de Abastecimiento')}
                     </Typography>
                     {hayFiltrosActivos && (
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'primary.main' }}>(filtrado)</Typography>
@@ -531,7 +533,7 @@ function KPIRow1({
                     <ExpandCardButton
                       onClick={() => {
                         setExpandedCard('fuente');
-                        setExpandedTitle('Fuente de Abastecimiento');
+                        setExpandedTitle(t('dash_fuente_abastecimiento', 'Fuente de Abastecimiento'));
                       }}
                     />
                   </Stack>
@@ -575,7 +577,7 @@ function KPIRow1({
                       <Stack direction="row" alignItems="center" spacing={0.75}>
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: SPM_COLORS.success, flexShrink: 0 }} />
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
-                          Stock interno
+                          {t('dash_stock_interno', 'Stock interno')}
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>
@@ -594,7 +596,7 @@ function KPIRow1({
                       <Stack direction="row" alignItems="center" spacing={0.75}>
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: SPM_COLORS.warning, flexShrink: 0 }} />
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: FONT_SIZES.sm }}>
-                          Compra externa
+                          {t('dash_compra_externa', 'Compra externa')}
                         </Typography>
                       </Stack>
                       <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ ml: 2.25 }}>

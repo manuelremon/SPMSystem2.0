@@ -225,7 +225,7 @@ function RegisterDialog({ open, handleClose, t, onRegister, isSubmitting, regist
             endAdornment={
               <InputAdornment position="end">
                 <IconButton
-                  aria-label="toggle password visibility"
+                  aria-label={t('login_toggle_password', 'Alternar visibilidad de contrase\u00f1a')}
                   onClick={() => setShowPassword(!showPassword)}
                   edge="end"
                   size="small"
@@ -469,7 +469,7 @@ export default function Login() {
                 endAdornment={
                   <InputAdornment position="end">
                     <IconButton
-                      aria-label="toggle password visibility"
+                      aria-label={t('login_toggle_password', 'Alternar visibilidad de contrase\u00f1a')}
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       size="small"

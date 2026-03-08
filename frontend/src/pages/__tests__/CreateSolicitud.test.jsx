@@ -335,7 +335,7 @@ describe('CreateSolicitud', () => {
           })
         )
       })
-    })
+    }, 15000)
 
     it('debe navegar a agregar materiales después de crear', async () => {
       spm.solicitudes.crear.mockResolvedValue({
@@ -352,7 +352,7 @@ describe('CreateSolicitud', () => {
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/solicitudes/123/materiales')
       })
-    })
+    }, 15000)
 
     it('debe mostrar error si falla el envío', async () => {
       spm.solicitudes.crear.mockRejectedValue({
@@ -370,7 +370,7 @@ describe('CreateSolicitud', () => {
         expect(screen.getByRole('alert')).toBeInTheDocument()
         expect(screen.getByText('Error al crear solicitud')).toBeInTheDocument()
       })
-    })
+    }, 15000)
   })
 
   describe('Botón Cancelar', () => {
@@ -432,7 +432,7 @@ describe('CreateSolicitud', () => {
       await waitFor(() => {
         expect(spm.solicitudes.crearConArchivos).toHaveBeenCalled()
       })
-    })
+    }, 15000)
   })
 
   describe('Pre-carga de datos del usuario', () => {

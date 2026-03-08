@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { logger } from '../utils/logger.js'
+import { translateError } from '../utils/errorTranslation'
 
 /**
  * API Configuration
@@ -121,6 +122,19 @@ api.interceptors.response.use(
 
     if (!shouldSilence) {
       log.error(`${config.method?.toUpperCase()} ${config.url} -> ${status} (${duration}ms)`, error.response?.data || error.message)
+    }
+
+    // Translate backend error messages to the user's language
+    if (error.response?.data) {
+      const data = error.response.data
+      if (typeof data.error === 'string') {
+        data.error = translateError(data.error)
+      } else if (data.error?.message && typeof data.error.message === 'string') {
+        data.error.message = translateError(data.error.message)
+      }
+      if (typeof data.message === 'string') {
+        data.message = translateError(data.message)
+      }
     }
 
     const originalRequest = error.config

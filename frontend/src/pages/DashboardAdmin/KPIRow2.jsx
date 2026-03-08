@@ -5,6 +5,7 @@ import { TrendChart } from '../../components/dashboard/TrendChart';
 import { ChartExportButton } from '../../components/dashboard/ChartExportButton';
 import { SPMGauge, SPM_COLORS, STATUS_COLORS, BUDGET_COLORS, FONT_SIZES } from '../../components/ui/SPMChartJS';
 import ExpandCardButton from './ExpandCardButton';
+import { useI18n } from "../../context/i18n";
 // MUI Components
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -34,6 +35,7 @@ function KPIRow2({
   // Drill-down handler
   onKpiDrillDown,
 }) {
+  const { t } = useI18n();
   return (
     <ScrollReveal delay={200}>
       <Stack direction="row" flexWrap="wrap" gap={1.5}>
@@ -69,12 +71,12 @@ function KPIRow2({
           });
 
           const chartData = [
-            { id: 'borrador', label: 'Borrador', value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
-            { id: 'enviadas', label: 'Enviadas', value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
-            { id: 'aprobadas', label: 'Aprobadas', value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
-            { id: 'enProceso', label: 'En Proceso', value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
-            { id: 'rechazadas', label: 'Rechazadas', value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
-            { id: 'cerradas', label: 'Cerradas', value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
+            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
+            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
+            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
+            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
+            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
+            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
           ];
 
           return (
@@ -100,13 +102,13 @@ function KPIRow2({
             >
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                  {`Distribuci\u00f3n de Estados`}
+                  {t('dash_distribucion_estados', 'Distribuci\u00f3n de Estados')}
                 </Typography>
                 <Stack direction="row" alignItems="center" gap={0}>
                   <ExpandCardButton
                     onClick={() => {
                       setExpandedCard('distribucion');
-                      setExpandedTitle('Distribuci\u00f3n de Estados');
+                      setExpandedTitle(t('dash_distribucion_estados', 'Distribuci\u00f3n de Estados'));
                     }}
                   />
                   <ChartExportButton chartRef={distribucionRef} filename="distribucion-estados" size="small" />
@@ -146,13 +148,13 @@ function KPIRow2({
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-              {`Tendencia Hist\u00f3rica (12 meses)`}
+              {t('dash_tendencia_historica', 'Tendencia Hist\u00f3rica (12 meses)')}
             </Typography>
             <Stack direction="row" alignItems="center" gap={0}>
               <ExpandCardButton
                 onClick={() => {
                   setExpandedCard('tendencia');
-                  setExpandedTitle('Tendencia Hist\u00f3rica (12 meses)');
+                  setExpandedTitle(t('dash_tendencia_historica', 'Tendencia Hist\u00f3rica (12 meses)'));
                 }}
               />
               <ChartExportButton chartRef={tendenciaRef} filename="tendencia-historica" size="small" />
@@ -228,11 +230,11 @@ function KPIRow2({
               <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mb={0.5}>
                 <Stack direction="row" alignItems="center" gap={1}>
                   <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                    Presupuesto {mostrandoGlobal ? 'Global' : 'Filtrado'}
+                    {t('dash_presupuesto_global', 'Presupuesto')} {mostrandoGlobal ? t('dash_total', 'Global') : t('dash_filtrado', 'Filtrado')}
                   </Typography>
                   {!mostrandoGlobal && (
                     <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'primary.main' }}>
-                      ({centrosFiltrados.length} centros)
+                      ({centrosFiltrados.length} {t('dash_centros', 'centros')})
                     </Typography>
                   )}
                 </Stack>
@@ -240,7 +242,7 @@ function KPIRow2({
                   <ExpandCardButton
                     onClick={() => {
                       setExpandedCard('presupuesto');
-                      setExpandedTitle('Presupuesto Global');
+                      setExpandedTitle(t('dash_presupuesto_global', 'Presupuesto') + ' ' + t('dash_total', 'Global'));
                     }}
                   />
                   <ChartExportButton chartRef={presupuestoGlobalRef} filename="presupuesto-global" size="small" />
@@ -252,7 +254,7 @@ function KPIRow2({
                   <Tooltip title={`USD ${presupuestoFiltrado.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`} arrow>
                     <Stack alignItems="center" sx={{ width: 75 }}>
                       <SPMGauge value={100} valueMax={100} width={70} height={70} color={BUDGET_COLORS.total} startAngle={-90} endAngle={90} />
-                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Total</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_total', 'Total')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.total, whiteSpace: 'nowrap' }}>
                         MUSD {(presupuestoFiltrado.total / 1000000).toFixed(1)}
                       </Typography>
@@ -261,7 +263,7 @@ function KPIRow2({
                   <Tooltip title={`USD ${presupuestoFiltrado.utilizado.toLocaleString('es-AR', { minimumFractionDigits: 2 })} (${presupuestoFiltrado.percentage}%)`} arrow>
                     <Stack alignItems="center" sx={{ width: 75 }}>
                       <SPMGauge value={presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.utilizado} startAngle={-90} endAngle={90} />
-                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Utilizado</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_utilizado', 'Utilizado')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.utilizado, whiteSpace: 'nowrap' }}>
                         MUSD {(presupuestoFiltrado.utilizado / 1000000).toFixed(1)}
                       </Typography>
@@ -270,7 +272,7 @@ function KPIRow2({
                   <Tooltip title={`USD ${presupuestoFiltrado.disponible.toLocaleString('es-AR', { minimumFractionDigits: 2 })} (${100 - presupuestoFiltrado.percentage}%)`} arrow>
                     <Stack alignItems="center" sx={{ width: 75 }}>
                       <SPMGauge value={100 - presupuestoFiltrado.percentage} valueMax={100} width={70} height={70} color={BUDGET_COLORS.disponible} startAngle={-90} endAngle={90} />
-                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>Disponible</Typography>
+                      <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.secondary', mt: -0.5 }}>{t('dash_disponible', 'Disponible')}</Typography>
                       <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, fontWeight: 700, color: BUDGET_COLORS.disponible, whiteSpace: 'nowrap' }}>
                         MUSD {(presupuestoFiltrado.disponible / 1000000).toFixed(1)}
                       </Typography>
@@ -282,13 +284,13 @@ function KPIRow2({
                 {/* Top 3 en dos columnas */}
                 <Box sx={{ flex: 1, minWidth: 240, overflow: 'visible' }}>
                   <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.3px', mb: 0.75, textAlign: 'center' }}>
-                    {mostrandoGlobal ? 'Top3 consumo del Presupuesto Global por:' : 'Seleccionados'}
+                    {mostrandoGlobal ? 'Top3 consumo del Presupuesto Global por:' : t('dash_seleccionados', 'Seleccionados')}
                   </Typography>
                   <Stack direction="row" gap={2}>
                     {/* Top Centros */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
-                        Centros
+                        {t('dash_centros', 'Centros')}
                       </Typography>
                       <Stack spacing={0.75}>
                         {(mostrandoGlobal ? topCentros : centrosFiltrados).slice(0, 3).map((centro, idx) => (
@@ -309,14 +311,14 @@ function KPIRow2({
                           </Tooltip>
                         ))}
                         {(mostrandoGlobal ? topCentros : centrosFiltrados).length === 0 && (
-                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>{t('common_sin_datos', 'Sin datos')}</Typography>
                         )}
                       </Stack>
                     </Box>
                     {/* Top Sectores */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="caption" sx={{ display: 'block', fontSize: FONT_SIZES.xs, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
-                        Sectores
+                        {t('dash_sectores_label', 'Sectores')}
                       </Typography>
                       <Stack spacing={0.75}>
                         {(mostrandoGlobal ? topSectores : sectoresFiltrados).slice(0, 3).map((sector, idx) => (
@@ -337,7 +339,7 @@ function KPIRow2({
                           </Tooltip>
                         ))}
                         {(mostrandoGlobal ? topSectores : sectoresFiltrados).length === 0 && (
-                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>Sin datos</Typography>
+                          <Typography variant="caption" sx={{ fontSize: FONT_SIZES.xs, color: 'text.disabled' }}>{t('common_sin_datos', 'Sin datos')}</Typography>
                         )}
                       </Stack>
                     </Box>

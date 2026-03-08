@@ -165,7 +165,7 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
           size={120}
           strokeWidth={10}
           color={getColorByMetric(overallHitRate, 'cacheHit')}
-          label="Hit Rate"
+          label={t('admin_hit_rate', 'Hit Rate')}
         />
       </Box>
 
@@ -257,7 +257,7 @@ function SystemPanel({ systemMetrics, health }) {
         <Grid item xs={6}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
             <MemoryIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
-            <Typography variant="body2">CPU Sistema</Typography>
+            <Typography variant="body2">{t('admin_cpu_system', 'CPU Sistema')}</Typography>
           </Stack>
           <Typography variant="h5" fontWeight="bold" color="text.primary">
             {systemMetrics.system.cpu_percent?.toFixed(1) || '--'}%
@@ -272,7 +272,7 @@ function SystemPanel({ systemMetrics, health }) {
         <Grid item xs={6}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
             <StorageIcon sx={{ width: 16, height: 16 }} />
-            <Typography variant="body2">{t('memory', 'Memoria')} Sistema</Typography>
+            <Typography variant="body2">{t('admin_memory_system', 'Memoria Sistema')}</Typography>
           </Stack>
           <Typography variant="h5" fontWeight="bold" color="text.primary">
             {systemMetrics.system.memory_percent?.toFixed(1) || '--'}%
@@ -375,7 +375,7 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <DataUsageIcon sx={{ width: 16, height: 16, color: 'error.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              Oracle Cloud Instance
+              {t('admin_oci_instance', 'Oracle Cloud Instance')}
             </Typography>
             <Chip
               label={infrastructure.oci.instance?.state}
@@ -458,7 +458,7 @@ function InfrastructurePanel({ infrastructure }) {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
           <MonitorHeartIcon sx={{ width: 16, height: 16, color: 'success.main' }} />
           <Typography variant="body2" fontWeight={500} color="text.secondary">
-            Recursos del Sistema
+            {t('admin_system_resources', 'Recursos del Sistema')}
           </Typography>
           {infrastructure.system?.uptime && (
             <Chip
@@ -541,7 +541,7 @@ function InfrastructurePanel({ infrastructure }) {
             <Grid item xs={6} md={3}>
               <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  CPU Load
+                  {t('admin_cpu_load', 'Carga CPU')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="text.primary">
                   {infrastructure.services.system.load['1min']}
@@ -557,13 +557,13 @@ function InfrastructurePanel({ infrastructure }) {
             <Grid item xs={6} md={3}>
               <Paper sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Network
+                  {t('admin_network', 'Red')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="text.primary">
                   {infrastructure.oci.shape.network_gbps} Gbps
                 </Typography>
                 <Typography variant="caption" color="text.disabled">
-                  Bandwidth disponible
+                  {t('admin_bandwidth_available', 'Bandwidth disponible')}
                 </Typography>
               </Paper>
             </Grid>
@@ -577,7 +577,7 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <ViewInArIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              Docker Containers
+              {t('admin_docker_containers', 'Docker Containers')}
             </Typography>
             <Chip
               label={`v${infrastructure.docker.docker_version}`}
@@ -634,7 +634,7 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <GitHubIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              Git Status
+              {t('admin_git_status', 'Git Status')}
             </Typography>
             <Chip label={infrastructure.git.branch} size="small" />
           </Stack>

@@ -83,7 +83,7 @@ export function ControlPanel({
               onClick={onToggleAutoRefresh}
               startIcon={autoRefresh ? <PauseIcon /> : <PlayArrowIcon />}
             >
-              Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+              Auto-refresh {autoRefresh ? t('common_on', 'ON') : t('common_off', 'OFF')}
             </Button>
 
             <Button

@@ -63,7 +63,7 @@ const CATEGORY_ICONS = {
 function getTableColumnsAgGrid(t) {
   return [
     {
-      field: "id", headerName: "ID", width: 80, flex: 0,
+      field: "id", headerName: t('common_id', 'ID'), width: 80, flex: 0,
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums", color: "slate.700" }}>
           {params.data?.id}
@@ -95,7 +95,7 @@ function getTableColumnsAgGrid(t) {
         const row = params.data;
         return (
           <StatusBadge
-            estado={row?.estado || row?.status || "Desconocido"}
+            estado={row?.estado || row?.status || t('common_desconocido', 'Desconocido')}
             showIcon={false}
             tooltipInfo={{
               aprobador: [row?.aprobador_nombre, row?.aprobador_apellido].filter(Boolean).join(" ").trim() || null,
@@ -108,14 +108,14 @@ function getTableColumnsAgGrid(t) {
       },
     },
     {
-      field: "criticidad", headerName: "Criticidad", minWidth: 100,
+      field: "criticidad", headerName: t('common_criticidad', 'Criticidad'), minWidth: 100,
       cellRenderer: (params) => {
         const config = getCriticidadConfig(params.data?.criticidad || "Normal");
         return <Typography component="span" sx={{ fontSize: "0.75rem", fontWeight: 600, color: config.color }}>{config.label}</Typography>;
       },
     },
     {
-      field: "items", headerName: "Items", width: 80, flex: 0,
+      field: "items", headerName: t('common_items', 'Items'), width: 80, flex: 0,
       valueGetter: (params) => (params.data?.items || []).length,
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
@@ -124,7 +124,7 @@ function getTableColumnsAgGrid(t) {
       ),
     },
     {
-      field: "total_monto", headerName: "Monto", minWidth: 120, type: "numericColumn",
+      field: "total_monto", headerName: t('common_monto', 'Monto'), minWidth: 120, type: "numericColumn",
       cellStyle: { textAlign: 'right', paddingRight: '16px' },
       valueFormatter: (params) => formatCurrency(params.data?.total_monto || 0),
       cellRenderer: (params) => (
@@ -134,7 +134,7 @@ function getTableColumnsAgGrid(t) {
       ),
     },
     {
-      field: "sector_nombre", headerName: "Sector", minWidth: 120,
+      field: "sector_nombre", headerName: t('common_sector', 'Sector'), minWidth: 120,
       valueGetter: (params) => params.data?.sector_nombre || params.data?.sector || "-",
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
@@ -143,20 +143,20 @@ function getTableColumnsAgGrid(t) {
       ),
     },
     {
-      field: "centro", headerName: "Centro", minWidth: 100,
+      field: "centro", headerName: t('common_centro', 'Centro'), minWidth: 100,
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{params.data?.centro || "-"}</Typography>
       ),
     },
     {
-      field: "almacen_virtual", headerName: "Almacén", minWidth: 100,
+      field: "almacen_virtual", headerName: t('common_almacen', 'Almacén'), minWidth: 100,
       valueGetter: (params) => formatAlmacen(params.data?.almacen_virtual),
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{formatAlmacen(params.data?.almacen_virtual)}</Typography>
       ),
     },
     {
-      field: "planificador", headerName: "Planificador", minWidth: 140,
+      field: "planificador", headerName: t('common_planificador', 'Planificador'), minWidth: 140,
       valueGetter: (params) => [params.data?.planner_nombre, params.data?.planner_apellido].filter(Boolean).join(" ").trim() || "-",
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>

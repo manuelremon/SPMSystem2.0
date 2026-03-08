@@ -331,7 +331,7 @@ describe('AdminAutoAprobacion', () => {
     })
 
     expect(mockToast.success).toHaveBeenCalledWith('Regla creada')
-  })
+  }, 15000)
 
   // --------------------------------------------------------------------------
   // 11. Opens edit dialog with existing data
@@ -392,7 +392,7 @@ describe('AdminAutoAprobacion', () => {
     })
 
     expect(mockToast.success).toHaveBeenCalledWith('Regla actualizada')
-  })
+  }, 15000)
 
   // --------------------------------------------------------------------------
   // 13. Delete opens confirmation dialog

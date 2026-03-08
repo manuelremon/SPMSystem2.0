@@ -133,6 +133,7 @@ function LoadingSkeleton() {
 }
 
 function EmptyState({ onClear, hasFilters }) {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
@@ -146,7 +147,7 @@ function EmptyState({ onClear, hasFilters }) {
     >
       <WarehouseIcon sx={{ fontSize: 48, mb: 1.5, color: 'action.disabled' }} />
       <Typography variant="body2" fontWeight={500}>
-        No se encontraron almacenes
+        {t('admin_no_results', 'No se encontraron almacenes')}
       </Typography>
       {hasFilters && (
         <Button
@@ -154,7 +155,7 @@ function EmptyState({ onClear, hasFilters }) {
           onClick={onClear}
           sx={{ mt: 1, textTransform: 'none', fontSize: '0.75rem' }}
         >
-          Limpiar busqueda
+          {t('admin_clear_search', 'Limpiar busqueda')}
         </Button>
       )}
     </Box>
@@ -200,7 +201,7 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
                   fontWeight: 600,
                 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 size="small"
@@ -214,7 +215,7 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
                   fontWeight: 600,
                 }}
               >
-                Eliminar
+                {t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           </Box>
@@ -278,7 +279,7 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
       >
         <Chip
           size="small"
-          label={isActivo ? "Activo" : "Inactivo"}
+          label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
           sx={{
             height: 20,
             fontSize: '0.625rem',
@@ -503,7 +504,7 @@ return (
                   {t("admin_almacenes", "Almacenes")}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Gestion de almacenes del sistema
+                  {t('admin_almacenes_subtitle', 'Gestion de almacenes del sistema')}
                 </Typography>
               </Box>
             </Box>
@@ -518,7 +519,7 @@ return (
                 px: 2,
               }}
             >
-              Nuevo
+              {t('common_nuevo', 'Nuevo')}
             </Button>
           </Box>
         </Box>
@@ -551,7 +552,7 @@ return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <TextField
                 size="small"
-                placeholder="Buscar por codigo o nombre..."
+                placeholder={t('admin_search_placeholder', 'Buscar por codigo o nombre...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 sx={{
@@ -620,7 +621,7 @@ return (
                         borderColor: 'divider',
                       }}
                     >
-                      Codigo
+                      {t('common_codigo', 'Código')}
                     </TableCell>
                     <TableCell
                       sx={{
@@ -636,7 +637,7 @@ return (
                         borderColor: 'divider',
                       }}
                     >
-                      Nombre
+                      {t('common_nombre', 'Nombre')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -654,7 +655,7 @@ return (
                         borderColor: 'divider',
                       }}
                     >
-                      Estado
+                      {t('common_estado', 'Estado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -672,7 +673,7 @@ return (
                         borderColor: 'divider',
                       }}
                     >
-                      Creado
+                      {t('common_creado', 'Creado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -747,7 +748,7 @@ return (
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              {editingId ? "Editar Almacen" : "Nuevo Almacen"}
+              {editingId ? `${t('common_editar', 'Editar')} Almacen` : `${t('common_nuevo', 'Nuevo')} Almacen`}
             </Typography>
             {editingId && (
               <Typography variant="caption" color="text.secondary">
@@ -787,11 +788,11 @@ return (
                 letterSpacing: '0.1em',
               }}
             >
-              Datos del Almacen
+              {t('admin_datos_almacen', 'Datos del Almacen')}
             </Typography>
             <Stack spacing={2.5}>
               <FormInput
-                label="Codigo"
+                label={t('common_codigo', 'Código')}
                 name="codigo"
                 value={form.codigo}
                 onChange={handleChange}
@@ -800,14 +801,14 @@ return (
                 placeholder="Ej: ALM001"
               />
               <FormInput
-                label="Nombre"
+                label={t('common_nombre', 'Nombre')}
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
                 placeholder="Nombre del almacen"
               />
               <FormCheckbox
-                label="Almacen activo"
+                label={t('admin_almacen_activo', 'Almacen activo')}
                 checked={form.activo === 1 || form.activo === true}
                 onChange={(e) => setForm(prev => ({ ...prev, activo: e.target.checked ? 1 : 0 }))}
               />
@@ -837,7 +838,7 @@ return (
               fontWeight: 500,
             }}
           >
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
             type="submit"
@@ -851,7 +852,7 @@ return (
               fontWeight: 600,
             }}
           >
-            {submitting ? "Guardando..." : "Guardar"}
+            {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}
           </Button>
         </Box>
       </Drawer>

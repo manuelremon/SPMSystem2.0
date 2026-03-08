@@ -28,6 +28,7 @@ import {
   DollarSign, AlertTriangle, CheckCircle, Plus, Minus, Sparkles, X
 } from "../ui/Icons";
 import { formatAlmacen } from "../../utils/formatters";
+import { useI18n } from "../../context/i18n";
 
 /**
  * Paso2DecisionAbastecimiento - Componente de seleccion MULTI-FUENTE
@@ -54,6 +55,7 @@ export default function Paso2DecisionAbastecimiento({
   onPrev,
   onNext,
 }) {
+  const { t } = useI18n();
   const itemActual = items[currentIdx] || {};
   const dataOpciones = opciones[currentIdx]?.opciones || [];
   const cantidadSolicitada = Number(itemActual.cantidad || 0);
@@ -559,7 +561,7 @@ export default function Paso2DecisionAbastecimiento({
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Layers sx={{ width: 18, height: 18, color: 'primary.main' }} />
                 <Typography variant="subtitle2" fontWeight="bold">
-                  Fuentes Seleccionadas ({fuentesSeleccionadas.length})
+                  {t('planner_fuentes_seleccionadas', 'Fuentes Seleccionadas')} ({fuentesSeleccionadas.length})
                 </Typography>
               </Stack>
               <Box>
@@ -574,7 +576,7 @@ export default function Paso2DecisionAbastecimiento({
                   <Chip
                     size="small"
                     icon={<CheckCircle sx={{ width: 16, height: 16 }} />}
-                    label="Completo"
+                    label={t('planner_completo', 'Completo')}
                     sx={{ bgcolor: 'success.light', color: 'success.dark', fontWeight: 'bold' }}
                   />
                 ) : (
@@ -742,7 +744,7 @@ export default function Paso2DecisionAbastecimiento({
                   px: 2,
                 }}
               >
-                Aceptar Sugerido
+                {t('planner_aceptar_sugerido', 'Aceptar Sugerido')}
               </Button>
             </Stack>
 
@@ -775,7 +777,7 @@ export default function Paso2DecisionAbastecimiento({
       {/* Opciones de abastecimiento */}
       <Box>
         {loadingOpciones && dataOpciones.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">Cargando opciones...</Typography>
+          <Typography variant="body2" color="text.secondary">{t('planner_cargando_opciones', 'Cargando opciones...')}</Typography>
         ) : vistaTabla ? (
           <OpcionesTablaMulti
             opciones={opcionesFiltradas}
@@ -903,7 +905,7 @@ export default function Paso2DecisionAbastecimiento({
               <Box>
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 0.5, mb: 1 }}>
                   <Truck sx={{ width: 18, height: 18, color: 'text.secondary' }} />
-                  <Typography variant="subtitle2" fontWeight="bold">PROVEEDORES EXTERNOS</Typography>
+                  <Typography variant="subtitle2" fontWeight="bold">{t('planner_proveedores_externos', 'PROVEEDORES EXTERNOS')}</Typography>
                 </Stack>
                 <Box
                   sx={{
@@ -938,9 +940,9 @@ export default function Paso2DecisionAbastecimiento({
                 }}
               >
                 <Package sx={{ width: 32, height: 32, mx: 'auto', color: 'text.secondary', mb: 1 }} />
-                <Typography variant="body2" fontWeight="medium">Sin opciones de abastecimiento</Typography>
+                <Typography variant="body2" fontWeight="medium">{t('planner_sin_opciones', 'Sin opciones de abastecimiento')}</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                  No se encontro stock ni alternativas para este material
+                  {t('planner_sin_opciones_detalle', 'No se encontro stock ni alternativas para este material')}
                 </Typography>
               </Paper>
             )}
@@ -973,7 +975,7 @@ export default function Paso2DecisionAbastecimiento({
             </Box>
             <Box>
               <Typography variant="h6" fontWeight="bold">
-                Cantidad excede lo solicitado
+                {t('planner_cantidad_excede', 'Cantidad excede lo solicitado')}
               </Typography>
             </Box>
           </Stack>
@@ -992,7 +994,7 @@ export default function Paso2DecisionAbastecimiento({
             variant="text"
             onClick={() => setShowExcedenteModal(false)}
           >
-            Revisar cantidades
+            {t('planner_revisar_cantidades', 'Revisar cantidades')}
           </Button>
           <Button
             variant="contained"
@@ -1001,7 +1003,7 @@ export default function Paso2DecisionAbastecimiento({
               onNext?.();
             }}
           >
-            Si, continuar
+            {t('planner_si_continuar', 'Si, continuar')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1879,7 +1881,7 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
       {opciones.length === 0 && (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Package sx={{ width: 32, height: 32, mx: 'auto', color: 'text.secondary', mb: 1 }} />
-          <Typography variant="body2" color="text.secondary">No hay opciones disponibles</Typography>
+          <Typography variant="body2" color="text.secondary">{t('planner_sin_opciones', 'Sin opciones de abastecimiento')}</Typography>
         </Box>
       )}
     </Paper>

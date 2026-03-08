@@ -7,6 +7,13 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import Paso3RevisionFinal from '../Paso3RevisionFinal'
 
+// Mock de i18n
+vi.mock('../../../context/i18n', () => ({
+  useI18n: () => ({
+    t: (key, fallback) => fallback || key,
+  }),
+}))
+
 describe('Paso3RevisionFinal', () => {
   describe('Estado vacio', () => {
     it('debe mostrar mensaje cuando no hay decisiones', () => {
@@ -96,7 +103,7 @@ describe('Paso3RevisionFinal', () => {
 
     it('debe mostrar plazo en dias', () => {
       render(<Paso3RevisionFinal {...stockProps} />)
-      expect(screen.getByText('2 dias')).toBeInTheDocument()
+      expect(screen.getByText('2 días')).toBeInTheDocument()
     })
 
     it('debe mostrar "Inmediato" cuando no hay plazo', () => {
@@ -117,11 +124,11 @@ describe('Paso3RevisionFinal', () => {
 
     it('debe mostrar encabezados de tabla stock', () => {
       render(<Paso3RevisionFinal {...stockProps} />)
-      expect(screen.getByText('Codigo SAP')).toBeInTheDocument()
-      expect(screen.getByText('Descripcion')).toBeInTheDocument()
+      expect(screen.getByText('Código SAP')).toBeInTheDocument()
+      expect(screen.getByText('Descripción')).toBeInTheDocument()
       expect(screen.getByText('Solicitado')).toBeInTheDocument()
       expect(screen.getByText('Asignado')).toBeInTheDocument()
-      expect(screen.getByText('Ubicacion')).toBeInTheDocument()
+      expect(screen.getByText('Ubicación')).toBeInTheDocument()
     })
   })
 
@@ -255,7 +262,7 @@ describe('Paso3RevisionFinal', () => {
         },
       }
       render(<Paso3RevisionFinal {...props} />)
-      const lineaElements = screen.getAllByText('1 lineas')
+      const lineaElements = screen.getAllByText('1 líneas')
       expect(lineaElements.length).toBeGreaterThan(0)
     })
 

@@ -221,7 +221,7 @@ export default function AdminPresupuestos() {
     setError("");
 
     if (!form.centro || !form.sector) {
-      setError("Centro y Sector son requeridos");
+      setError(t('admin_centro_sector_required', 'Centro y Sector son requeridos'));
       return;
     }
 
@@ -415,8 +415,8 @@ const [centro, sector] = id.split("|");
             },
           }}
         >
-          <Tab label="Presupuestos" />
-          <Tab label="Historial de Cambios" />
+          <Tab label={t('admin_presupuestos_tab', 'Presupuestos')} />
+          <Tab label={t('admin_historial_tab', 'Historial de Cambios')} />
         </Tabs>
 
         {/* Search */}
@@ -438,9 +438,9 @@ const [centro, sector] = id.split("|");
               <TableSkeleton rows={5} />
             ) : filteredPresupuestos.length === 0 ? (
               <EmptyState
-                message={searchTerm ? "No se encontraron presupuestos" : "No hay presupuestos registrados"}
+                message={searchTerm ? t('admin_no_results', 'No se encontraron presupuestos') : t('admin_no_presupuestos', 'No hay presupuestos registrados')}
                 onAction={!searchTerm ? handleNew : undefined}
-                actionLabel="Crear primer presupuesto"
+                actionLabel={t('admin_crear_primer_presupuesto', 'Crear primer presupuesto')}
               />
             ) : (
               <Box sx={{ overflowX: "auto" }}>
@@ -460,7 +460,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Centro
+                        {t('admin_centro', 'Centro')}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -474,7 +474,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Sector
+                        {t('admin_sector', 'Sector')}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -489,7 +489,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Monto USD
+                        {t('admin_monto_usd', 'Monto USD')}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -504,7 +504,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Saldo USD
+                        {t('admin_saldo_usd', 'Saldo USD')}
                       </TableCell>
                       <TableCell
                         align="center"
@@ -517,7 +517,7 @@ const [centro, sector] = id.split("|");
                           color: "text.secondary",
                         }}
                       >
-                        Acciones
+                        {t('common_acciones', 'Acciones')}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -546,7 +546,7 @@ const [centro, sector] = id.split("|");
                                     letterSpacing: "0.05em",
                                   }}
                                 >
-                                  Cancelar
+                                  {t('common_cancelar', 'Cancelar')}
                                 </Button>
                                 <Button
                                   size="small"
@@ -560,7 +560,7 @@ const [centro, sector] = id.split("|");
                                     letterSpacing: "0.05em",
                                   }}
                                 >
-                                  {submitting ? "..." : "Eliminar"}
+                                  {submitting ? "..." : t('common_eliminar', 'Eliminar')}
                                 </Button>
                               </Stack>
                             </Stack>
@@ -641,7 +641,7 @@ const [centro, sector] = id.split("|");
                                   },
                                 }}
                               >
-                                Editar
+                                {t('common_editar', 'Editar')}
                               </Button>
                               <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
                               <Button
@@ -660,7 +660,7 @@ const [centro, sector] = id.split("|");
                                   },
                                 }}
                               >
-                                Eliminar
+                                {t('common_eliminar', 'Eliminar')}
                               </Button>
                             </Stack>
                           </TableCell>
@@ -680,7 +680,7 @@ const [centro, sector] = id.split("|");
             {loadingHistorial ? (
               <TableSkeleton rows={5} />
             ) : filteredHistorial.length === 0 ? (
-              <EmptyState message="No hay historial de cambios" />
+              <EmptyState message={t('admin_no_historial', 'No hay historial de cambios')} />
             ) : (
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
@@ -699,7 +699,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Tipo
+                        {t('admin_tipo', 'Tipo')}
                       </TableCell>
                       <TableCell
                         align="center"
@@ -714,7 +714,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Centro
+                        {t('admin_centro', 'Centro')}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -728,7 +728,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Sector
+                        {t('admin_sector', 'Sector')}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -743,7 +743,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Cambio
+                        {t('admin_cambio', 'Cambio')}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -758,7 +758,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Monto Final
+                        {t('admin_monto_final', 'Monto Final')}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -771,7 +771,7 @@ const [centro, sector] = id.split("|");
                           borderColor: "divider",
                         }}
                       >
-                        Usuario
+                        {t('admin_usuario', 'Usuario')}
                       </TableCell>
                       <TableCell
                         align="center"
@@ -784,7 +784,7 @@ const [centro, sector] = id.split("|");
                           color: "text.secondary",
                         }}
                       >
-                        Fecha
+                        {t('admin_fecha', 'Fecha')}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -940,7 +940,7 @@ const [centro, sector] = id.split("|");
               color: "text.primary",
             }}
           >
-            {editingId ? "Editar Presupuesto" : "Nuevo Presupuesto"}
+            {editingId ? `${t('common_editar', 'Editar')} Presupuesto` : `${t('common_nuevo', 'Nuevo')} Presupuesto`}
           </Typography>
           <IconButton
             size="small"
@@ -963,7 +963,7 @@ const [centro, sector] = id.split("|");
             )}
 
             <TextField
-              label="Centro"
+              label={t('admin_centro', 'Centro')}
               name="centro"
               size="small"
               value={form.centro}
@@ -982,7 +982,7 @@ const [centro, sector] = id.split("|");
             />
 
             <TextField
-              label="Sector"
+              label={t('admin_sector', 'Sector')}
               name="sector"
               size="small"
               value={form.sector}
@@ -1001,7 +1001,7 @@ const [centro, sector] = id.split("|");
             />
 
             <TextField
-              label="Monto USD"
+              label={t('admin_monto_usd', 'Monto USD')}
               name="monto_usd"
               type="number"
               size="small"
@@ -1020,7 +1020,7 @@ const [centro, sector] = id.split("|");
             />
 
             <TextField
-              label="Saldo USD"
+              label={t('admin_saldo_usd', 'Saldo USD')}
               name="saldo_usd"
               type="number"
               size="small"
@@ -1054,7 +1054,7 @@ const [centro, sector] = id.split("|");
                   letterSpacing: "0.05em",
                 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 type="submit"
@@ -1067,7 +1067,7 @@ const [centro, sector] = id.split("|");
                   letterSpacing: "0.05em",
                 }}
               >
-                {submitting ? "Guardando..." : editingId ? "Actualizar" : "Crear"}
+                {submitting ? t('common_guardando', 'Guardando...') : editingId ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
               </Button>
             </Stack>
           </Stack>

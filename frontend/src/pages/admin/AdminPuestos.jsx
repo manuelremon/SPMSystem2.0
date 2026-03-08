@@ -92,6 +92,7 @@ function LoadingSkeleton() {
 }
 
 function EmptyState({ onClear, hasFilters }) {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
@@ -105,7 +106,7 @@ function EmptyState({ onClear, hasFilters }) {
     >
       <WorkIcon sx={{ width: 48, height: 48, mb: 1.5, color: "action.disabled" }} />
       <Typography variant="body2" fontWeight={500}>
-        No se encontraron puestos
+        {t('admin_no_results', 'No se encontraron puestos')}
       </Typography>
       {hasFilters && (
         <Button
@@ -113,7 +114,7 @@ function EmptyState({ onClear, hasFilters }) {
           size="small"
           sx={{ mt: 1, textTransform: "none" }}
         >
-          Limpiar busqueda
+          {t('admin_clear_search', 'Limpiar busqueda')}
         </Button>
       )}
     </Box>
@@ -164,7 +165,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
                   },
                 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 onClick={onConfirmDelete}
@@ -177,7 +178,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
                   fontWeight: 600,
                 }}
               >
-                Eliminar
+                {t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           </Box>
@@ -223,7 +224,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
       >
         <Chip
           size="small"
-          label={isActivo ? "Activo" : "Inactivo"}
+          label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
           sx={{
             height: 20,
             fontSize: "10px",
@@ -453,10 +454,10 @@ return (
                   color="text.primary"
                   sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
                 >
-                  Puestos
+                  {t('admin_puestos', 'Puestos')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Gestion de puestos del sistema
+                  {t('admin_puestos_subtitle', 'Gestion de puestos del sistema')}
                 </Typography>
               </Box>
             </Box>
@@ -471,7 +472,7 @@ return (
                 px: 2,
               }}
             >
-              Nuevo
+              {t('common_nuevo', 'Nuevo')}
             </Button>
           </Box>
         </Box>
@@ -576,7 +577,7 @@ return (
                         borderBottomColor: "divider",
                       }}
                     >
-                      Nombre
+                      {t('common_nombre', 'Nombre')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -595,7 +596,7 @@ return (
                         borderBottomColor: "divider",
                       }}
                     >
-                      Estado
+                      {t('common_estado', 'Estado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -614,7 +615,7 @@ return (
                         borderBottomColor: "divider",
                       }}
                     >
-                      Creado
+                      {t('common_creado', 'Creado')}
                     </TableCell>
                     <TableCell
                       align="center"
@@ -691,7 +692,7 @@ return (
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
-              {editingId ? "Editar Puesto" : "Nuevo Puesto"}
+              {editingId ? `${t('common_editar', 'Editar')} Puesto` : `${t('common_nuevo', 'Nuevo')} Puesto`}
             </Typography>
             {editingId && (
               <Typography variant="caption" color="text.secondary">
@@ -722,18 +723,18 @@ return (
             color="text.secondary"
             sx={{ display: "block", mb: 2, letterSpacing: "0.08em" }}
           >
-            Datos del Puesto
+            {t('admin_datos_puesto', 'Datos del Puesto')}
           </Typography>
 
           <Stack spacing={3}>
             <FormControl fullWidth size="small" required disabled={!!editingId}>
-              <InputLabel id="nombre-label">Nombre del Puesto</InputLabel>
+              <InputLabel id="nombre-label">{t('admin_nombre_puesto', 'Nombre del Puesto')}</InputLabel>
               <Select
                 labelId="nombre-label"
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                label="Nombre del Puesto"
+                label={t('admin_nombre_puesto', 'Nombre del Puesto')}
               >
                 <MenuItem value="">
                   <em>Seleccionar puesto...</em>
@@ -758,7 +759,7 @@ return (
               }
               label={
                 <Typography variant="body2" color="text.primary">
-                  Puesto activo
+                  {t('admin_puesto_activo', 'Puesto activo')}
                 </Typography>
               }
             />
@@ -789,7 +790,7 @@ return (
               borderColor: "divider",
             }}
           >
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
             type="submit"
@@ -806,7 +807,7 @@ return (
               fontWeight: 600,
             }}
           >
-            {submitting ? "Guardando..." : "Guardar"}
+            {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}
           </Button>
         </Box>
       </Drawer>

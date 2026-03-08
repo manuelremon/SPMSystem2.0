@@ -35,9 +35,11 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ShieldIcon from "@mui/icons-material/Shield";
 import { getInputType } from "./useAdminDatabase";
+import { useI18n } from '../../../context/i18n';
 
 // Modal de Estructura de Tabla
 export function StructureModal({ isOpen, onClose, tableStructure }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={isOpen}
@@ -46,14 +48,14 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
       fullWidth
     >
       <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-        Estructura: {tableStructure?.table}
+        {t('admin_estructura', 'Estructura') + ':'} {tableStructure?.table}
       </DialogTitle>
       <DialogContent dividers>
         {tableStructure && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
-                Columnas
+                {t('admin_columnas', 'Columnas')}
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -86,7 +88,7 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
             {tableStructure.indexes?.length > 0 && (
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
-                  Indices
+                  {t('admin_indices', 'Índices')}
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {tableStructure.indexes.map((idx, i) => (
@@ -112,7 +114,7 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -129,6 +131,7 @@ export function PreviewModal({
   onEdit,
   onDelete,
 }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={isOpen}
@@ -151,14 +154,14 @@ export function PreviewModal({
                   variant="contained"
                   startIcon={<AddIcon />}
                 >
-                  Agregar registro
+                  {t('admin_agregar_registro', 'Agregar registro')}
                 </Button>
               </Box>
             )}
 
             {isReadOnly && (
               <Alert severity="warning" icon={<ShieldIcon />}>
-                Esta tabla es de solo lectura
+                {t('admin_solo_lectura', 'Esta tabla es de solo lectura')}
               </Alert>
             )}
 
@@ -229,7 +232,7 @@ export function PreviewModal({
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -250,6 +253,7 @@ export function CrudFormModal({
   onSubmit,
   isEdit = false,
 }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={isOpen}
@@ -266,7 +270,7 @@ export function CrudFormModal({
           {isEdit && tablePk.map((pkCol) => (
             <Box key={pkCol}>
               <TextField
-                label={`${pkCol} (PK - Solo lectura)`}
+                label={`${pkCol} ${t('admin_pk_readonly', '(PK - Solo lectura)')}`}
                 value={editRow?.[pkCol] || ""}
                 disabled
                 fullWidth
@@ -331,7 +335,7 @@ export function CrudFormModal({
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : isEdit ? <EditIcon /> : <AddIcon />}
           sx={{ textTransform: "uppercase" }}
         >
-          {isEdit ? "Guardar cambios" : "Crear registro"}
+          {isEdit ? t('common_guardar', 'Guardar cambios') : t('admin_crear_registro', 'Crear registro')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -347,6 +351,7 @@ export function DeleteModal({
   onDelete,
   onSoftDelete,
 }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={isOpen}
@@ -355,12 +360,12 @@ export function DeleteModal({
       fullWidth
     >
       <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>
-        Confirmar eliminacion
+        {t('admin_confirm_delete', 'Confirmar eliminación')}
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Alert severity="error" icon={<WarningIcon />}>
-            Esta accion no se puede deshacer. El registro sera eliminado permanentemente.
+            {t('admin_delete_warning', 'Esta acción no se puede deshacer. El registro será eliminado permanentemente.')}
           </Alert>
 
           <Paper variant="outlined" sx={{ p: 2 }}>
@@ -415,7 +420,7 @@ export function DeleteModal({
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <CancelIcon />}
           sx={{ textTransform: "uppercase" }}
         >
-          Soft Delete
+          {t('admin_soft_delete', 'Soft Delete')}
         </Button>
         <Button
           variant="contained"
@@ -425,7 +430,7 @@ export function DeleteModal({
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <DeleteIcon />}
           sx={{ textTransform: "uppercase" }}
         >
-          Eliminar
+          {t('common_eliminar', 'Eliminar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -434,6 +439,7 @@ export function DeleteModal({
 
 // Modal de Estadisticas de Tabla
 export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={isOpen}
@@ -513,7 +519,7 @@ export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -522,6 +528,7 @@ export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
 
 // Modal de Audit Logs
 export function AuditModal({ isOpen, onClose, auditLogs }) {
+  const { t } = useI18n();
   const getChipColor = (action) => {
     if (action.includes("DELETE")) return "error";
     if (action.includes("CREATE")) return "success";
@@ -579,7 +586,7 @@ export function AuditModal({ isOpen, onClose, auditLogs }) {
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -588,6 +595,7 @@ export function AuditModal({ isOpen, onClose, auditLogs }) {
 
 // Modal de Conexiones Activas
 export function ConnectionsModal({ isOpen, onClose, connections }) {
+  const { t } = useI18n();
   const getChipColor = (state) => {
     if (state === "active") return "success";
     if (state === "idle") return "default";
@@ -646,7 +654,7 @@ export function ConnectionsModal({ isOpen, onClose, connections }) {
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
       </DialogActions>
     </Dialog>

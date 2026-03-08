@@ -260,14 +260,14 @@ function UsuariosTable({
   const columnDefs = useMemo(() => [
     {
       field: "id_spm",
-      headerName: "ID",
+      headerName: t('common_id', 'ID'),
       flex: 0.15,
       minWidth: 80,
       valueFormatter: (params) => params.value || "-",
     },
     {
       field: "nombre_apellido",
-      headerName: "Nombre",
+      headerName: t('common_nombre', 'Nombre'),
       flex: 0.35,
       minWidth: 150,
       valueFormatter: (params) =>
@@ -275,7 +275,7 @@ function UsuariosTable({
     },
     {
       field: "roles",
-      headerName: "Roles",
+      headerName: t('common_roles', 'Roles'),
       flex: 0.4,
       minWidth: 200,
       valueFormatter: (params) => {
@@ -299,14 +299,14 @@ function UsuariosTable({
     },
     {
       field: "mail",
-      headerName: "Email",
+      headerName: t('common_email', 'Email'),
       flex: 0.35,
       minWidth: 150,
       valueFormatter: (params) => params.value || "-",
     },
     {
       field: "estado",
-      headerName: "Estado",
+      headerName: t('common_estado', 'Estado'),
       flex: 0.2,
       minWidth: 100,
       cellRenderer: (params) => {
@@ -331,7 +331,7 @@ function UsuariosTable({
                 color: isActive ? "success.700" : "text.disabled",
               }}
             >
-              {isActive ? "Activo" : "Inactivo"}
+              {isActive ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
             </Typography>
           </Stack>
         );
@@ -339,7 +339,7 @@ function UsuariosTable({
     },
     {
       field: "acciones",
-      headerName: "Acciones",
+      headerName: t('common_acciones', 'Acciones'),
       flex: 0.15,
       minWidth: 80,
       sortable: false,
@@ -360,11 +360,11 @@ function UsuariosTable({
             "&:hover": { bgcolor: "error.lighter" },
           }}
         >
-          Eliminar
+          {t('common_eliminar', 'Eliminar')}
         </Button>
       ),
     },
-  ], [onDelete, deletingId]);
+  ], [onDelete, deletingId, t]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -409,7 +409,7 @@ function UsuariosTable({
                 "&:hover": { bgcolor: "grey.50" },
               }}
             >
-              Cancelar
+              {t('common_cancelar', 'Cancelar')}
             </Button>
             <Button
               size="small"
@@ -424,7 +424,7 @@ function UsuariosTable({
                 borderRadius: 0,
               }}
             >
-              Eliminar
+              {t('common_eliminar', 'Eliminar')}
             </Button>
           </Stack>
         </Box>
@@ -491,7 +491,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                   "&:hover": { bgcolor: "grey.50" },
                 }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 size="small"
@@ -505,7 +505,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                   borderRadius: 0,
                 }}
               >
-                Eliminar
+                {t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           </Stack>
@@ -573,7 +573,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
               color: isActive ? "success.700" : "text.disabled",
             }}
           >
-            {isActive ? "Activo" : "Inactivo"}
+            {isActive ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
           </Typography>
         </Stack>
       </TableCell>
@@ -602,6 +602,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
 
 /** Estado vacio */
 function EmptyState({ type = "no-data", onClearFilters }) {
+  const { t } = useI18n();
   if (type === "no-results") {
     return (
       <Box
@@ -616,7 +617,7 @@ function EmptyState({ type = "no-data", onClearFilters }) {
       >
         <SearchIcon sx={{ fontSize: 24, color: "grey.300", mb: 2 }} />
         <Typography variant="body2" fontWeight={600} color="text.primary" gutterBottom>
-          No se encontraron usuarios
+          {t('admin_no_results', 'No se encontraron usuarios')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Prueba ajustando los filtros de busqueda
@@ -653,10 +654,10 @@ function EmptyState({ type = "no-data", onClearFilters }) {
     >
       <InboxIcon sx={{ fontSize: 48, color: "grey.300", mb: 2 }} />
       <Typography variant="body2" fontWeight={600} color="text.primary" gutterBottom>
-        Sin usuarios
+        {t('admin_no_users', 'Sin usuarios')}
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        No hay usuarios registrados en el sistema
+        {t('admin_no_users_desc', 'No hay usuarios registrados en el sistema')}
       </Typography>
     </Box>
   );
@@ -844,12 +845,12 @@ export default function AdminUsuarios() {
 
   const validateForm = () => {
     const errors = {};
-    if (!form.id_spm) errors.id_spm = "Requerido";
-    if (!form.nombre) errors.nombre = "Requerido";
-    if (!form.apellido) errors.apellido = "Requerido";
-    if (!form.mail) errors.mail = "Requerido";
+    if (!form.id_spm) errors.id_spm = t('admin_required', 'Requerido');
+    if (!form.nombre) errors.nombre = t('admin_required', 'Requerido');
+    if (!form.apellido) errors.apellido = t('admin_required', 'Requerido');
+    if (!form.mail) errors.mail = t('admin_required', 'Requerido');
     if (!editingUser && !form.contrasena) errors.contrasena = "Requerida para nuevos usuarios";
-    if (form.roles.length === 0) errors.roles = "Selecciona al menos un rol";
+    if (form.roles.length === 0) errors.roles = t('admin_select_role', 'Selecciona al menos un rol');
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -979,7 +980,7 @@ export default function AdminUsuarios() {
                   height: 36,
                 }}
               >
-                Nuevo
+                {t('common_nuevo', 'Nuevo')}
               </Button>
             </Stack>
           </Stack>
@@ -1450,7 +1451,7 @@ export default function AdminUsuarios() {
               borderRadius: 0,
             }}
           >
-            Cancelar
+            {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
             type="submit"
@@ -1465,7 +1466,7 @@ export default function AdminUsuarios() {
               borderRadius: 0,
             }}
           >
-            {submitting ? "Guardando..." : "Guardar"}
+            {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}
           </Button>
         </Box>
       </Drawer>

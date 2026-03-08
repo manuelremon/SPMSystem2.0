@@ -15,8 +15,10 @@ import {
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import { useI18n } from "../../context/i18n";
 
 export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
+  const { t } = useI18n();
   // Agrupar fuentes por tipo: stock vs compra + calcular costos
   const { stockRows, compraRows, costoStock, costoCompra, costoTotal } = useMemo(() => {
     const stock = [];
@@ -88,7 +90,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
         <Box>
           <SectionHeader
             icon={InventoryIcon}
-            title="DESDE STOCK"
+            title={t('planner_desde_stock', 'DESDE STOCK')}
             variant="success"
           />
           <Box sx={{ mt: 1.5 }}>
@@ -102,7 +104,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
         <Box>
           <SectionHeader
             icon={ShoppingCartIcon}
-            title="POR COMPRA"
+            title={t('planner_por_compra', 'POR COMPRA')}
             variant="info"
           />
           <Box sx={{ mt: 1.5 }}>
@@ -115,7 +117,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
       {stockRows.length === 0 && compraRows.length === 0 && (
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography color="text.secondary">
-            No hay decisiones de abastecimiento registradas.
+            {t('planner_sin_decisiones', 'No hay decisiones de abastecimiento registradas.')}
           </Typography>
         </Box>
       )}
@@ -125,7 +127,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
         <Box sx={{ mt: 4 }}>
           <SectionHeader
             icon={AttachMoneyIcon}
-            title="RESUMEN DE COSTOS"
+            title={t('planner_resumen_costos', 'RESUMEN DE COSTOS')}
             variant="warning"
           />
           <Paper
@@ -163,7 +165,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mb: 0.5,
                   }}
                 >
-                  Desde Stock
+                  {t('planner_desde_stock', 'Desde Stock')}
                 </Typography>
                 <Typography
                   sx={{
@@ -181,7 +183,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mt: 0.5,
                   }}
                 >
-                  {stockRows.length} lineas
+                  {stockRows.length} {t('planner_lineas', 'líneas')}
                 </Typography>
               </Box>
 
@@ -203,7 +205,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mb: 0.5,
                   }}
                 >
-                  Por Compra
+                  {t('planner_por_compra', 'Por Compra')}
                 </Typography>
                 <Typography
                   sx={{
@@ -221,7 +223,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mt: 0.5,
                   }}
                 >
-                  {compraRows.length} lineas
+                  {compraRows.length} {t('planner_lineas', 'líneas')}
                 </Typography>
               </Box>
 
@@ -243,7 +245,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mb: 0.5,
                   }}
                 >
-                  Costo Total
+                  {t('planner_costo_total', 'Costo Total')}
                 </Typography>
                 <Typography
                   sx={{
@@ -261,7 +263,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                     mt: 0.5,
                   }}
                 >
-                  {stockRows.length + compraRows.length} lineas
+                  {stockRows.length + compraRows.length} {t('planner_lineas', 'líneas')}
                 </Typography>
               </Box>
             </Box>
@@ -321,6 +323,7 @@ function SectionHeader({ icon: Icon, title, variant }) {
 }
 
 function StockTable({ rows }) {
+  const { t } = useI18n();
   const headerCellSx = {
     px: 2,
     py: 1.75,
@@ -353,12 +356,12 @@ function StockTable({ rows }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Codigo SAP</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Descripcion</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Solicitado</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Asignado</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Ubicacion</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Plazo</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('planner_codigo_sap', 'Código SAP')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('common_descripcion', 'Descripción')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_solicitado', 'Solicitado')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_asignado', 'Asignado')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('planner_ubicacion', 'Ubicación')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_plazo', 'Plazo')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -415,7 +418,7 @@ function StockTable({ rows }) {
                 </Box>
               </TableCell>
               <TableCell sx={{ ...bodyCellSx, textAlign: "right", color: "var(--fg-muted)" }}>
-                {row.plazo ? `${row.plazo} dias` : "Inmediato"}
+                {row.plazo ? `${row.plazo} ${t('planner_dias', 'días')}` : t('planner_inmediato', 'Inmediato')}
               </TableCell>
             </TableRow>
           ))}
@@ -426,6 +429,7 @@ function StockTable({ rows }) {
 }
 
 function CompraTable({ rows }) {
+  const { t } = useI18n();
   const headerCellSx = {
     px: 2,
     py: 1.75,
@@ -458,12 +462,12 @@ function CompraTable({ rows }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Codigo SAP</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Descripcion</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Solicitado</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Asignado</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>Proveedor</TableCell>
-            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Plazo</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('planner_codigo_sap', 'Código SAP')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('common_descripcion', 'Descripción')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_solicitado', 'Solicitado')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_asignado', 'Asignado')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "center" }}>{t('common_proveedor', 'Proveedor')}</TableCell>
+            <TableCell sx={{ ...headerCellSx, textAlign: "right" }}>{t('planner_plazo', 'Plazo')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

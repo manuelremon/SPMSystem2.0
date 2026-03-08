@@ -6,13 +6,14 @@
 import { useMemo } from 'react';
 import { Box, Paper, Typography, useTheme } from '@mui/material';
 import { SPMLine, SPM_COLORS } from '../../components/ui/SPMChartJS';
+import { useI18n } from '../../context/i18n';
 
 // Configuracion de colores por tipo de metrica
 const METRIC_CONFIG = {
   cpu: { colorKey: 'primary', name: 'CPU', unit: '%' },
   memory: { colorKey: 'secondary', name: 'Memoria', unit: '%' },
   latency_p50: { colorKey: 'warning', name: 'Latencia P50', unit: 'ms' },
-  error_rate: { colorKey: 'error', name: 'Errores', unit: '%' },
+  error_rate: { colorKey: 'error', name: 'Tasa de Error', unit: '%' },
   cache_hit: { colorKey: 'success', name: 'Cache Hit', unit: '%' },
 };
 
@@ -216,6 +217,7 @@ export function CpuMemoryChart({ data, height = 250 }) {
  */
 export function LatencyErrorChart({ data, height = 250 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   const chartData = useMemo(() => {
     if (!data) return { labels: [], latency: [], errors: [] };
@@ -300,7 +302,7 @@ export function LatencyErrorChart({ data, height = 250 }) {
               },
               {
                 data: chartData.errors,
-                label: 'Error Rate (%)',
+                label: t('metrics_error_rate', 'Tasa de Error') + ' (%)',
                 borderColor: SPM_COLORS.error,
                 yAxisID: 'y1',
                 pointRadius: 0,

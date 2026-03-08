@@ -159,7 +159,7 @@ export default function AdminRoles() {
     () => [
       {
         field: "nombre",
-        headerName: "Codigo",
+        headerName: t('common_codigo', 'Código'),
         flex: 0.6,
         minWidth: 150,
         cellRenderer: (params) => (
@@ -172,22 +172,22 @@ export default function AdminRoles() {
         ),
       },
       {
-        headerName: "Descripcion",
+        headerName: t('common_descripcion', 'Descripción'),
         flex: 1,
         minWidth: 200,
         valueGetter: (params) => getRoleLabel(params.data.nombre),
       },
       {
         field: "activo",
-        headerName: "Estado",
+        headerName: t('common_estado', 'Estado'),
         flex: 0.4,
         minWidth: 100,
         cellRenderer: (params) => (
           <Chip
             label={
               params.value === 1 || params.value === true
-                ? "Activo"
-                : "Inactivo"
+                ? t('common_activo', 'Activo')
+                : t('common_inactivo', 'Inactivo')
             }
             size="small"
             color={
@@ -206,7 +206,7 @@ export default function AdminRoles() {
         ),
       },
       {
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.4,
         minWidth: 100,
         sortable: false,
@@ -216,7 +216,7 @@ export default function AdminRoles() {
             <IconButton
               size="small"
               onClick={() => handleEdit(params.data)}
-              title="Editar"
+              title={t('common_editar', 'Editar')}
               sx={{
                 color: "text.secondary",
                 "&:hover": {
@@ -230,7 +230,7 @@ export default function AdminRoles() {
             <IconButton
               size="small"
               onClick={() => setDeletingId(params.data.nombre)}
-              title="Eliminar"
+              title={t('common_eliminar', 'Eliminar')}
               sx={{
                 color: "text.secondary",
                 "&:hover": {
@@ -245,7 +245,7 @@ export default function AdminRoles() {
         ),
       },
     ],
-    []
+    [t]
   );
 
   // ─── Render ───────────────────────────────────────────────
@@ -316,7 +316,7 @@ export default function AdminRoles() {
                 disabled={submitting}
                 sx={{ textTransform: "none" }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 size="small"
@@ -326,7 +326,7 @@ export default function AdminRoles() {
                 disabled={submitting}
                 sx={{ textTransform: "none" }}
               >
-                {submitting ? "..." : "Eliminar"}
+                {submitting ? "..." : t('common_eliminar', 'Eliminar')}
               </Button>
             </Stack>
           }
@@ -350,7 +350,7 @@ export default function AdminRoles() {
           height={500}
           enableQuickFilter={true}
           exportFileName="roles"
-          emptyMessage="No hay roles registrados"
+          emptyMessage={t('admin_no_results', 'No hay roles registrados')}
         />
       </Paper>
 
@@ -387,7 +387,7 @@ export default function AdminRoles() {
               color: "text.primary",
             }}
           >
-            {editingId ? "Editar Rol" : "Nuevo Rol"}
+            {editingId ? `${t('common_editar', 'Editar')} Rol` : `${t('common_nuevo', 'Nuevo')} Rol`}
           </Typography>
           <IconButton
             onClick={() => setDrawerOpen(false)}
@@ -423,13 +423,13 @@ export default function AdminRoles() {
                   letterSpacing: "0.05em",
                 }}
               >
-                Rol
+                {t('common_rol', 'Rol')}
               </InputLabel>
               <Select
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                label="Rol"
+                label={t('common_rol', 'Rol')}
               >
                 <MenuItem value="">
                   <em>Seleccionar...</em>
@@ -457,7 +457,7 @@ export default function AdminRoles() {
               }
               label={
                 <Typography variant="body2" color="text.primary">
-                  Activo
+                  {t('common_activo', 'Activo')}
                 </Typography>
               }
             />
@@ -478,7 +478,7 @@ export default function AdminRoles() {
                 fullWidth
                 sx={{ textTransform: "none" }}
               >
-                Cancelar
+                {t('common_cancelar', 'Cancelar')}
               </Button>
               <Button
                 type="submit"
@@ -488,10 +488,10 @@ export default function AdminRoles() {
                 sx={{ textTransform: "none" }}
               >
                 {submitting
-                  ? "Guardando..."
+                  ? t('common_guardando', 'Guardando...')
                   : editingId
-                  ? "Actualizar"
-                  : "Crear"}
+                  ? t('common_actualizar', 'Actualizar')
+                  : t('common_crear', 'Crear')}
               </Button>
             </Box>
           </Stack>

@@ -247,7 +247,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   mb: 1.5,
                 }}
               >
-                Informacion General
+                {t('sol_info_general', 'Información General')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -283,7 +283,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   mb: 1.5,
                 }}
               >
-                Ubicacion
+                {t('sol_ubicacion', 'Ubicación')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -329,7 +329,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   mb: 1,
                 }}
               >
-                Justificacion
+                {t('common_justificacion', 'Justificación')}
               </Typography>
               <Typography variant="body2" color="text.primary">
                 {solicitud.justificacion}
@@ -351,26 +351,26 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   mb: 1.5,
                 }}
               >
-                Materiales ({solicitud.items.length})
+                {t('sol_materiales', 'Materiales')} ({solicitud.items.length})
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: "grey.50" }}>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>
-                        Codigo
+                        {t('common_codigo', 'Código')}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>
-                        Descripcion
+                        {t('common_descripcion', 'Descripción')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>
-                        Cant.
+                        {t('sol_cant', 'Cant.')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>
-                        Precio
+                        {t('common_precio', 'Precio')}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>
-                        Subtotal
+                        {t('sol_subtotal', 'Subtotal')}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -396,7 +396,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   <TableHead>
                     <TableRow sx={{ bgcolor: "grey.50" }}>
                       <TableCell colSpan={4} align="right" sx={{ fontWeight: 700 }}>
-                        Total:
+                        {t('common_total', 'Total')}:
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: "primary.main" }}>
                         {formatCurrency(solicitud.total_monto || 0)}
@@ -412,7 +412,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
 
       <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: 1, borderColor: "divider" }}>
         <Button onClick={onClose} variant="outlined" color="inherit" size="small">
-          Cerrar
+          {t('common_cerrar', 'Cerrar')}
         </Button>
         {showActions && (
           <>
@@ -623,10 +623,10 @@ export default function Aprobaciones() {
   // Columnas del DataGrid para pendientes - AG Grid format
   const columnDefs = useMemo(
     () => [
-      { field: "id", headerName: "ID", flex: 0.4, minWidth: 60 },
+      { field: "id", headerName: t('common_id', 'ID'), flex: 0.4, minWidth: 60 },
       {
         field: "fecha_creacion",
-        headerName: "Fecha",
+        headerName: t('common_fecha', 'Fecha'),
         flex: 0.6,
         minWidth: 90,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
@@ -638,35 +638,35 @@ export default function Aprobaciones() {
       },
       {
         field: "solicitante",
-        headerName: "Solicitante",
+        headerName: t('common_solicitante', 'Solicitante'),
         flex: 0.9,
         minWidth: 120,
         valueGetter: (params) => `${params.data.solicitante_nombre || ""} ${params.data.solicitante_apellido || ""}`.trim() || "-",
       },
       {
         field: "centro",
-        headerName: "Centro",
+        headerName: t('common_centro', 'Centro'),
         flex: 0.5,
         minWidth: 70,
         valueGetter: (params) => params.data.centro || "-",
       },
       {
         field: "almacen_virtual",
-        headerName: "Almacen",
+        headerName: t('common_almacen', 'Almacén'),
         flex: 0.5,
         minWidth: 70,
         cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
       },
       {
         field: "sector",
-        headerName: "Sector",
+        headerName: t('common_sector', 'Sector'),
         flex: 0.8,
         minWidth: 100,
         valueGetter: (params) => getSectorNombre(params.data.sector || params.data.sector_id, sectores),
       },
       {
         field: "fecha_necesidad",
-        headerName: "F. Necesidad",
+        headerName: t('sol_f_necesidad', 'F. Necesidad'),
         flex: 0.6,
         minWidth: 90,
         cellRenderer: (params) => (
@@ -677,7 +677,7 @@ export default function Aprobaciones() {
       },
       {
         field: "criticidad",
-        headerName: "Criticidad",
+        headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
         minWidth: 80,
         cellRenderer: (params) => {
@@ -691,7 +691,7 @@ export default function Aprobaciones() {
       },
       {
         field: "total_monto",
-        headerName: "Monto",
+        headerName: t('common_monto', 'Monto'),
         flex: 0.7,
         minWidth: 100,
         cellStyle: { textAlign: 'right', paddingRight: '16px' },
@@ -703,14 +703,14 @@ export default function Aprobaciones() {
       },
       {
         field: "items_count",
-        headerName: "Items",
+        headerName: t('common_items', 'Items'),
         flex: 0.4,
         minWidth: 50,
         valueGetter: (params) => params.data.items?.length || 0,
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.7,
         minWidth: 110,
         sortable: false,
@@ -731,7 +731,7 @@ export default function Aprobaciones() {
                 "&:hover": { bgcolor: "primary.lighter" },
               }}
             >
-              Ver
+              {t('common_ver', 'Ver')}
             </Button>
             <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
             <Button
@@ -748,7 +748,7 @@ export default function Aprobaciones() {
                 "&:hover": { bgcolor: "success.lighter" },
               }}
             >
-              Aprobar
+              {t('common_aprobar', 'Aprobar')}
             </Button>
             <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
             <Button
@@ -765,22 +765,22 @@ export default function Aprobaciones() {
                 "&:hover": { bgcolor: "error.lighter" },
               }}
             >
-              Rechazar
+              {t('common_rechazar', 'Rechazar')}
             </Button>
           </Stack>
         ),
       },
     ],
-    [sectores, aprobar]
+    [sectores, aprobar, t]
   );
 
   // Columnas para historial - AG Grid format
   const columnDefsHistorial = useMemo(
     () => [
-      { field: "id", headerName: "ID", flex: 0.4, minWidth: 60 },
+      { field: "id", headerName: t('common_id', 'ID'), flex: 0.4, minWidth: 60 },
       {
         field: "fecha_creacion",
-        headerName: "Fecha",
+        headerName: t('common_fecha', 'Fecha'),
         flex: 0.6,
         minWidth: 90,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
@@ -792,27 +792,27 @@ export default function Aprobaciones() {
       },
       {
         field: "solicitante",
-        headerName: "Solicitante",
+        headerName: t('common_solicitante', 'Solicitante'),
         flex: 0.9,
         minWidth: 120,
         valueGetter: (params) => `${params.data.solicitante_nombre || ""} ${params.data.solicitante_apellido || ""}`.trim() || "-",
       },
       {
         field: "centro",
-        headerName: "Centro",
+        headerName: t('common_centro', 'Centro'),
         flex: 0.5,
         minWidth: 70,
       },
       {
         field: "sector",
-        headerName: "Sector",
+        headerName: t('common_sector', 'Sector'),
         flex: 0.8,
         minWidth: 100,
         valueGetter: (params) => getSectorNombre(params.data.sector || params.data.sector_id, sectores),
       },
       {
         field: "criticidad",
-        headerName: "Criticidad",
+        headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
         minWidth: 80,
         cellRenderer: (params) => {
@@ -826,7 +826,7 @@ export default function Aprobaciones() {
       },
       {
         field: "total_monto",
-        headerName: "Monto",
+        headerName: t('common_monto', 'Monto'),
         flex: 0.7,
         minWidth: 100,
         cellStyle: { textAlign: 'right', paddingRight: '16px' },
@@ -838,7 +838,7 @@ export default function Aprobaciones() {
       },
       {
         field: "status",
-        headerName: "Estado",
+        headerName: t('common_estado', 'Estado'),
         flex: 0.7,
         minWidth: 100,
         valueGetter: (params) => params.data.estado || params.data.status || "pendiente",
@@ -857,7 +857,7 @@ export default function Aprobaciones() {
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.4,
         minWidth: 60,
         sortable: false,
@@ -877,12 +877,12 @@ export default function Aprobaciones() {
               "&:hover": { bgcolor: "primary.lighter" },
             }}
           >
-            Ver
+            {t('common_ver', 'Ver')}
           </Button>
         ),
       },
     ],
-    [sectores]
+    [sectores, t]
   );
 
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);

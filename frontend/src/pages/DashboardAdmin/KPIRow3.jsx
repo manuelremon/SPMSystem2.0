@@ -2,6 +2,7 @@ import { memo } from "react";
 import { ScrollReveal } from "../../components/ui/ScrollReveal";
 import { FONT_SIZES } from '../../components/ui/SPMChartJS';
 import MrpAlertsCard from './MrpAlertsCard';
+import { useI18n } from '../../context/i18n';
 // MUI Components
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -22,6 +23,7 @@ function KPIRow3({
   // Drill-down handler
   onKpiDrillDown,
 }) {
+  const { t } = useI18n();
   return (
     <ScrollReveal delay={300}>
       <Stack direction="row" flexWrap="wrap" gap={1.5}>
@@ -79,7 +81,7 @@ function KPIRow3({
             >
               <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                  {`Materiales M\u00e1s Solicitados`}
+                  {t('dash_materiales_solicitados', 'Materiales Más Solicitados')}
                 </Typography>
               </Box>
               <Box sx={{ px: 2, pb: 2 }}>
@@ -114,7 +116,7 @@ function KPIRow3({
                       </Stack>
                     ))
                   ) : (
-                    <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>No hay datos</Typography>
+                    <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>{t('common_sin_datos', 'No hay datos')}</Typography>
                   )}
                 </Box>
               </Box>
@@ -151,7 +153,7 @@ function KPIRow3({
             >
               <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
-                  Stock Inmovilizado Global
+                  {t('dash_stock_inmovilizado', 'Stock Inmovilizado Global')}
                 </Typography>
               </Box>
               <Box sx={{ px: 2, pb: 2 }}>
@@ -187,7 +189,7 @@ function KPIRow3({
                     ))
                   ) : (
                     <Typography variant="caption" sx={{ color: 'grey.500', textAlign: 'center', py: 2, display: 'block' }}>
-                      {kpiLoading ? 'Cargando...' : 'No hay stock inmovilizado disponible'}
+                      {kpiLoading ? t('common_cargando', 'Cargando...') : t('common_sin_datos', 'No hay stock inmovilizado disponible')}
                     </Typography>
                   )}
                 </Box>

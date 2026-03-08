@@ -235,7 +235,7 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
                     color: 'text.primary',
                   }}
                 >
-                  {cacheHitRate.toFixed(0)}% hit
+                  {cacheHitRate.toFixed(0)}% {t('admin_hit', 'hit')}
                 </Typography>
               </Box>
             </Box>

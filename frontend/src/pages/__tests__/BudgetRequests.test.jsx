@@ -370,7 +370,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
     })
 
@@ -388,11 +388,11 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
 
       // Confirm in drawer
-      fireEvent.click(screen.getByText('Confirmar Aprobacion'))
+      fireEvent.click(screen.getByText('Confirmar Aprobación'))
 
       await waitFor(() => {
         expect(budget.aprobar).toHaveBeenCalledWith(1, '')
@@ -413,7 +413,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
     })
 
@@ -428,7 +428,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
 
       // The Confirmar Rechazo button should be disabled when motivo < 5 chars
@@ -448,7 +448,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
 
       // Enter motivo in the TextField
@@ -477,10 +477,10 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Confirmar Aprobacion'))
+      fireEvent.click(screen.getByText('Confirmar Aprobación'))
 
       await waitFor(() => {
         expect(screen.getByText('Solicitud de presupuesto aprobada correctamente')).toBeInTheDocument()
@@ -583,7 +583,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
 
       // Clear mocks to track new calls
@@ -591,7 +591,7 @@ describe('BudgetRequests', () => {
       budget.getLedger.mockClear()
 
       // Confirm approval
-      fireEvent.click(screen.getByText('Confirmar Aprobacion'))
+      fireEvent.click(screen.getByText('Confirmar Aprobación'))
 
       await waitFor(() => {
         expect(budget.aprobar).toHaveBeenCalled()
@@ -615,7 +615,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
 
       // Enter valid motivo
@@ -651,7 +651,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
         expect(screen.getByText('0/5 min.')).toBeInTheDocument()
       })
     })
@@ -669,7 +669,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
 
       // Enter less than 5 characters
@@ -677,7 +677,7 @@ describe('BudgetRequests', () => {
       fireEvent.change(textarea, { target: { value: 'abc' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Minimo 5 caracteres requeridos')).toBeInTheDocument()
+        expect(screen.getByText('Mínimo 5 caracteres requeridos')).toBeInTheDocument()
         expect(screen.getByText('3/5 min.')).toBeInTheDocument()
       })
     })
@@ -695,14 +695,14 @@ describe('BudgetRequests', () => {
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
       })
 
       const textarea = screen.getByPlaceholderText('Explica el motivo del rechazo...')
       fireEvent.change(textarea, { target: { value: 'Motivo valido' } })
 
       await waitFor(() => {
-        expect(screen.queryByText('Minimo 5 caracteres requeridos')).not.toBeInTheDocument()
+        expect(screen.queryByText('Mínimo 5 caracteres requeridos')).not.toBeInTheDocument()
         expect(screen.getByText('13/5 min.')).toBeInTheDocument()
       })
     })
@@ -724,7 +724,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
 
       // Check that impact info is displayed in drawer
@@ -749,7 +749,7 @@ describe('BudgetRequests', () => {
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporacion')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
       })
 
       await waitFor(() => {

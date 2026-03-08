@@ -3,6 +3,7 @@ import api from "../../services/api";
 import { ensureCsrfToken } from "../../services/csrf";
 import { formatCurrency } from "../../utils/formatters";
 import { SPMAgGrid } from "../ui/SPMAgGrid";
+import { useI18n } from "../../context/i18n";
 
 // MUI Components
 import {
@@ -19,6 +20,7 @@ import {
 } from "@mui/material";
 
 export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, onNext, onReject, onRequestInfo }) {
+  const { t } = useI18n();
   const resumen = analisis.resumen || {};
   const conflictos = analisis.conflictos || [];
   const avisos = analisis.avisos || [];
@@ -34,7 +36,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
       {/* Header */}
       <Box sx={{ px: 3, py: 2, borderBottom: "1px solid var(--border)" }}>
         <Typography variant="h6" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>
-          Análisis Inicial
+          {t('planner_analisis_inicial', 'Análisis Inicial')}
         </Typography>
       </Box>
 
@@ -52,9 +54,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
             {/* Conflictos, Avisos y Recomendaciones */}
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
               <AlertCard
-                title="CONFLICTOS"
+                title={t('planner_conflictos', 'CONFLICTOS')}
                 count={conflictos.length}
-                emptyLabel="Sin conflictos"
+                emptyLabel={t('planner_sin_conflictos', 'Sin conflictos')}
                 items={conflictos.map((c) => ({
                   label: c.tipo,
                   detail: c.descripcion || `Item ${c.item_idx}`,
@@ -63,9 +65,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                 variant="error"
               />
               <AlertCard
-                title="AVISOS"
+                title={t('planner_avisos', 'AVISOS')}
                 count={avisos.length}
-                emptyLabel="Sin avisos"
+                emptyLabel={t('planner_sin_avisos', 'Sin avisos')}
                 items={avisos.map((a) => ({
                   label: a.nivel || "info",
                   detail: a.mensaje || "",
@@ -73,9 +75,9 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
                 variant="warning"
               />
               <AlertCard
-                title="RECOMENDACIONES"
+                title={t('planner_recomendaciones', 'RECOMENDACIONES')}
                 count={recomendaciones.length}
-                emptyLabel="Sin recomendaciones"
+                emptyLabel={t('planner_sin_recomendaciones', 'Sin recomendaciones')}
                 items={recomendaciones.map((r) => ({
                   label: r.accion,
                   detail: r.razon,
@@ -94,12 +96,12 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
           <Box sx={{ display: "flex", gap: 1, pt: 3, mt: 3, borderTop: "1px solid var(--border)" }}>
             {tieneConflictosCriticos && onReject && (
               <Button variant="outlined" color="error" onClick={onReject} size="small">
-                Rechazar solicitud
+                {t('planner_rechazar_solicitud_btn', 'Rechazar solicitud')}
               </Button>
             )}
             {tieneConflictos && onRequestInfo && (
               <Button variant="text" sx={{ color: "var(--fg-muted)" }} onClick={onRequestInfo} size="small">
-                Solicitar información
+                {t('planner_solicitar_informacion', 'Solicitar información')}
               </Button>
             )}
           </Box>
@@ -117,6 +119,7 @@ export default function Paso1AnalisisInicial({ analisis = {}, solicitud = {}, on
 }
 
 function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
+  const { t } = useI18n();
   const disponible = resumen.presupuesto_disponible || 0;
   const items = solicitud.items || solicitud.data_json?.items || [];
   const costoCalculado = items.reduce((total, item) => {
@@ -134,17 +137,17 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
         variant="caption"
         sx={{ fontWeight: 700, letterSpacing: 0.5, color: "var(--fg-muted)", textTransform: "uppercase", display: "block", mb: 2 }}
       >
-        BALANCE PRESUPUESTO
+        {t('planner_balance_presupuesto', 'BALANCE PRESUPUESTO')}
       </Typography>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>Presupuesto Disponible</Typography>
+          <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>{t('planner_presupuesto_disponible', 'Presupuesto Disponible')}</Typography>
           <Typography variant="body2" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>{formatCurrency(disponible)}</Typography>
         </Box>
 
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>Costo de la Solicitud</Typography>
+          <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>{t('planner_costo_solicitud', 'Costo de la Solicitud')}</Typography>
           <Typography variant="body2" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>{formatCurrency(costoTotal)}</Typography>
         </Box>
 
@@ -163,7 +166,7 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>Balance</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>{t('planner_balance', 'Balance')}</Typography>
             <Typography variant="h6" sx={{ fontWeight: 800, color: alcanza ? "var(--success)" : "var(--danger)" }}>
               {diferencia >= 0 ? '+' : ''}{formatCurrency(diferencia)} {alcanza ? '✓' : ''}
             </Typography>
@@ -237,6 +240,7 @@ function AlertCard({ title, count, emptyLabel, items, variant }) {
 }
 
 function MaterialesList({ materiales, solicitud }) {
+  const { t } = useI18n();
   const todosLosMateriales = [
     ...(materiales.Critico || []),
     ...(materiales.Normal || []),
@@ -265,19 +269,19 @@ function MaterialesList({ materiales, solicitud }) {
   const columnDefs = [
     {
       field: "codigo",
-      headerName: "Código",
+      headerName: t('common_codigo', 'Código'),
       flex: 0.8,
       minWidth: 100,
     },
     {
       field: "descripcion",
-      headerName: "Descripción",
+      headerName: t('common_descripcion', 'Descripción'),
       flex: 1.5,
       minWidth: 150,
     },
     {
       field: "cantidad",
-      headerName: "Cant.",
+      headerName: t('sol_cant', 'Cant.'),
       flex: 0.4,
       minWidth: 60,
       cellRenderer: (params) => (
@@ -286,7 +290,7 @@ function MaterialesList({ materiales, solicitud }) {
     },
     {
       field: "precio_unitario",
-      headerName: "P. Unit.",
+      headerName: t('common_precio', 'P. Unit.'),
       flex: 0.6,
       minWidth: 90,
       type: "numericColumn",
@@ -306,16 +310,16 @@ function MaterialesList({ materiales, solicitud }) {
           variant="caption"
           sx={{ fontWeight: 700, letterSpacing: 0.5, color: "var(--fg-muted)", textTransform: "uppercase" }}
         >
-          MATERIALES SOLICITADOS
+          {t('planner_materiales_solicitados', 'MATERIALES SOLICITADOS')}
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>
-          {items.length} items
+          {items.length} {t('common_items', 'items')}
         </Typography>
       </Box>
 
       {items.length === 0 ? (
         <Typography variant="body2" sx={{ color: "var(--fg-muted)", textAlign: "center", py: 4 }}>
-          Sin materiales en la solicitud
+          {t('planner_sin_materiales', 'Sin materiales en la solicitud')}
         </Typography>
       ) : (
         <SPMAgGrid
@@ -325,7 +329,7 @@ function MaterialesList({ materiales, solicitud }) {
           pagination={true}
           paginationPageSize={10}
           paginationPageSizeSelector={[5, 10, 25]}
-          emptyMessage="Sin materiales"
+          emptyMessage={t('planner_sin_materiales', 'Sin materiales en la solicitud')}
         />
       )}
     </Paper>
@@ -333,6 +337,7 @@ function MaterialesList({ materiales, solicitud }) {
 }
 
 function PresupuestoInsuficienteModal({ solicitud, isOpen, onClose }) {
+  const { t } = useI18n();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -379,8 +384,8 @@ function PresupuestoInsuficienteModal({ solicitud, isOpen, onClose }) {
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>Presupuesto Insuficiente</Typography>
-        <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>Notificar al solicitante</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>{t('planner_presupuesto_insuficiente', 'Presupuesto Insuficiente')}</Typography>
+        <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>{t('planner_notificar_solicitante', 'Notificar al solicitante')}</Typography>
       </DialogTitle>
       <DialogContent dividers>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -388,22 +393,22 @@ function PresupuestoInsuficienteModal({ solicitud, isOpen, onClose }) {
         {!success && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, color: "var(--fg-strong)" }}>Mensaje:</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1, color: "var(--fg-strong)" }}>{t('common_mensaje', 'Mensaje') + ':'}</Typography>
               <Paper variant="outlined" sx={{ p: 2, bgcolor: "var(--bg-soft)" }}>
                 <Typography variant="body2" sx={{ color: "var(--fg-strong)" }}>{mensajeDefault}</Typography>
               </Paper>
             </Box>
             <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
-              Destinatario: <strong style={{ color: "var(--fg-strong)" }}>{nombreCompleto}</strong>
+              {t('common_destinatario', 'Destinatario') + ':'} <strong style={{ color: "var(--fg-strong)" }}>{nombreCompleto}</strong>
             </Typography>
           </Box>
         )}
       </DialogContent>
       {!success && (
         <DialogActions>
-          <Button onClick={onClose} disabled={sending} sx={{ color: "var(--fg-muted)" }}>Cancelar</Button>
+          <Button onClick={onClose} disabled={sending} sx={{ color: "var(--fg-muted)" }}>{t('common_cancelar', 'Cancelar')}</Button>
           <Button variant="contained" onClick={handleEnviar} disabled={sending}>
-            {sending ? "Enviando..." : "Enviar"}
+            {sending ? t('common_enviando', 'Enviando...') : t('common_enviar', 'Enviar')}
           </Button>
         </DialogActions>
       )}
