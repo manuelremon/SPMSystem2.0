@@ -236,7 +236,7 @@ export default function InventoryOptimization() {
           </Typography>
         </Stack>
         <Stack direction="row" gap={1}>
-          <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => navigate('/operations/service-levels')}>
+          <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => navigate('/operations/niveles-de-servicio')}>
             {t('inventory_service_levels', 'Niveles de Servicio')}
           </Button>
           <Button variant="contained" startIcon={processing ? <CircularProgress size={16} /> : <SwapHorizIcon />} onClick={handleProposeTransfers} disabled={processing}>

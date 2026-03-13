@@ -172,7 +172,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
     labelKey: 'nav_inventario',
     labelFallback: 'Inventario',
     visible: canSeePlanner,
-    activePrefixes: ['/materiales', '/operations/warehouse', '/operations/putaway', '/operations/cycle-count', '/operations/slob', '/operations/vmi', '/operations/consignment', '/operations/lots', '/operations/recalls', '/operations/inventory-optimization', '/operations/service-levels'],
+    activePrefixes: ['/materiales', '/operations/warehouse', '/operations/putaway', '/operations/cycle-count', '/operations/slob', '/operations/vmi', '/operations/consignment', '/operations/lots', '/operations/recalls', '/operations/inventory-optimization', '/operations/niveles-de-servicio'],
     minWidth: 210,
     sections: [
       {

@@ -362,7 +362,8 @@ function App() {
             <Route path="/procurement/rebates" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RebatePrograms /></ProtectedRoute>} />
             {/* Inventory Optimization - Sprint 68 */}
             <Route path="/operations/inventory-optimization" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InventoryOptimization /></ProtectedRoute>} />
-            <Route path="/operations/service-levels" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ServiceLevels /></ProtectedRoute>} />
+            <Route path="/operations/niveles-de-servicio" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ServiceLevels /></ProtectedRoute>} />
+            <Route path="/operations/service-levels" element={<Navigate to="/operations/niveles-de-servicio" replace />} />
             {/* Supplier Audit - Sprint 69 */}
             <Route path="/procurement/certifications" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierCertifications /></ProtectedRoute>} />
             <Route path="/procurement/audits" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierAudits /></ProtectedRoute>} />

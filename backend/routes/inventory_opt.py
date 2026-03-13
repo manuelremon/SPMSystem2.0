@@ -103,20 +103,26 @@ def obtener_niveles_servicio():
 
 @inv_opt_bp.route('/service-levels/<material>', methods=['PUT'])
 @require_auth
-def calcular_niveles_servicio(material):
-    """Calcular niveles de servicio para un material."""
+def actualizar_nivel_servicio(material):
+    """Actualizar nivel de servicio para un material."""
     try:
         data = request.get_json()
         almacen = data.get('almacen', '')
-        resultado = inventory_optimization_service.calcular_niveles_servicio(material, almacen)
+        nivel_servicio = data.get('nivel_servicio')
+        if nivel_servicio is not None:
+            resultado = inventory_optimization_service.actualizar_nivel_servicio(
+                material, almacen, float(nivel_servicio)
+            )
+        else:
+            resultado = inventory_optimization_service.calcular_niveles_servicio(material, almacen)
         resultado['ok'] = True
         return jsonify(resultado), 200
     except Exception as e:
-        return safe_error_response(e, logger, context="calcular_niveles_servicio")
+        return safe_error_response(e, logger, context="actualizar_nivel_servicio")
 
 
-@inv_opt_bp.route('/recalculate', methods=['POST'])
-@require_admin
+@inv_opt_bp.route('/service-levels/recalculate', methods=['POST'])
+@require_auth
 def recalcular_todos_niveles():
     """Recalcular niveles de servicio para todos los materiales."""
     try:

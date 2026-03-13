@@ -300,6 +300,57 @@ def completar_transferencia(transferencia_id: int, user_id: int) -> dict:
         conn.close()
 
 
+def actualizar_nivel_servicio(material_codigo: str, almacen: str, nivel_servicio: float) -> dict:
+    """
+    Actualiza manualmente el nivel de servicio para un material/almacén.
+
+    Args:
+        material_codigo: Código del material
+        almacen: Código del almacén/centro
+        nivel_servicio: Nuevo nivel de servicio (0-100)
+
+    Returns:
+        Dict con el registro actualizado
+    """
+    conn, cur = get_db_transaction()
+
+    try:
+        ph = "%s" if is_using_postgresql() else "?"
+        now_fn = "NOW()" if is_using_postgresql() else "datetime('now')"
+
+        if is_using_postgresql():
+            cur.execute(f"""
+                UPDATE nivel_servicio_objetivo
+                SET nivel_servicio = %s, updated_at = NOW()
+                WHERE material_codigo = %s AND almacen = %s
+                RETURNING *
+            """, (nivel_servicio, material_codigo, almacen))
+            row = cur.fetchone()
+        else:
+            cur.execute(f"""
+                UPDATE nivel_servicio_objetivo
+                SET nivel_servicio = ?, updated_at = datetime('now')
+                WHERE material_codigo = ? AND almacen = ?
+            """, (nivel_servicio, material_codigo, almacen))
+            cur.execute(f"""
+                SELECT * FROM nivel_servicio_objetivo
+                WHERE material_codigo = ? AND almacen = ?
+            """, (material_codigo, almacen))
+            row = cur.fetchone()
+
+        conn.commit()
+
+        if row:
+            return dict(row)
+        return {'error': 'Registro no encontrado'}
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
+
 def calcular_niveles_servicio(material_codigo: str, centro: str) -> dict:
     """
     Calcula niveles de servicio para un material en un centro.

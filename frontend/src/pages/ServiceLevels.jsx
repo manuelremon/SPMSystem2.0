@@ -115,7 +115,7 @@ export default function ServiceLevels() {
       editable: true,
       type: 'numericColumn',
       cellStyle: { backgroundColor: 'rgba(25, 118, 210, 0.04)', cursor: 'pointer' },
-      valueFormatter: (p) => p.value != null ? `${p.value.toFixed(1)}%` : '-',
+      valueFormatter: (p) => p.value != null ? `${Number(p.value).toFixed(1)}%` : '-',
     },
     {
       field: 'stock_seguridad_calculado', headerName: t('service_safety_stock', 'Stock Seguridad'), width: 140,
