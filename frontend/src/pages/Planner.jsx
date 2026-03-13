@@ -25,7 +25,6 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Badge from "@mui/material/Badge";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -41,18 +40,13 @@ import DialogActions from "@mui/material/DialogActions";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
 
 // MUI Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckIcon from "@mui/icons-material/Check";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 /* ─────────────────────────────────────────────────────────────
    Helper: normalize estado string to canonical key
@@ -79,6 +73,7 @@ function normalizeEstado(val) {
 ───────────────────────────────────────────────────────────── */
 function MultiSelect({ label, options, selected, onChange, keyField, labelField }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const { t } = useI18n();
   const open = Boolean(anchorEl);
 
   const getKey = (opt) => opt[keyField] || opt.value || opt.id || opt;
@@ -86,6 +81,7 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
 
   const selectedKeys = selected.map((s) => getKey(s));
   const allSelected = selectedKeys.length === options.length && options.length > 0;
+  const hasSelection = selectedKeys.length > 0;
 
   const toggleAll = () => {
     if (allSelected) {
@@ -106,13 +102,13 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
 
   const displayText =
     selectedKeys.length === 0
-      ? "Ninguno"
+      ? t("common_todos", "Todos")
       : selectedKeys.length === 1
       ? getLabel(selected[0])
-      : `${selectedKeys.length} seleccionados`;
+      : `${selectedKeys.length} ${t("common_seleccionados", "seleccionados")}`;
 
   return (
-    <Box sx={{ minWidth: 130 }}>
+    <Box sx={{ minWidth: 140, flex: 1 }}>
       <Typography
         variant="caption"
         sx={{
@@ -136,15 +132,16 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
           width: "100%",
           justifyContent: "space-between",
           textTransform: "none",
-          fontWeight: 400,
-          fontSize: "0.75rem",
+          fontWeight: hasSelection ? 600 : 400,
+          fontSize: "0.8rem",
           py: 0.75,
           px: 1.5,
-          color: selectedKeys.length === 0 ? "text.secondary" : "text.primary",
-          borderColor: "divider",
+          color: hasSelection ? "primary.main" : "text.secondary",
+          borderColor: hasSelection ? "primary.main" : "divider",
+          bgcolor: hasSelection ? "primary.50" : "transparent",
           "&:hover": {
             borderColor: "primary.main",
-            bgcolor: "action.hover",
+            bgcolor: hasSelection ? "primary.100" : "action.hover",
           },
         }}
       >
@@ -156,20 +153,22 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
         onClose={() => setAnchorEl(null)}
         PaperProps={{
           sx: {
-            maxHeight: 208,
-            minWidth: anchorEl?.offsetWidth || 150,
+            maxHeight: 240,
+            minWidth: anchorEl?.offsetWidth || 160,
+            boxShadow: "var(--shadow-md)",
           },
         }}
       >
         <MenuItem onClick={toggleAll} sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Checkbox
             checked={allSelected}
+            indeterminate={hasSelection && !allSelected}
             size="small"
             sx={{ p: 0, mr: 1 }}
           />
           <ListItemText
-            primary="Seleccionar todos"
-            primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }}
+            primary={t("common_seleccionar_todos", "Seleccionar todos")}
+            primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 600 }}
           />
         </MenuItem>
         {options.map((opt) => {
@@ -179,7 +178,7 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
             <MenuItem
               key={key}
               onClick={() => toggleOption(opt)}
-              sx={{ fontSize: "0.75rem" }}
+              sx={{ fontSize: "0.8rem" }}
             >
               <Checkbox
                 checked={isSelected}
@@ -188,7 +187,7 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
               />
               <ListItemText
                 primary={getLabel(opt)}
-                primaryTypographyProps={{ fontSize: "0.75rem", noWrap: true }}
+                primaryTypographyProps={{ fontSize: "0.8rem", noWrap: true }}
               />
             </MenuItem>
           );
@@ -689,13 +688,13 @@ export default function Planner({ filterMode }) {
           sx={{
             border: 1,
             borderColor: "divider",
-            p: 2,
+            p: 2.5,
             mb: 3,
           }}
         >
-          <Stack direction="row" flexWrap="wrap" alignItems="flex-end" spacing={2}>
-            {/* Date Range Slider */}
-            <Box sx={{ minWidth: 260 }}>
+          {/* Row 1: Search + Date Range + Clear */}
+          <Stack direction="row" alignItems="flex-end" spacing={2} sx={{ mb: 2 }}>
+            <Box sx={{ flex: 1, maxWidth: 280 }}>
               <Typography
                 variant="caption"
                 sx={{
@@ -708,11 +707,53 @@ export default function Planner({ filterMode }) {
                   fontSize: "var(--text-2xs)",
                 }}
               >
-                Desde{" "}
+                {t("planner_buscar", "Buscar")}
+              </Typography>
+              <TextField
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={t("planner_buscar_placeholder", "ID, asunto, solicitante...")}
+                size="small"
+                fullWidth
+                aria-label={t("planner_buscar", "Buscar solicitudes")}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 18, color: "text.disabled" }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    fontSize: "0.8rem",
+                  },
+                  "& .MuiOutlinedInput-input": {
+                    py: 0.75,
+                  },
+                }}
+              />
+            </Box>
+
+            <Divider orientation="vertical" flexItem sx={{ height: 48, alignSelf: "center" }} />
+
+            <Box sx={{ flex: 1, maxWidth: 320 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "text.secondary",
+                  mb: 0.5,
+                  fontSize: "var(--text-2xs)",
+                }}
+              >
+                {t("planner_rango_fechas", "Rango de fechas")}:{" "}
                 <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
                   {sliderAFecha(rangoFechasLocal[0])}
                 </Box>{" "}
-                hasta{" "}
+                — {" "}
                 <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
                   {sliderAFecha(rangoFechasLocal[1])}
                 </Box>
@@ -726,63 +767,54 @@ export default function Planner({ filterMode }) {
                 getAriaLabel={() => t("planner_rango_fechas", "Rango de fechas")}
                 getAriaValueText={(value) => sliderAFecha(value)}
                 sx={{
-                  mt: 1,
+                  mt: 0.5,
                   "& .MuiSlider-thumb": {
                     width: 14,
                     height: 14,
                   },
                 }}
               />
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.disabled">
-                  Hace 1 año
+              <Stack direction="row" justifyContent="space-between" sx={{ mt: -0.5 }}>
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.65rem" }}>
+                  {t("planner_hace_1_anio", "Hace 1 año")}
                 </Typography>
-                <Typography variant="caption" color="text.disabled">
-                  Hoy
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.65rem" }}>
+                  {t("common_hoy", "Hoy")}
                 </Typography>
               </Stack>
             </Box>
 
-            {/* Separator */}
-            <Divider orientation="vertical" flexItem sx={{ height: 48, alignSelf: "center" }} />
-
-            {/* Search */}
-            <Box sx={{ minWidth: 140 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "text.secondary",
-                  mb: 0.5,
-                  fontSize: "var(--text-2xs)",
-                }}
-              >
-                Buscar
-              </Typography>
-              <TextField
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="ID, asunto..."
-                size="small"
-                aria-label={t("planner_buscar", "Buscar solicitudes")}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
+            <Box sx={{ flexShrink: 0 }}>
+              {hayFiltrosActivos && (
+                <Button
+                  onClick={() => {
+                    limpiarFiltros();
+                    setRangoFechasLocal([0, 365]);
+                  }}
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  startIcon={<FilterAltOffIcon />}
+                  aria-label={t("planner_limpiar_filtros", "Limpiar todos los filtros")}
+                  sx={{
+                    fontWeight: 500,
                     fontSize: "0.75rem",
-                  },
-                  "& .MuiOutlinedInput-input": {
                     py: 0.75,
-                    px: 1.5,
-                  },
-                }}
-              />
+                    textTransform: "none",
+                    borderColor: "divider",
+                  }}
+                >
+                  {t("planner_limpiar", "Limpiar")}
+                </Button>
+              )}
             </Box>
+          </Stack>
 
-            {/* Centro */}
+          {/* Row 2: Multi-select filters */}
+          <Divider sx={{ mb: 2 }} />
+          <Stack direction="row" flexWrap="wrap" spacing={2} alignItems="flex-end">
             <MultiSelect
-              label="Centro"
+              label={t("planner_filtro_centro", "Centro")}
               options={catalogos.centros || []}
               selected={filtroCentros}
               onChange={setFiltroCentros}
@@ -790,9 +822,8 @@ export default function Planner({ filterMode }) {
               labelField="nombre"
             />
 
-            {/* Almacén */}
             <MultiSelect
-              label="Almacén"
+              label={t("planner_filtro_almacen", "Almacén")}
               options={catalogos.almacenes || []}
               selected={filtroAlmacenes}
               onChange={setFiltroAlmacenes}
@@ -800,9 +831,8 @@ export default function Planner({ filterMode }) {
               labelField="nombre"
             />
 
-            {/* Sector */}
             <MultiSelect
-              label="Sector"
+              label={t("planner_filtro_sector", "Sector")}
               options={catalogos.sectores || []}
               selected={filtroSectores}
               onChange={setFiltroSectores}
@@ -810,9 +840,8 @@ export default function Planner({ filterMode }) {
               labelField="nombre"
             />
 
-            {/* Estado */}
             <MultiSelect
-              label="Estado"
+              label={t("planner_filtro_estado", "Estado")}
               options={estadosOptions}
               selected={filtroEstados}
               onChange={setFiltroEstados}
@@ -820,60 +849,44 @@ export default function Planner({ filterMode }) {
               labelField="label"
             />
 
-            {/* Criticidad */}
             <MultiSelect
-              label="Criticidad"
+              label={t("planner_filtro_criticidad", "Criticidad")}
               options={criticidadOptions}
               selected={filtroCriticidades}
               onChange={setFiltroCriticidades}
               keyField="value"
               labelField="label"
             />
-
-            {/* Clear Filters */}
-            <Button
-              onClick={() => {
-                limpiarFiltros();
-                setRangoFechasLocal([0, 365]);
-              }}
-              variant="outlined"
-              color="inherit"
-              size="small"
-              startIcon={<FilterAltOffIcon />}
-              aria-label={t("planner_limpiar_filtros", "Limpiar todos los filtros")}
-              sx={{
-                fontWeight: 500,
-                fontSize: "0.75rem",
-                py: 0.75,
-                textTransform: "none",
-              }}
-            >
-              Limpiar
-            </Button>
           </Stack>
         </Paper>
 
-        {/* Tabs */}
+        {/* Tabs + Grid Container */}
         <Paper
           elevation={0}
           sx={{
             border: 1,
             borderColor: "divider",
-            borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
           }}
         >
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
             sx={{
+              bgcolor: "background.paper",
               borderBottom: 1,
               borderColor: "divider",
               "& .MuiTab-root": {
                 fontWeight: 600,
                 fontSize: "0.875rem",
                 textTransform: "none",
-                py: 1.75,
-                px: 2.5,
+                py: 1.5,
+                px: 3,
+                minHeight: 48,
+              },
+              "& .MuiTabs-indicator": {
+                height: 3,
               },
             }}
           >
@@ -906,19 +919,6 @@ export default function Planner({ filterMode }) {
               />
             ))}
           </Tabs>
-        </Paper>
-
-        {/* AG Grid */}
-        <Paper
-          elevation={0}
-          sx={{
-            border: 1,
-            borderTop: 0,
-            borderColor: "divider",
-            borderRadius: "0 0 var(--radius-md) var(--radius-md)",
-            overflow: "hidden",
-          }}
-        >
           <SPMAgGrid
             rowData={rows}
             columnDefs={columnDefs}
@@ -932,7 +932,7 @@ export default function Planner({ filterMode }) {
             exportFileName="planner_solicitudes"
             emptyMessage={t("planner_empty_full", "Sin solicitudes asignadas")}
           />
-        </Paper>
+        </Paper>  {/* End Tabs + Grid Container */}
 
         {/* Treatment Modal */}
         <TratarSolicitudModal
