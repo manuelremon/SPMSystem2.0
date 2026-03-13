@@ -267,14 +267,14 @@ export default function MensajeThreadModal({ message, isOpen, onClose }) {
                             ? {
                                 background: "linear-gradient(90deg, var(--primary), var(--primary-strong))",
                                 color: "var(--on-primary)",
-                                borderRadius: "12px 12px 0 12px",
+                                borderRadius: "var(--radius-lg) var(--radius-lg) 0 var(--radius-lg)",
                               }
                             : {
                                 bgcolor: "action.hover",
                                 color: "text.primary",
                                 border: 1,
                                 borderColor: "divider",
-                                borderRadius: "12px 12px 12px 0",
+                                borderRadius: "var(--radius-lg) var(--radius-lg) var(--radius-lg) 0",
                               }),
                         }}
                       >

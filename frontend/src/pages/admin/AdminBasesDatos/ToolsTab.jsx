@@ -423,7 +423,7 @@ export function ToolsTab({
             borderColor: 'warning.light',
           }}
         >
-          <Box sx={{ px: 2, py: 1.5, bgcolor: 'rgba(237, 108, 2, 0.06)', borderBottom: 1, borderColor: 'warning.light' }}>
+          <Box sx={{ px: 2, py: 1.5, bgcolor: 'var(--warning-bg)', borderBottom: 1, borderColor: 'warning.light' }}>
             <Stack direction="row" alignItems="center" gap={1}>
               <UploadIcon sx={{ fontSize: 18, color: "warning.main" }} />
               <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>

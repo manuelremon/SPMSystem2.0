@@ -34,7 +34,7 @@ const cardSx = {
   borderColor: 'divider',
   p: 1.5,
   transition: 'box-shadow 0.2s ease-in-out',
-  '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
+  '&:hover': { boxShadow: 'var(--shadow-md)' },
   overflow: 'hidden',
 };
 
@@ -188,11 +188,11 @@ function KPIRow4() {
             </Typography>
           </Tooltip>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-            sin consumo 6m
+            {t('dash_no_consumption_6m', 'sin consumo 6m')}
           </Typography>
-          <MetricRow label="3 meses" value={`${sa.periodos?.['3m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['3m']?.valor || 0)}`} />
-          <MetricRow label="6 meses" value={`${sa.periodos?.['6m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['6m']?.valor || 0)}`} />
-          <MetricRow label="12 meses" value={`${sa.periodos?.['12m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['12m']?.valor || 0)}`} />
+          <MetricRow label={t('dash_3_months', '3 meses')} value={`${sa.periodos?.['3m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['3m']?.valor || 0)}`} />
+          <MetricRow label={t('dash_6_months', '6 meses')} value={`${sa.periodos?.['6m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['6m']?.valor || 0)}`} />
+          <MetricRow label={t('dash_12_months', '12 meses')} value={`${sa.periodos?.['12m']?.materiales || 0} mat`} sub={`USD ${formatMonto(sa.periodos?.['12m']?.valor || 0)}`} />
         </Paper>
 
         {/* Supplier OTD */}
@@ -238,25 +238,25 @@ function KPIRow4() {
             <Tooltip title={`Eficiencia: ${pe.eficiencia}% — Producido: ${formatMonto(pe.totalProducida)} / Planificado: ${formatMonto(pe.totalPlanificada)}`} arrow>
               <Box>
                 <Typography sx={{ ...valueSx, color: getColor(pe.eficiencia) }}>{pe.eficiencia}%</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>eficiencia</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_efficiency', 'eficiencia')}</Typography>
               </Box>
             </Tooltip>
             <Tooltip title={`Utilización de capacidad: ${pe.utilizacionCapacidad}% de los ${pe.totalItems} items planificados`} arrow>
               <Box>
                 <Typography sx={{ ...valueSx, color: getColor(pe.utilizacionCapacidad) }}>{pe.utilizacionCapacidad}%</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>util. cap.</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_capacity_util', 'util. cap.')}</Typography>
               </Box>
             </Tooltip>
           </Stack>
           <Tooltip title={`Barra de eficiencia: ${pe.eficiencia}%`} arrow>
             <Box sx={miniBarSx(pe.eficiencia, SPM_COLORS.primary)} mb={0.5} />
           </Tooltip>
-          <MetricRow label="Items totales" value={pe.totalItems} />
-          <MetricRow label="Planificada" value={formatMonto(pe.totalPlanificada)} />
-          <MetricRow label="Producida" value={formatMonto(pe.totalProducida)} />
+          <MetricRow label={t('dash_total_items', 'Items totales')} value={pe.totalItems} />
+          <MetricRow label={t('dash_planned', 'Planificada')} value={formatMonto(pe.totalPlanificada)} />
+          <MetricRow label={t('dash_produced', 'Producida')} value={formatMonto(pe.totalProducida)} />
           {(pe.workCenters || []).length > 0 && (
             <Typography variant="caption" sx={{ color: 'text.disabled', mt: 0.5, display: 'block' }}>
-              {pe.workCenters.length} centros de trabajo
+              {pe.workCenters.length} {t('dash_work_centers', 'centros de trabajo')}
             </Typography>
           )}
         </Paper>
@@ -273,12 +273,12 @@ function KPIRow4() {
             {ia.precision}%
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-            varianza prom: {ia.varianzaPromedio}%
+            {t('dash_avg_variance', 'varianza prom')}: {ia.varianzaPromedio}%
           </Typography>
-          <MetricRow label="Contados" value={ia.totalItems} />
-          <MetricRow label="Exactos" value={ia.exactos} color="success.main" />
-          <MetricRow label="Sobrantes" value={ia.sobrantes} color="warning.main" />
-          <MetricRow label="Faltantes" value={ia.faltantes} color="error.main" />
+          <MetricRow label={t('dash_counted', 'Contados')} value={ia.totalItems} />
+          <MetricRow label={t('dash_exact', 'Exactos')} value={ia.exactos} color="success.main" />
+          <MetricRow label={t('dash_surplus', 'Sobrantes')} value={ia.sobrantes} color="warning.main" />
+          <MetricRow label={t('dash_missing', 'Faltantes')} value={ia.faltantes} color="error.main" />
           <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(ia.conteos || {}).map(([estado, cnt]) => (
               <Tooltip key={estado} title={`Estado "${estado}": ${cnt} conteos cíclicos`} arrow>
@@ -301,11 +301,11 @@ function KPIRow4() {
             {pc.diasTotal}d
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-            ciclo total promedio
+            {t('dash_total_cycle_avg', 'ciclo total promedio')}
           </Typography>
-          <MetricRow label="Sol → Decisión" value={`${pc.diasSolicitudDecision}d`} />
-          <MetricRow label="Orden Compra" value={`${pc.diasOrdenCompra}d`} />
-          <MetricRow label="Decisiones" value={pc.totalDecisiones} />
+          <MetricRow label={t('dash_req_to_decision', 'Sol → Decisión')} value={`${pc.diasSolicitudDecision}d`} />
+          <MetricRow label={t('dash_purchase_order', 'Orden Compra')} value={`${pc.diasOrdenCompra}d`} />
+          <MetricRow label={t('dash_decisions', 'Decisiones')} value={pc.totalDecisiones} />
           {(pc.trend || []).length > 0 && (
             <Stack direction="row" gap={0.25} alignItems="flex-end" sx={{ mt: 1, height: 24 }}>
               {pc.trend.map((t, i) => (
@@ -361,7 +361,7 @@ function KPIRow4() {
             ))}
             {(ss.proveedores || []).length === 0 && (
               <Typography variant="caption" sx={{ color: 'grey.400', py: 1, display: 'block', textAlign: 'center' }}>
-                Sin datos
+                {t('dash_no_data', 'Sin datos')}
               </Typography>
             )}
           </Box>
@@ -378,16 +378,16 @@ function KPIRow4() {
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
             <Box>
               <Typography sx={{ ...valueSx, color: getColor(qs.passRate) }}>{qs.passRate}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>pass rate</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_pass_rate', 'pass rate')}</Typography>
             </Box>
             <Box>
               <Typography sx={{ ...valueSx, color: 'text.primary' }}>{qs.totalReclamos}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>reclamos</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_claims', 'reclamos')}</Typography>
             </Box>
           </Stack>
           <Box sx={miniBarSx(qs.passRate, qs.passRate >= 80 ? SPM_COLORS.success : SPM_COLORS.warning)} mb={1} />
-          <MetricRow label="Checks totales" value={qs.totalChecks} />
-          <MetricRow label="Desviación prom." value={`${qs.desviacionPromedio}%`} />
+          <MetricRow label={t('dash_total_checks', 'Checks totales')} value={qs.totalChecks} />
+          <MetricRow label={t('dash_avg_deviation', 'Desviación prom.')} value={`${qs.desviacionPromedio}%`} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(qs.garantias || {}).map(([estado, cnt]) => (
               <Tooltip key={estado} title={`Garantías en estado "${estado}": ${cnt} reclamos`} arrow>
@@ -409,11 +409,11 @@ function KPIRow4() {
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
             <Box>
               <Typography sx={{ ...valueSx, color: getColor(fu.disponibilidadPct) }}>{fu.disponibilidadPct}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>disponible</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_available', 'disponible')}</Typography>
             </Box>
             <Box>
               <Typography sx={{ ...valueSx, color: 'text.primary' }}>{fu.totalVehiculos}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>vehículos</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_vehicles', 'vehículos')}</Typography>
             </Box>
           </Stack>
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
@@ -425,9 +425,9 @@ function KPIRow4() {
               </Tooltip>
             ))}
           </Stack>
-          <MetricRow label="OTs totales" value={fu.totalOrdenesTrabajo} />
-          <MetricRow label="Costo total OT" value={`USD ${formatMonto(fu.costoTotalOT)}`} />
-          <MetricRow label="Mant. próximo 30d" value={fu.mantenimientoProximo30d} color={fu.mantenimientoProximo30d > 0 ? 'warning.main' : 'text.primary'} />
+          <MetricRow label={t('dash_total_wos', 'OTs totales')} value={fu.totalOrdenesTrabajo} />
+          <MetricRow label={t('dash_total_wo_cost', 'Costo total OT')} value={`USD ${formatMonto(fu.costoTotalOT)}`} />
+          <MetricRow label={t('dash_maint_next_30d', 'Mant. próximo 30d')} value={fu.mantenimientoProximo30d} color={fu.mantenimientoProximo30d > 0 ? 'warning.main' : 'text.primary'} />
         </Paper>
 
         {/* Forecast Accuracy */}
@@ -442,7 +442,7 @@ function KPIRow4() {
             <Tooltip title={`Precisión del pronóstico: ${fa.accuracy}% — basado en ${fa.totalPronosticos} pronósticos`} arrow>
               <Box>
                 <Typography sx={{ ...valueSx, color: getColor(fa.accuracy) }}>{fa.accuracy}%</Typography>
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>accuracy</Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_accuracy', 'accuracy')}</Typography>
               </Box>
             </Tooltip>
             <Tooltip title={`MAPE (Mean Absolute Percentage Error): ${fa.mape}% — ${fa.mape <= 10 ? 'Excelente' : fa.mape <= 20 ? 'Bueno' : fa.mape <= 30 ? 'Aceptable' : 'Requiere mejora'}`} arrow>
@@ -452,8 +452,8 @@ function KPIRow4() {
               </Box>
             </Tooltip>
           </Stack>
-          <MetricRow label="Confianza prom." value={`${fa.confianzaPromedio}`} />
-          <MetricRow label="Total pronósticos" value={fa.totalPronosticos} />
+          <MetricRow label={t('dash_avg_confidence', 'Confianza prom.')} value={`${fa.confianzaPromedio}`} />
+          <MetricRow label={t('dash_total_forecasts', 'Total pronósticos')} value={fa.totalPronosticos} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(fa.porFuente || {}).map(([fuente, cnt]) => (
               <Tooltip key={fuente} title={`Fuente "${fuente.replace('_', ' ')}": ${cnt} pronósticos generados`} arrow>
@@ -482,11 +482,11 @@ function KPIRow4() {
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
             <Box>
               <Typography sx={{ ...valueSx, color: 'text.primary' }}>{scr.totalProveedores}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>evaluados</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_evaluated', 'evaluados')}</Typography>
             </Box>
             <Box>
               <Typography sx={{ ...valueSx, color: scr.fuenteUnica > 0 ? 'error.main' : 'success.main' }}>{scr.fuenteUnica}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>fuente única</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_single_source', 'fuente única')}</Typography>
             </Box>
           </Stack>
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mb: 1 }}>
@@ -534,13 +534,13 @@ function KPIRow4() {
             </Typography>
           </Tooltip>
           <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-            ahorro por negociación
+            {t('dash_savings_negotiation', 'ahorro por negociación')}
           </Typography>
-          <MetricRow label="Negociaciones" value={ca.negociaciones?.total || 0} />
-          <MetricRow label="Descuento prom." value={`${ca.negociaciones?.descuentoPromedio || 0}%`} />
-          <MetricRow label="Aprobadas" value={ca.negociaciones?.aprobadas || 0} />
+          <MetricRow label={t('dash_negotiations', 'Negociaciones')} value={ca.negociaciones?.total || 0} />
+          <MetricRow label={t('dash_avg_discount', 'Descuento prom.')} value={`${ca.negociaciones?.descuentoPromedio || 0}%`} />
+          <MetricRow label={t('dash_approved', 'Aprobadas')} value={ca.negociaciones?.aprobadas || 0} />
           <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" sx={{ ...labelSx, fontWeight: 600 }}>Abastecimiento por fuente</Typography>
+            <Typography variant="caption" sx={{ ...labelSx, fontWeight: 600 }}>{t('dash_supply_by_source', 'Abastecimiento por fuente')}</Typography>
             {Object.entries(ca.abastecimiento || {}).map(([fuente, info]) => (
               <MetricRow key={fuente} label={fuente} value={`USD ${formatMonto(info.valor)}`} sub={`${info.items} items`} />
             ))}
@@ -558,17 +558,17 @@ function KPIRow4() {
           <Stack direction="row" gap={2} sx={{ mb: 1 }}>
             <Box>
               <Typography sx={{ ...valueSx, color: getColor(kh.eficiencia) }}>{kh.eficiencia}%</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>eficiencia</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_efficiency', 'eficiencia')}</Typography>
             </Box>
             <Box>
               <Typography sx={{ ...valueSx, color: 'text.primary' }}>{kh.totalTarjetas}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>tarjetas</Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>{t('dash_cards', 'tarjetas')}</Typography>
             </Box>
           </Stack>
           <Box sx={miniBarSx(kh.eficiencia, SPM_COLORS.primary)} mb={1} />
-          <MetricRow label="Señales totales" value={kh.totalSenales} />
-          <MetricRow label="Completadas" value={kh.senalesCompletadas} color="success.main" />
-          <MetricRow label="Tiempo resp." value={`${kh.tiempoRespuestaHoras}h`} />
+          <MetricRow label={t('dash_total_signals', 'Señales totales')} value={kh.totalSenales} />
+          <MetricRow label={t('dash_completed', 'Completadas')} value={kh.senalesCompletadas} color="success.main" />
+          <MetricRow label={t('dash_response_time', 'Tiempo resp.')} value={`${kh.tiempoRespuestaHoras}h`} />
           <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
             {Object.entries(kh.tarjetas || {}).map(([est, info]) => (
               <Tooltip key={est} title={`Tarjetas "${est}": ${info.count} tarjetas kanban`} arrow>

@@ -120,7 +120,7 @@ function AttentionBanner({ resumen }) {
             sx={{
               cursor: 'pointer',
               fontWeight: 500,
-              '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.1)' },
+              '&:hover': { boxShadow: 'var(--shadow-md)' },
             }}
           />
         ))}

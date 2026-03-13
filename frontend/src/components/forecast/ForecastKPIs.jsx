@@ -77,7 +77,7 @@ const MetricCard = ({ label, value, formato = 'numero', descripcion, tooltip, co
                       fontSize: '0.75rem',
                       maxWidth: 280,
                       lineHeight: 1.5,
-                      backgroundColor: '#1e293b',
+                      backgroundColor: 'var(--sidebar-bg)',
                       padding: '8px 12px'
                     }
                   }

@@ -406,10 +406,10 @@ export default function StockIndividual() {
       {/* Loading Overlay */}
       <Backdrop
         sx={{
-          color: "#fff",
+          color: "common.white",
           zIndex: (theme) => theme.zIndex.drawer + 1,
           backdropFilter: "blur(4px)",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          backgroundColor: "var(--overlay)",
         }}
         open={loading}
       >

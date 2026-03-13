@@ -85,7 +85,7 @@ const PredictionsTable = ({
             <Typography
               variant="caption"
               sx={{
-                fontSize: '10px',
+                fontSize: 'var(--text-2xs)',
                 color: params.data.esFinDeSemana ? 'purple.600' : 'slate.400'
               }}
             >
@@ -186,7 +186,7 @@ const PredictionsTable = ({
             fontWeight: 500,
             bgcolor: 'grey.100',
             color: 'grey.600',
-            borderRadius: '16px'
+            borderRadius: 'var(--radius-xl)'
           }}
         />
       ),
@@ -249,7 +249,7 @@ const PredictionsTable = ({
           p: 2,
           borderBottom: 1,
           borderColor: 'divider',
-          background: 'linear-gradient(to right, #f8fafc, #eff6ff)'
+          background: 'linear-gradient(to right, var(--bg), var(--info-bg))'
         }}
       >
         <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -310,7 +310,7 @@ const PredictionsTable = ({
             p: 2,
             borderTop: 1,
             borderColor: 'divider',
-            background: 'linear-gradient(to right, #f8fafc, #f0fdf4)'
+            background: 'linear-gradient(to right, var(--bg), var(--success-bg))'
           }}
         >
           <Box

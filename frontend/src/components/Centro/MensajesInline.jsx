@@ -135,7 +135,7 @@ export default function MensajesInline({ onUpdate }) {
                 height: 22,
                 fontSize: "0.7rem",
                 fontWeight: 600,
-                bgcolor: "rgba(239, 68, 68, 0.12)",
+                bgcolor: "var(--danger-bg-light)",
                 color: "var(--danger)",
               }}
             />
@@ -200,7 +200,7 @@ export default function MensajesInline({ onUpdate }) {
                     p: 2,
                     cursor: "pointer",
                     border: "1px solid transparent",
-                    bgcolor: mensaje.leido ? "transparent" : "rgba(168, 85, 247, 0.05)",
+                    bgcolor: mensaje.leido ? "transparent" : "var(--purple-bg-light)",
                     transition: "all 0.15s ease",
                     "&:hover": {
                       bgcolor: "var(--bg-soft)",
@@ -215,8 +215,8 @@ export default function MensajesInline({ onUpdate }) {
                       height: 40,
                       fontSize: "0.875rem",
                       fontWeight: 600,
-                      bgcolor: mensaje.leido ? "var(--bg-soft)" : "rgba(168, 85, 247, 0.15)",
-                      color: mensaje.leido ? "var(--fg-muted)" : "#a855f7",
+                      bgcolor: mensaje.leido ? "var(--bg-soft)" : "var(--purple-bg-light)",
+                      color: mensaje.leido ? "var(--fg-muted)" : "var(--purple)",
                     }}
                   >
                     {initials}
@@ -254,7 +254,7 @@ export default function MensajesInline({ onUpdate }) {
                           {formatTimeAgo(mensaje.created_at)}
                         </Typography>
                         {!mensaje.leido && (
-                          <Box sx={{ width: 8, height: 8, bgcolor: "#a855f7", borderRadius: "50%" }} />
+                          <Box sx={{ width: 8, height: 8, bgcolor: "var(--purple)", borderRadius: "50%" }} />
                         )}
                       </Box>
                     </Box>
@@ -297,7 +297,7 @@ export default function MensajesInline({ onUpdate }) {
                             height: 20,
                             fontSize: "0.65rem",
                             fontWeight: 600,
-                            bgcolor: "rgba(86, 126, 187, 0.1)",
+                            bgcolor: "var(--primary-bg-light)",
                             color: "var(--primary)",
                             "& .MuiChip-icon": { color: "var(--primary)" },
                           }}
@@ -311,7 +311,7 @@ export default function MensajesInline({ onUpdate }) {
                             height: 20,
                             fontSize: "0.65rem",
                             fontWeight: 600,
-                            bgcolor: "rgba(245, 158, 11, 0.12)",
+                            bgcolor: "var(--warning-bg-light)",
                             color: "var(--warning)",
                           }}
                         />

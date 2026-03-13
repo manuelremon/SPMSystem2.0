@@ -319,7 +319,7 @@ export default function AIAnalytics() {
           sx={{
             minHeight: 44,
             bgcolor: "var(--card)",
-            borderRadius: "8px 8px 0 0",
+            borderRadius: "var(--radius-md) var(--radius-md) 0 0",
             borderBottom: "2px solid var(--border)",
             "& .MuiTab-root": {
               minHeight: 44,

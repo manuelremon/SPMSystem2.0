@@ -249,7 +249,7 @@ export default function MRPParametrizar() {
       flex: 0.2,
       minWidth: 120,
       type: "numericColumn",
-      cellStyle: { fontWeight: 600, color: "#2563eb" }
+      cellStyle: { fontWeight: 600, color: 'var(--info)' }
     },
     {
       field: "punto_pedido",
@@ -257,7 +257,7 @@ export default function MRPParametrizar() {
       flex: 0.2,
       minWidth: 120,
       type: "numericColumn",
-      cellStyle: { fontWeight: 600, color: "#059669" }
+      cellStyle: { fontWeight: 600, color: 'var(--success)' }
     },
     {
       field: "cantidad_pedido_eoq",
@@ -265,7 +265,7 @@ export default function MRPParametrizar() {
       flex: 0.2,
       minWidth: 100,
       type: "numericColumn",
-      cellStyle: { fontWeight: 600, color: "#7c3aed" }
+      cellStyle: { fontWeight: 600, color: 'var(--purple-dark)' }
     },
     {
       field: "stock_maximo",
@@ -273,7 +273,7 @@ export default function MRPParametrizar() {
       flex: 0.2,
       minWidth: 120,
       type: "numericColumn",
-      cellStyle: { fontWeight: 600, color: "#dc2626" }
+      cellStyle: { fontWeight: 600, color: "var(--danger)" }
     },
     {
       field: "cobertura_ss_dias",

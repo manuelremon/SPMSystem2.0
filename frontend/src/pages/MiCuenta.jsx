@@ -67,7 +67,10 @@ const getInitials = (name) => {
 };
 
 const getAvatarColor = (name) => {
-  const colors = ['#0070f3', '#16a34a', '#d97706', '#dc2626', '#8b5cf6', '#0d9488', '#ec4899', '#f97316'];
+  const colors = [
+    'var(--primary)', 'var(--success)', 'var(--warning)', 'var(--danger)',
+    'var(--purple)', 'var(--accent)', 'var(--purple-light)', 'var(--warning-light)',
+  ];
   if (!name) return colors[0];
   const hash = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
   return colors[hash % colors.length];
@@ -123,7 +126,7 @@ export default function MiCuenta() {
       try {
         await Promise.all([loadProfile(), loadCatalogs(), loadSolicitudes(), loadNotifPrefs()]);
       } catch (err) {
-        setError("No se pudo cargar Mi Cuenta. Intenta recargar.");
+        setError(t('account_load_error', 'No se pudo cargar Mi Cuenta. Intenta recargar.'));
       } finally {
         setLoading(false);
       }
@@ -154,7 +157,7 @@ export default function MiCuenta() {
         usuarios: usuarios.data || [],
       });
     } catch (err) {
-      setError("No se pudieron cargar catálogos.");
+      setError(t('account_catalogs_error', 'No se pudieron cargar catálogos.'));
     }
   };
 
@@ -183,10 +186,10 @@ export default function MiCuenta() {
     try {
       await account.updateNotificationPreferences(notifPrefs);
       localStorage.setItem('spm-notification-prefs', JSON.stringify({ soundEnabled: notifPrefs.soundEnabled }));
-      setNotifPrefsMessage("Preferencias guardadas correctamente.");
+      setNotifPrefsMessage(t('account_notif_saved', 'Preferencias guardadas correctamente.'));
       setTimeout(() => setNotifPrefsMessage(""), 3000);
     } catch (err) {
-      setNotifPrefsMessage(err.response?.data?.error?.message || "No se pudieron guardar las preferencias.");
+      setNotifPrefsMessage(err.response?.data?.error?.message || t('account_notif_save_error', 'No se pudieron guardar las preferencias.'));
     } finally {
       setSavingNotifPrefs(false);
     }
@@ -199,16 +202,16 @@ export default function MiCuenta() {
 
   const submitSecurity = async () => {
     if (!passwordForm.nueva && !mailBackup) {
-      setPasswordMessage("Ingresa una nueva contraseña o mail de respaldo.");
+      setPasswordMessage(t('account_password_or_mail_required', 'Ingresa una nueva contraseña o mail de respaldo.'));
       return;
     }
     if (passwordForm.nueva) {
       if (passwordForm.nueva.length < 8) {
-        setPasswordMessage("La contraseña debe tener al menos 8 caracteres.");
+        setPasswordMessage(t('account_password_min_length', 'La contraseña debe tener al menos 8 caracteres.'));
         return;
       }
       if (passwordForm.nueva !== passwordForm.repetir) {
-        setPasswordMessage("Las contraseñas no coinciden.");
+        setPasswordMessage(t('account_passwords_mismatch', 'Las contraseñas no coinciden.'));
         return;
       }
     }
@@ -224,11 +227,11 @@ export default function MiCuenta() {
       if (mailBackup && mailBackup !== profile.mail_respaldo) {
         await account.updateContact({ mail_respaldo: mailBackup });
       }
-      setPasswordMessage("Datos de seguridad actualizados correctamente.");
+      setPasswordMessage(t('account_security_updated', 'Datos de seguridad actualizados correctamente.'));
       setPasswordForm({ nueva: "", repetir: "" });
       setTimeout(() => setPasswordMessage(""), 3000);
     } catch (err) {
-      setPasswordMessage(err.response?.data?.error?.message || "Error al actualizar seguridad.");
+      setPasswordMessage(err.response?.data?.error?.message || t('account_security_error', 'Error al actualizar seguridad.'));
     } finally {
       setSavingPassword(false);
     }
@@ -236,17 +239,17 @@ export default function MiCuenta() {
 
   const submitPhone = async () => {
     if (!phone || phone.length < 6) {
-      setPhoneMessage("Ingresa un teléfono válido (mín. 6 caracteres).");
+      setPhoneMessage(t('account_phone_invalid', 'Ingresa un teléfono válido (mín. 6 caracteres).'));
       return;
     }
     setSavingPhone(true);
     setPhoneMessage("");
     try {
       await account.updateContact({ telefono: phone });
-      setPhoneMessage("Teléfono actualizado correctamente.");
+      setPhoneMessage(t('account_phone_updated', 'Teléfono actualizado correctamente.'));
       setTimeout(() => setPhoneMessage(""), 3000);
     } catch (err) {
-      setPhoneMessage(err.response?.data?.error?.message || "Error al guardar teléfono.");
+      setPhoneMessage(err.response?.data?.error?.message || t('account_phone_error', 'Error al guardar teléfono.'));
     } finally {
       setSavingPhone(false);
     }
@@ -263,19 +266,19 @@ export default function MiCuenta() {
       (v) => (Array.isArray(v) ? v.length > 0 : v)
     );
     if (!hasChanges) {
-      setRequestMessage("Selecciona al menos un cambio para solicitar.");
+      setRequestMessage(t('account_request_no_changes', 'Selecciona al menos un cambio para solicitar.'));
       return;
     }
     setSavingRequest(true);
     setRequestMessage("");
     try {
       await account.requestProfileChange(pendingChanges);
-      setRequestMessage("Solicitud enviada. Será revisada por un administrador.");
+      setRequestMessage(t('account_request_sent', 'Solicitud enviada. Será revisada por un administrador.'));
       setPendingChanges(initialPending);
       await loadSolicitudes();
       setTimeout(() => setRequestMessage(""), 4000);
     } catch (err) {
-      setRequestMessage(err.response?.data?.error?.message || "Error al enviar solicitud.");
+      setRequestMessage(err.response?.data?.error?.message || t('account_request_error', 'Error al enviar solicitud.'));
     } finally {
       setSavingRequest(false);
     }
@@ -288,7 +291,7 @@ export default function MiCuenta() {
       await account.cancelProfileRequest(solicitud.id);
       await loadSolicitudes();
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error al cancelar solicitud.");
+      setError(err.response?.data?.error?.message || t('account_cancel_error', 'Error al cancelar solicitud.'));
     } finally {
       setCancelingRequest(null);
     }
@@ -309,7 +312,7 @@ export default function MiCuenta() {
       setMessageToAdmin("");
       setSelectedSolicitud(null);
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error al enviar mensaje.");
+      setError(err.response?.data?.error?.message || t('account_message_error', 'Error al enviar mensaje.'));
     } finally {
       setSendingMessage(false);
     }
@@ -338,7 +341,7 @@ export default function MiCuenta() {
             <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
               <ArrowBackIcon />
             </IconButton>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('account_title', 'Mi Cuenta')}</Typography>
           </Box>
           {/* Hero skeleton */}
           <Paper variant="outlined" sx={{ p: 3, display: "flex", alignItems: "center", gap: 3 }}>
@@ -375,7 +378,7 @@ export default function MiCuenta() {
           <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('account_title', 'Mi Cuenta')}</Typography>
         </Box>
 
         {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
@@ -386,7 +389,7 @@ export default function MiCuenta() {
           variant="outlined"
           sx={{
             p: { xs: 2.5, md: 3.5 },
-            background: 'linear-gradient(135deg, #ffffff 0%, var(--primary-muted, #e6f0ff) 100%)',
+            background: 'linear-gradient(135deg, var(--surface) 0%, var(--primary-muted) 100%)',
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
             alignItems: { xs: "center", sm: "flex-start" },
@@ -469,25 +472,25 @@ export default function MiCuenta() {
                   </Typography>
                   <Grid container spacing={1.5}>
                     <Grid size={12}>
-                      <ReadOnlyField label="Nombre y Apellido" value={profile.nombre_apellido || "-"} />
+                      <ReadOnlyField label={t('account_full_name', 'Nombre y Apellido')} value={profile.nombre_apellido || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="ID Usuario SPM" value={profile.id_usuario_spm || "-"} />
+                      <ReadOnlyField label={t('account_user_id', 'ID Usuario SPM')} value={profile.id_usuario_spm || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="Rol" value={profile.rol_spm || "-"} />
+                      <ReadOnlyField label={t('account_role', 'Rol')} value={profile.rol_spm || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="Puesto" value={profile.puesto || "-"} />
+                      <ReadOnlyField label={t('account_position', 'Puesto')} value={profile.puesto || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="Sector" value={profile.sector_actual || "-"} />
+                      <ReadOnlyField label={t('account_sector', 'Sector')} value={profile.sector_actual || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="Centros" value={(profile.centros_actuales || []).join(", ") || "-"} />
+                      <ReadOnlyField label={t('account_centers', 'Centros')} value={(profile.centros_actuales || []).join(", ") || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <ReadOnlyField label="Almacenes" value={(profile.almacenes_actuales || []).join(", ") || "-"} />
+                      <ReadOnlyField label={t('account_warehouses', 'Almacenes')} value={(profile.almacenes_actuales || []).join(", ") || "-"} />
                     </Grid>
                   </Grid>
 
@@ -499,13 +502,13 @@ export default function MiCuenta() {
                   </Typography>
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <ReadOnlyField label="Jefe" value={profile.jefe_actual || "-"} />
+                      <ReadOnlyField label={t('account_boss', 'Jefe')} value={profile.jefe_actual || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <ReadOnlyField label="Gerente 1" value={profile.gerente1_actual || "-"} />
+                      <ReadOnlyField label={t('account_manager_1', 'Gerente 1')} value={profile.gerente1_actual || "-"} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <ReadOnlyField label="Gerente 2" value={profile.gerente2_actual || "-"} />
+                      <ReadOnlyField label={t('account_manager_2', 'Gerente 2')} value={profile.gerente2_actual || "-"} />
                     </Grid>
                   </Grid>
                 </Grid>
@@ -517,12 +520,12 @@ export default function MiCuenta() {
                     {t('account_contact', 'Datos de Contacto')}
                   </Typography>
                   <Stack spacing={1.5}>
-                    <ReadOnlyField label="Mail" value={profile.mail || "-"} />
-                    <TextField fullWidth size="small" label="Telefono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+34 600 000 000" />
+                    <ReadOnlyField label={t('account_mail', 'Mail')} value={profile.mail || "-"} />
+                    <TextField fullWidth size="small" label={t('account_phone', 'Telefono')} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('account_phone_placeholder', '+34 600 000 000')} />
                     {phoneMessage && <Alert severity={phoneMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{phoneMessage}</Alert>}
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <Button variant="contained" size="small" disabled={savingPhone} onClick={submitPhone} sx={{ textTransform: "none" }}>
-                        {savingPhone ? "Guardando..." : "Guardar contacto"}
+                        {savingPhone ? t('common_saving', 'Guardando...') : t('account_save_contact', 'Guardar contacto')}
                       </Button>
                     </Box>
                   </Stack>
@@ -542,13 +545,13 @@ export default function MiCuenta() {
                 {t('account_password_desc', 'Ingresa y confirma tu nueva contraseña para actualizarla.')}
               </Typography>
               <Stack spacing={1.5}>
-                <TextField fullWidth size="small" type="password" label="Nueva Contrasena" value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder="Min 8 caracteres" />
-                <TextField fullWidth size="small" type="password" label="Repetir Nueva Contrasena" value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder="Repite la contrasena" />
-                <TextField fullWidth size="small" type="email" label="Mail de Respaldo" value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder="ejemplo@respaldo.com" />
+                <TextField fullWidth size="small" type="password" label={t('account_new_password', 'Nueva Contrasena')} value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder={t('account_password_placeholder', 'Min 8 caracteres')} />
+                <TextField fullWidth size="small" type="password" label={t('account_repeat_password', 'Repetir Nueva Contrasena')} value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder={t('account_repeat_password_placeholder', 'Repite la contrasena')} />
+                <TextField fullWidth size="small" type="email" label={t('account_backup_mail', 'Mail de Respaldo')} value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder={t('account_backup_mail_placeholder', 'ejemplo@respaldo.com')} />
                 {passwordMessage && <Alert severity={passwordMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{passwordMessage}</Alert>}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button variant="contained" size="small" disabled={savingPassword} onClick={submitSecurity} sx={{ textTransform: "none" }}>
-                    {savingPassword ? "Guardando..." : "Guardar seguridad"}
+                    {savingPassword ? t('common_saving', 'Guardando...') : t('account_save_security', 'Guardar seguridad')}
                   </Button>
                 </Box>
               </Stack>
@@ -574,7 +577,7 @@ export default function MiCuenta() {
                           primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                           secondaryTypographyProps={{ variant: 'caption' }}
                         />
-                        <Switch checked={!!notifPrefs.pushEnabled} onChange={() => handleNotifPrefChange("pushEnabled")} size="small" inputProps={{ 'aria-label': 'Notificaciones Push' }} />
+                        <Switch checked={!!notifPrefs.pushEnabled} onChange={() => handleNotifPrefChange("pushEnabled")} size="small" inputProps={{ 'aria-label': t('account_push_notifications', 'Notificaciones Push') }} />
                       </ListItem>
                       <Divider component="li" />
                       <ListItem sx={{ px: 2 }}>
@@ -585,7 +588,7 @@ export default function MiCuenta() {
                           primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                           secondaryTypographyProps={{ variant: 'caption' }}
                         />
-                        <Switch checked={!!notifPrefs.soundEnabled} onChange={() => handleNotifPrefChange("soundEnabled")} size="small" inputProps={{ 'aria-label': 'Sonido' }} />
+                        <Switch checked={!!notifPrefs.soundEnabled} onChange={() => handleNotifPrefChange("soundEnabled")} size="small" inputProps={{ 'aria-label': t('account_sound', 'Sonido') }} />
                       </ListItem>
                     </List>
                   </Box>
@@ -599,10 +602,10 @@ export default function MiCuenta() {
                     </Box>
                     <List dense disablePadding>
                       {[
-                        { key: "notifSolicitudes", label: "Solicitudes" },
-                        { key: "notifAprobaciones", label: "Aprobaciones" },
-                        { key: "notifMensajes", label: "Mensajes" },
-                        { key: "notifPresupuestos", label: "Presupuestos" },
+                        { key: "notifSolicitudes", label: t('account_notif_requests', 'Solicitudes') },
+                        { key: "notifAprobaciones", label: t('account_notif_approvals', 'Aprobaciones') },
+                        { key: "notifMensajes", label: t('account_notif_messages', 'Mensajes') },
+                        { key: "notifPresupuestos", label: t('account_notif_budgets', 'Presupuestos') },
                       ].map(({ key, label }, idx) => (
                         <Box key={key}>
                           {idx > 0 && <Divider component="li" />}
@@ -627,8 +630,8 @@ export default function MiCuenta() {
                     </Box>
                     <List dense disablePadding>
                       {[
-                        { key: "notifMrp", label: "Alertas MRP" },
-                        { key: "notifSla", label: "Alertas SLA" },
+                        { key: "notifMrp", label: t('account_notif_mrp', 'Alertas MRP') },
+                        { key: "notifSla", label: t('account_notif_sla', 'Alertas SLA') },
                       ].map(({ key, label }, idx) => (
                         <Box key={key}>
                           {idx > 0 && <Divider component="li" />}
@@ -649,7 +652,7 @@ export default function MiCuenta() {
               {notifPrefsMessage && <Alert severity="success" sx={{ mt: 2, py: 0 }}>{notifPrefsMessage}</Alert>}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2.5 }}>
                 <Button variant="contained" size="small" disabled={savingNotifPrefs} onClick={saveNotifPrefs} sx={{ textTransform: "none" }}>
-                  {savingNotifPrefs ? "Guardando..." : "Guardar preferencias"}
+                  {savingNotifPrefs ? t('common_saving', 'Guardando...') : t('account_save_preferences', 'Guardar preferencias')}
                 </Button>
               </Box>
             </Box>
@@ -662,15 +665,15 @@ export default function MiCuenta() {
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <TuneIcon fontSize="small" sx={{ color: "primary.main" }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Configuracion sujeta a aprobacion</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_config_approval', 'Configuracion sujeta a aprobacion')}</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" mb={2}>Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.</Typography>
+                <Typography variant="body2" color="text.secondary" mb={2}>{t('account_config_approval_desc', 'Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.')}</Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Sector</InputLabel>
-                      <Select value={pendingChanges.sector_nuevo} label="Sector" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
-                        <MenuItem value="">Sin cambio</MenuItem>
+                      <InputLabel>{t('account_sector', 'Sector')}</InputLabel>
+                      <Select value={pendingChanges.sector_nuevo} label={t('account_sector', 'Sector')} onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">{t('account_no_change', 'Sin cambio')}</MenuItem>
                         {catalogos.sectores.map((s) => (
                           <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>{s.nombre || s}</MenuItem>
                         ))}
@@ -679,8 +682,8 @@ export default function MiCuenta() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Centros</InputLabel>
-                      <Select multiple value={pendingChanges.centros_nuevos} label="Centros" onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                      <InputLabel>{t('account_centers', 'Centros')}</InputLabel>
+                      <Select multiple value={pendingChanges.centros_nuevos} label={t('account_centers', 'Centros')} onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
                         {catalogos.centros.map((c) => (
                           <MenuItem key={c.id || c.nombre || c} value={c.nombre || c.id || c}>{c.nombre || c}</MenuItem>
                         ))}
@@ -689,8 +692,8 @@ export default function MiCuenta() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Almacenes</InputLabel>
-                      <Select multiple value={pendingChanges.almacenes_nuevos} label="Almacenes" onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                      <InputLabel>{t('account_warehouses', 'Almacenes')}</InputLabel>
+                      <Select multiple value={pendingChanges.almacenes_nuevos} label={t('account_warehouses', 'Almacenes')} onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
                         {catalogos.almacenes.map((a) => (
                           <MenuItem key={a.id || a.nombre || a} value={a.nombre || a.id || a}>{a.nombre || a}</MenuItem>
                         ))}
@@ -699,9 +702,9 @@ export default function MiCuenta() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Jefe</InputLabel>
-                      <Select value={pendingChanges.jefe_nuevo} label="Jefe" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
-                        <MenuItem value="">Sin cambio</MenuItem>
+                      <InputLabel>{t('account_boss', 'Jefe')}</InputLabel>
+                      <Select value={pendingChanges.jefe_nuevo} label={t('account_boss', 'Jefe')} onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">{t('account_no_change', 'Sin cambio')}</MenuItem>
                         {catalogos.usuarios.map((u) => (
                           <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
                         ))}
@@ -710,9 +713,9 @@ export default function MiCuenta() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Gerente 1</InputLabel>
-                      <Select value={pendingChanges.gerente1_nuevo} label="Gerente 1" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
-                        <MenuItem value="">Sin cambio</MenuItem>
+                      <InputLabel>{t('account_manager_1', 'Gerente 1')}</InputLabel>
+                      <Select value={pendingChanges.gerente1_nuevo} label={t('account_manager_1', 'Gerente 1')} onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">{t('account_no_change', 'Sin cambio')}</MenuItem>
                         {catalogos.usuarios.map((u) => (
                           <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
                         ))}
@@ -721,9 +724,9 @@ export default function MiCuenta() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Gerente 2</InputLabel>
-                      <Select value={pendingChanges.gerente2_nuevo} label="Gerente 2" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
-                        <MenuItem value="">Sin cambio</MenuItem>
+                      <InputLabel>{t('account_manager_2', 'Gerente 2')}</InputLabel>
+                      <Select value={pendingChanges.gerente2_nuevo} label={t('account_manager_2', 'Gerente 2')} onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">{t('account_no_change', 'Sin cambio')}</MenuItem>
                         {catalogos.usuarios.map((u) => (
                           <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
                         ))}
@@ -734,7 +737,7 @@ export default function MiCuenta() {
                 {requestMessage && <Alert severity={requestMessage.includes("enviada") ? "success" : "warning"} sx={{ mt: 2, py: 0 }}>{requestMessage}</Alert>}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                   <Button variant="contained" size="small" disabled={savingRequest} onClick={submitProfileRequest} sx={{ textTransform: "none" }}>
-                    {savingRequest ? "Enviando..." : "Solicitar actualizacion"}
+                    {savingRequest ? t('common_sending', 'Enviando...') : t('account_request_update', 'Solicitar actualizacion')}
                   </Button>
                 </Box>
               </Box>
@@ -745,10 +748,10 @@ export default function MiCuenta() {
               <Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <HistoryIcon fontSize="small" sx={{ color: "primary.main" }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Solicitudes de actualizacion de perfil</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_profile_update_requests', 'Solicitudes de actualizacion de perfil')}</Typography>
                 </Box>
                 {solicitudes.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">Sin solicitudes pendientes.</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('account_no_pending_requests', 'Sin solicitudes pendientes.')}</Typography>
                 ) : (
                   <SolicitudesTable
                     data={solicitudes}
@@ -767,26 +770,26 @@ export default function MiCuenta() {
         {/* Modal de mensaje */}
         <Dialog open={messageModalOpen} onClose={() => setMessageModalOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-            Mensaje al administrador
+            {t('account_message_to_admin', 'Mensaje al administrador')}
             <IconButton size="small" onClick={() => setMessageModalOpen(false)}><CloseIcon /></IconButton>
           </DialogTitle>
           <Divider />
           <DialogContent>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Solicitud #{selectedSolicitud?.id}
+              {t('account_request_number', 'Solicitud')} #{selectedSolicitud?.id}
             </Typography>
             <TextField
               fullWidth
               multiline
               rows={4}
-              label="Mensaje"
+              label={t('account_message', 'Mensaje')}
               value={messageToAdmin}
               onChange={(e) => setMessageToAdmin(e.target.value)}
-              placeholder="Escribe tu consulta al administrador..."
+              placeholder={t('account_message_placeholder', 'Escribe tu consulta al administrador...')}
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setMessageModalOpen(false)} sx={{ textTransform: "none" }}>Cancelar</Button>
+            <Button onClick={() => setMessageModalOpen(false)} sx={{ textTransform: "none" }}>{t('common_cancel', 'Cancelar')}</Button>
             <Button
               variant="contained"
               size="small"
@@ -795,7 +798,7 @@ export default function MiCuenta() {
               startIcon={<SendIcon />}
               sx={{ textTransform: "none" }}
             >
-              {sendingMessage ? "Enviando..." : "Enviar"}
+              {sendingMessage ? t('common_sending', 'Enviando...') : t('common_send', 'Enviar')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -823,11 +826,11 @@ function SolicitudesTable({ data, onMessage, onCancel }) {
       minWidth: 120,
       valueFormatter: (params) => {
         const types = {
-          'sector': 'Sector',
-          'centros': 'Centros',
-          'almacenes': 'Almacenes',
-          'jefe': 'Jefe',
-          'gerente': 'Gerente'
+          'sector': t('account_sector', 'Sector'),
+          'centros': t('account_centers', 'Centros'),
+          'almacenes': t('account_warehouses', 'Almacenes'),
+          'jefe': t('account_boss', 'Jefe'),
+          'gerente': t('account_manager', 'Gerente')
         };
         return types[params.value] || params.value || '-';
       },
@@ -900,7 +903,7 @@ function SolicitudesTable({ data, onMessage, onCancel }) {
                   onClick={() => onMessage && onMessage(params.data)}
                   sx={{ textTransform: 'none', fontSize: '0.75rem', p: 0.5 }}
                 >
-                  Mensaje
+                  {t('account_message', 'Mensaje')}
                 </Button>
                 <Button
                   variant="text"
@@ -908,7 +911,7 @@ function SolicitudesTable({ data, onMessage, onCancel }) {
                   onClick={() => onCancel && onCancel(params.data)}
                   sx={{ textTransform: 'none', fontSize: '0.75rem', p: 0.5, color: 'var(--danger)' }}
                 >
-                  Cancelar
+                  {t('common_cancel', 'Cancelar')}
                 </Button>
               </>
             )}

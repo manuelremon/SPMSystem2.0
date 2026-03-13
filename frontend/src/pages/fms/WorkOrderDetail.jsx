@@ -51,7 +51,17 @@ const ESTADO_COLORS = {
   cancelled: 'error',
 }
 
-const ESTADO_LABELS = {
+const ESTADO_KEYS = {
+  draft: 'fms_wo_draft',
+  approved: 'fms_wo_approved',
+  in_progress: 'fms_wo_in_progress',
+  pending_parts: 'fms_wo_pending_parts',
+  completed: 'fms_wo_completed',
+  closed: 'fms_wo_closed',
+  cancelled: 'fms_wo_cancelled',
+}
+
+const ESTADO_FALLBACKS = {
   draft: 'Borrador',
   approved: 'Aprobada',
   in_progress: 'En Progreso',
@@ -61,30 +71,31 @@ const ESTADO_LABELS = {
   cancelled: 'Cancelada',
 }
 
-// Map estado -> allowed transitions with labels
+// Map estado -> allowed transitions with i18n keys
 const TRANSITIONS = {
-  draft: [{ estado: 'approved', label: 'Aprobar', color: 'info' }],
+  draft: [{ estado: 'approved', key: 'fms_action_approve', fallback: 'Aprobar', color: 'info' }],
   approved: [
-    { estado: 'in_progress', label: 'Iniciar', color: 'primary' },
-    { estado: 'cancelled', label: 'Cancelar', color: 'error' },
+    { estado: 'in_progress', key: 'fms_action_start', fallback: 'Iniciar', color: 'primary' },
+    { estado: 'cancelled', key: 'fms_action_cancel', fallback: 'Cancelar', color: 'error' },
   ],
   in_progress: [
-    { estado: 'pending_parts', label: 'Pendiente Partes', color: 'warning' },
-    { estado: 'completed', label: 'Completar', color: 'success' },
-    { estado: 'cancelled', label: 'Cancelar', color: 'error' },
+    { estado: 'pending_parts', key: 'fms_wo_pending_parts', fallback: 'Pendiente Partes', color: 'warning' },
+    { estado: 'completed', key: 'fms_action_complete', fallback: 'Completar', color: 'success' },
+    { estado: 'cancelled', key: 'fms_action_cancel', fallback: 'Cancelar', color: 'error' },
   ],
   pending_parts: [
-    { estado: 'in_progress', label: 'Reanudar', color: 'primary' },
-    { estado: 'cancelled', label: 'Cancelar', color: 'error' },
+    { estado: 'in_progress', key: 'fms_action_resume', fallback: 'Reanudar', color: 'primary' },
+    { estado: 'cancelled', key: 'fms_action_cancel', fallback: 'Cancelar', color: 'error' },
   ],
-  completed: [{ estado: 'closed', label: 'Cerrar', color: 'secondary' }],
+  completed: [{ estado: 'closed', key: 'fms_action_close', fallback: 'Cerrar', color: 'secondary' }],
 }
 
-function PriorityBadge({ priority }) {
+function PriorityBadge({ priority, t }) {
   const p = Number(priority) || 3
-  const labels = { 1: 'Critica', 2: 'Alta', 3: 'Media', 4: 'Baja' }
+  const keys = { 1: 'fms_priority_critical_short', 2: 'fms_priority_high_short', 3: 'fms_priority_medium_short', 4: 'fms_priority_low_short' }
+  const fallbacks = { 1: 'Critica', 2: 'Alta', 3: 'Media', 4: 'Baja' }
   const colors = { 1: 'error', 2: 'warning', 3: 'info', 4: 'default' }
-  return <Chip label={`P${p} - ${labels[p] || 'Media'}`} color={colors[p] || 'default'} size="small" />
+  return <Chip label={`P${p} - ${t(keys[p] || keys[3], fallbacks[p] || 'Media')}`} color={colors[p] || 'default'} size="small" />
 }
 
 export default function WorkOrderDetail() {
@@ -219,7 +230,7 @@ export default function WorkOrderDetail() {
         <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
           <Alert severity="error">{t('fms_wo_not_found', 'Orden de trabajo no encontrada')}</Alert>
           <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/work-orders')} sx={{ mt: 2 }}>
-            Volver
+            {t('fms_back', 'Volver')}
           </Button>
         </Box>
       </Box>
@@ -238,14 +249,14 @@ export default function WorkOrderDetail() {
         </IconButton>
         <Box sx={{ flexGrow: 1 }}>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Typography variant="h4" fontWeight={700}>
+            <Typography variant="h5" fontWeight={700} textTransform="uppercase" letterSpacing="0.5px">
               {wo.codigo || `OT-${wo.id}`}
             </Typography>
             <Chip
-              label={ESTADO_LABELS[wo.estado] || wo.estado}
+              label={t(ESTADO_KEYS[wo.estado], ESTADO_FALLBACKS[wo.estado]) || wo.estado}
               color={ESTADO_COLORS[wo.estado] || 'default'}
             />
-            <PriorityBadge priority={wo.prioridad} />
+            <PriorityBadge priority={wo.prioridad} t={t} />
           </Stack>
         </Box>
         {availableTransitions.map((tr) => (
@@ -257,7 +268,7 @@ export default function WorkOrderDetail() {
             disabled={saving}
             size="small"
           >
-            {tr.label}
+            {t(tr.key, tr.fallback)}
           </Button>
         ))}
       </Stack>
@@ -267,15 +278,15 @@ export default function WorkOrderDetail() {
       {/* Info Card */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>Informacion de la Orden</Typography>
+          <Typography variant="h6" gutterBottom>{t('fms_order_info', 'Informacion de la Orden')}</Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">Vehiculo</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_col_vehicle', 'Vehiculo')}</Typography>
               <Typography variant="body1" fontWeight={500} mb={2}>
                 {wo.vehicle_placa || `ID: ${wo.vehicle_id}`}
               </Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Tipo</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_doc_type', 'Tipo')}</Typography>
               <Typography variant="body1" mb={2}>
                 <Chip
                   label={wo.tipo || '--'}
@@ -284,42 +295,42 @@ export default function WorkOrderDetail() {
                 />
               </Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Descripcion</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_description', 'Descripcion')}</Typography>
               <Typography variant="body1" mb={2}>{wo.descripcion || '--'}</Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Diagnostico</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_diagnosis', 'Diagnostico')}</Typography>
               <Typography variant="body1" mb={2}>{wo.diagnostico || '--'}</Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Solucion</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_solution', 'Solucion')}</Typography>
               <Typography variant="body1" mb={2}>{wo.solucion || '--'}</Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">Tecnico Asignado</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_assigned_technician', 'Tecnico Asignado')}</Typography>
               <Typography variant="body1" mb={2}>{wo.tecnico_nombre || wo.tecnico_id || '--'}</Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Proveedor</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_supplier', 'Proveedor')}</Typography>
               <Typography variant="body1" mb={2}>{wo.proveedor_nombre || wo.proveedor_id || '--'}</Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Fecha Ingreso</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_col_entry_date', 'Fecha Ingreso')}</Typography>
               <Typography variant="body1" mb={2}>{wo.fecha_ingreso || wo.created_at || '--'}</Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Fecha Finalizacion</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_completion_date', 'Fecha Finalizacion')}</Typography>
               <Typography variant="body1" mb={2}>{wo.fecha_finalizacion || '--'}</Typography>
 
               <Divider sx={{ my: 2 }} />
 
-              <Typography variant="subtitle2" color="text.secondary">Costo Repuestos</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_parts_cost', 'Costo Repuestos')}</Typography>
               <Typography variant="body1" mb={1}>
                 {wo.costo_repuestos != null ? `$${Number(wo.costo_repuestos).toLocaleString()}` : '--'}
               </Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Costo Mano de Obra</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_labor_cost', 'Costo Mano de Obra')}</Typography>
               <Typography variant="body1" mb={1}>
                 {wo.costo_mano_obra != null ? `$${Number(wo.costo_mano_obra).toLocaleString()}` : '--'}
               </Typography>
 
-              <Typography variant="subtitle2" color="text.secondary">Costo Total</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('fms_col_total_cost', 'Costo Total')}</Typography>
               <Typography variant="h6" fontWeight={700} color="primary">
                 {wo.costo_total != null ? `$${Number(wo.costo_total).toLocaleString()}` : '--'}
               </Typography>
@@ -332,7 +343,7 @@ export default function WorkOrderDetail() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Repuestos y Partes</Typography>
+            <Typography variant="h6">{t('fms_parts_and_spares', 'Repuestos y Partes')}</Typography>
             <Stack direction="row" spacing={1}>
               <Button
                 variant="outlined"
@@ -340,7 +351,7 @@ export default function WorkOrderDetail() {
                 startIcon={<ShoppingCart />}
                 onClick={() => setSpmOpen(true)}
               >
-                Solicitar Repuesto SPM
+                {t('fms_request_part_spm', 'Solicitar Repuesto SPM')}
               </Button>
               <Button
                 variant="contained"
@@ -348,7 +359,7 @@ export default function WorkOrderDetail() {
                 startIcon={<Plus />}
                 onClick={() => setPartOpen(true)}
               >
-                Agregar Parte
+                {t('fms_add_part', 'Agregar Parte')}
               </Button>
             </Stack>
           </Stack>
@@ -356,12 +367,12 @@ export default function WorkOrderDetail() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Material</TableCell>
-                  <TableCell>Descripcion</TableCell>
-                  <TableCell align="right">Cantidad</TableCell>
-                  <TableCell align="right">Costo Unit.</TableCell>
-                  <TableCell align="right">Subtotal</TableCell>
-                  <TableCell>Estado</TableCell>
+                  <TableCell>{t('fms_material', 'Material')}</TableCell>
+                  <TableCell>{t('fms_description', 'Descripcion')}</TableCell>
+                  <TableCell align="right">{t('fms_quantity', 'Cantidad')}</TableCell>
+                  <TableCell align="right">{t('fms_unit_cost', 'Costo Unit.')}</TableCell>
+                  <TableCell align="right">{t('fms_subtotal', 'Subtotal')}</TableCell>
+                  <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -369,7 +380,7 @@ export default function WorkOrderDetail() {
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       <Typography variant="body2" color="text.secondary" py={2}>
-                        No hay partes registradas
+                        {t('fms_no_parts', 'No hay partes registradas')}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -407,12 +418,12 @@ export default function WorkOrderDetail() {
 
       {/* Complete Dialog */}
       <Dialog open={completeOpen} onClose={() => setCompleteOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Completar Orden de Trabajo</DialogTitle>
+        <DialogTitle>{t('fms_complete_work_order', 'Completar Orden de Trabajo')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="Solucion Aplicada"
+              label={t('fms_applied_solution', 'Solucion Aplicada')}
               value={completeForm.solucion}
               onChange={(e) => setCompleteForm({ ...completeForm, solucion: e.target.value })}
               multiline
@@ -422,7 +433,7 @@ export default function WorkOrderDetail() {
             />
             <TextField
               size="small"
-              label="Costo Mano de Obra ($)"
+              label={t('fms_labor_cost_usd', 'Costo Mano de Obra ($)')}
               type="number"
               value={completeForm.costo_mano_obra}
               onChange={(e) => setCompleteForm({ ...completeForm, costo_mano_obra: e.target.value })}
@@ -431,40 +442,40 @@ export default function WorkOrderDetail() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCompleteOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setCompleteOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
             color="success"
             onClick={handleComplete}
             disabled={saving || !completeForm.solucion}
           >
-            {saving ? <CircularProgress size={20} /> : 'Completar'}
+            {saving ? <CircularProgress size={20} /> : t('fms_action_complete', 'Completar')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Part Dialog */}
       <Dialog open={partOpen} onClose={() => setPartOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Agregar Parte / Repuesto</DialogTitle>
+        <DialogTitle>{t('fms_add_part_spare', 'Agregar Parte / Repuesto')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="Codigo Material"
+              label={t('fms_material_code', 'Codigo Material')}
               value={partForm.material_code}
               onChange={(e) => setPartForm({ ...partForm, material_code: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="Descripcion"
+              label={t('fms_description', 'Descripcion')}
               value={partForm.descripcion}
               onChange={(e) => setPartForm({ ...partForm, descripcion: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="Cantidad"
+              label={t('fms_quantity', 'Cantidad')}
               type="number"
               value={partForm.cantidad}
               onChange={(e) => setPartForm({ ...partForm, cantidad: e.target.value })}
@@ -473,7 +484,7 @@ export default function WorkOrderDetail() {
             />
             <TextField
               size="small"
-              label="Costo Unitario ($)"
+              label={t('fms_unit_cost_usd', 'Costo Unitario ($)')}
               type="number"
               value={partForm.costo_unitario}
               onChange={(e) => setPartForm({ ...partForm, costo_unitario: e.target.value })}
@@ -482,43 +493,43 @@ export default function WorkOrderDetail() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPartOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setPartOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
             onClick={handleAddPart}
             disabled={saving || !partForm.descripcion}
           >
-            {saving ? <CircularProgress size={20} /> : 'Agregar'}
+            {saving ? <CircularProgress size={20} /> : t('fms_add', 'Agregar')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Request Part from SPM Dialog */}
       <Dialog open={spmOpen} onClose={() => setSpmOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Solicitar Repuesto desde SPM</DialogTitle>
+        <DialogTitle>{t('fms_request_part_from_spm', 'Solicitar Repuesto desde SPM')}</DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Esta accion creara una solicitud de material en el sistema SPM vinculada a esta orden de trabajo.
+            {t('fms_spm_request_info', 'Esta accion creara una solicitud de material en el sistema SPM vinculada a esta orden de trabajo.')}
           </Alert>
           <Stack spacing={2}>
             <TextField
               size="small"
-              label="Codigo Material SAP"
+              label={t('fms_sap_material_code', 'Codigo Material SAP')}
               value={spmForm.material_code}
               onChange={(e) => setSpmForm({ ...spmForm, material_code: e.target.value })}
               fullWidth
-              helperText="Ingrese el codigo SAP del material"
+              helperText={t('fms_enter_sap_code', 'Ingrese el codigo SAP del material')}
             />
             <TextField
               size="small"
-              label="Descripcion"
+              label={t('fms_description', 'Descripcion')}
               value={spmForm.descripcion}
               onChange={(e) => setSpmForm({ ...spmForm, descripcion: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="Cantidad"
+              label={t('fms_quantity', 'Cantidad')}
               type="number"
               value={spmForm.cantidad}
               onChange={(e) => setSpmForm({ ...spmForm, cantidad: e.target.value })}
@@ -528,7 +539,7 @@ export default function WorkOrderDetail() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSpmOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setSpmOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
             color="primary"
@@ -536,7 +547,7 @@ export default function WorkOrderDetail() {
             onClick={handleRequestSPM}
             disabled={saving || !spmForm.material_code || !spmForm.cantidad}
           >
-            {saving ? <CircularProgress size={20} /> : 'Solicitar'}
+            {saving ? <CircularProgress size={20} /> : t('fms_request', 'Solicitar')}
           </Button>
         </DialogActions>
       </Dialog>

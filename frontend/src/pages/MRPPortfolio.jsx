@@ -72,7 +72,7 @@ function SummaryCard({ label, value, subvalue }) {
           letterSpacing: "0.05em",
           display: "block",
           mb: 0.5,
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
         }}
       >
         {label}

@@ -64,10 +64,10 @@ const NIVEL_LABELS = {
 
 function getScoreColor(score) {
   const v = Number(score) || 0;
-  if (v <= 25) return '#22c55e';
-  if (v <= 50) return '#eab308';
-  if (v <= 75) return '#f97316';
-  return '#ef4444';
+  if (v <= 25) return 'var(--success-light)';
+  if (v <= 50) return 'var(--warning)';
+  if (v <= 75) return 'var(--warning-light)';
+  return 'var(--danger-light)';
 }
 
 // Inline score bar for the grid
@@ -297,10 +297,10 @@ export default function SupplierRiskMap() {
           </Typography>
           <Stack spacing={1.2}>
             {[
-              { label: 'Critico', count: kpis.critical, color: '#ef4444', key: 'critical' },
-              { label: 'Alto', count: kpis.high, color: '#f97316', key: 'high' },
-              { label: 'Medio', count: kpis.medium, color: '#eab308', key: 'medium' },
-              { label: 'Bajo', count: kpis.low, color: '#22c55e', key: 'low' },
+              { label: 'Critico', count: kpis.critical, color: 'var(--danger-light)', key: 'critical' },
+              { label: 'Alto', count: kpis.high, color: 'var(--warning-light)', key: 'high' },
+              { label: 'Medio', count: kpis.medium, color: 'var(--warning)', key: 'medium' },
+              { label: 'Bajo', count: kpis.low, color: 'var(--success-light)', key: 'low' },
             ].map(item => {
               const pct = kpis.total > 0 ? (item.count / kpis.total) * 100 : 0;
               return (
@@ -512,10 +512,10 @@ export default function SupplierRiskMap() {
           />
           <Stack direction="row" gap={1.5} sx={{ ml: 'auto' }}>
             {[
-              { label: t('risk_legend_low', 'Bajo'), color: '#22c55e', range: '0-25' },
-              { label: t('risk_legend_medium', 'Medio'), color: '#eab308', range: '25-50' },
-              { label: t('risk_legend_high', 'Alto'), color: '#f97316', range: '50-75' },
-              { label: t('risk_legend_critical', 'Critico'), color: '#ef4444', range: '75-100' },
+              { label: t('risk_legend_low', 'Bajo'), color: 'var(--success-light)', range: '0-25' },
+              { label: t('risk_legend_medium', 'Medio'), color: 'var(--warning)', range: '25-50' },
+              { label: t('risk_legend_high', 'Alto'), color: 'var(--warning-light)', range: '50-75' },
+              { label: t('risk_legend_critical', 'Critico'), color: 'var(--danger-light)', range: '75-100' },
             ].map(item => (
               <Tooltip key={item.label} title={`Score ${item.range}`}>
                 <Stack direction="row" alignItems="center" gap={0.3}>

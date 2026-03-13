@@ -46,16 +46,16 @@ const tipoIcons = {
 };
 
 const tipoColors = {
-  solicitud_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
-  solicitud_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
-  solicitud_to_plan: { bg: "rgba(59, 130, 246, 0.12)", color: "var(--primary)" },
-  stock_consulta: { bg: "rgba(249, 115, 22, 0.12)", color: "#f97316" },
-  mensaje_nuevo: { bg: "rgba(168, 85, 247, 0.12)", color: "#a855f7" },
-  budget_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
-  budget_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
-  profile_request: { bg: "rgba(99, 102, 241, 0.12)", color: "#6366f1" },
-  profile_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
-  profile_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
+  solicitud_approved: { bg: "var(--success-bg)", color: "var(--success)" },
+  solicitud_rejected: { bg: "var(--danger-bg)", color: "var(--danger)" },
+  solicitud_to_plan: { bg: "var(--info-bg)", color: "var(--primary)" },
+  stock_consulta: { bg: "var(--warning-bg)", color: "var(--warning-light)" },
+  mensaje_nuevo: { bg: "var(--neutral-bg)", color: "var(--purple)" },
+  budget_approved: { bg: "var(--success-bg)", color: "var(--success)" },
+  budget_rejected: { bg: "var(--danger-bg)", color: "var(--danger)" },
+  profile_request: { bg: "var(--info-bg)", color: "var(--indigo)" },
+  profile_approved: { bg: "var(--success-bg)", color: "var(--success)" },
+  profile_rejected: { bg: "var(--danger-bg)", color: "var(--danger)" },
   default: { bg: "var(--bg-soft)", color: "var(--fg-muted)" },
 };
 
@@ -469,7 +469,7 @@ export default function NotificacionesInline({ onUpdate }) {
                             height: 18,
                             fontSize: "0.65rem",
                             fontWeight: 600,
-                            bgcolor: "rgba(245, 158, 11, 0.12)",
+                            bgcolor: "var(--warning-bg-light)",
                             color: "var(--warning)",
                           }}
                         />

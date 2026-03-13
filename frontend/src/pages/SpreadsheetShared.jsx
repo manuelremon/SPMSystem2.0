@@ -99,7 +99,7 @@ export default function DashboardShared() {
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          bgcolor: '#f5f5f5',
+          bgcolor: 'grey.100',
         }}
       >
         <CircularProgress size={48} />
@@ -119,7 +119,7 @@ export default function DashboardShared() {
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          bgcolor: '#f5f5f5',
+          bgcolor: 'grey.100',
         }}
       >
         <Paper
@@ -175,7 +175,7 @@ export default function DashboardShared() {
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          bgcolor: '#f5f5f5',
+          bgcolor: 'grey.100',
         }}
       >
         <Paper sx={{ p: 4, maxWidth: 400, width: '100%', textAlign: 'center' }}>
@@ -198,7 +198,7 @@ export default function DashboardShared() {
   const canEdit = permiso === 'edit' || permiso === 'admin';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#f9fafb' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'grey.50' }}>
       {/* Header */}
       <Paper
         elevation={0}

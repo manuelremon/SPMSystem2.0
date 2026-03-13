@@ -284,7 +284,7 @@ export function SPMAgGrid({
               sx={{
                 color: 'var(--success)',
                 border: '1px solid var(--success)',
-                borderRadius: '4px',
+                borderRadius: 'var(--radius-xs)',
                 padding: '4px 8px',
                 '&:hover': {
                   backgroundColor: 'var(--success)',

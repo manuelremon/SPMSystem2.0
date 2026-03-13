@@ -553,7 +553,7 @@ export default function Paso2DecisionAbastecimiento({
             borderRadius: 3,
             border: 2,
             borderColor: 'primary.main',
-            bgcolor: 'rgba(25, 118, 210, 0.04)',
+            bgcolor: 'var(--primary-bg-light)',
           }}
         >
           <Stack spacing={2}>
@@ -738,7 +738,7 @@ export default function Paso2DecisionAbastecimiento({
                 sx={{
                   background: itemCompleto
                     ? undefined
-                    : 'linear-gradient(45deg, #10b981 30%, #14b8a6 90%)',
+                    : 'linear-gradient(45deg, var(--success-light) 30%, var(--accent) 90%)',
                   fontWeight: 'bold',
                   fontSize: '0.75rem',
                   px: 2,
@@ -1039,7 +1039,7 @@ function StockCategoriaCard({
         borderRadius: 3,
         border: 2,
         borderColor: hasSelection ? 'primary.main' : colorBorde,
-        bgcolor: hasSelection ? 'rgba(25, 118, 210, 0.04)' : colorFondo,
+        bgcolor: hasSelection ? 'var(--primary-bg-light)' : colorFondo,
         overflow: 'hidden',
         transition: 'all 0.2s',
       }}
@@ -1242,7 +1242,7 @@ function EquivalenciasCard({
         borderRadius: 3,
         border: 2,
         borderColor: hasSelection ? 'primary.main' : 'secondary.light',
-        bgcolor: hasSelection ? 'rgba(25, 118, 210, 0.04)' : 'secondary.lighter',
+        bgcolor: hasSelection ? 'var(--primary-bg-light)' : 'secondary.lighter',
         overflow: 'hidden',
         transition: 'all 0.2s',
       }}
@@ -1620,7 +1620,7 @@ function OpcionCardMulti({ opcion, selected, onToggle }) {
           ? 'primary.light'
           : 'divider',
         bgcolor: selected
-          ? 'rgba(25, 118, 210, 0.06)'
+          ? 'var(--primary-bg-light)'
           : isRecomendada
           ? 'primary.lighter'
           : 'background.paper',
@@ -1785,9 +1785,9 @@ function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelect
                 sx={{
                   cursor: 'pointer',
                   bgcolor: selected
-                    ? 'rgba(25, 118, 210, 0.12)'
+                    ? 'var(--info-bg-light)'
                     : isRecomendada
-                    ? 'rgba(25, 118, 210, 0.06)'
+                    ? 'var(--primary-bg-light)'
                     : 'transparent',
                 }}
               >

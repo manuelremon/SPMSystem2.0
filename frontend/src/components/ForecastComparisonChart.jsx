@@ -13,11 +13,11 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 
 const FUENTE_COLORS = {
-  ml_baseline: '#2196f3',
-  sales: '#4caf50',
-  operations: '#ff9800',
-  finance: '#9c27b0',
-  manual: '#9e9e9e',
+  ml_baseline: 'var(--info)',
+  sales: 'var(--success)',
+  operations: 'var(--warning-light)',
+  finance: 'var(--purple)',
+  manual: 'var(--neutral)',
 };
 
 const FUENTE_LABELS = {
@@ -79,13 +79,13 @@ export default function ForecastComparisonChart({ entries = [], consensus = [] }
       <Stack direction="row" gap={2} sx={{ mb: 2 }} flexWrap="wrap">
         {allFuentes.map(fuente => (
           <Stack key={fuente} direction="row" alignItems="center" gap={0.5}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '2px', backgroundColor: FUENTE_COLORS[fuente] || '#757575' }} />
+            <Box sx={{ width: 12, height: 12, borderRadius: '2px', backgroundColor: FUENTE_COLORS[fuente] || 'var(--fg-muted)' }} />
             <Typography variant="caption">{FUENTE_LABELS[fuente] || fuente}</Typography>
           </Stack>
         ))}
         {consensus.length > 0 && (
           <Stack direction="row" alignItems="center" gap={0.5}>
-            <Box sx={{ width: 12, height: 3, backgroundColor: '#f44336' }} />
+            <Box sx={{ width: 12, height: 3, backgroundColor: 'var(--danger-light)' }} />
             <Typography variant="caption">Consenso</Typography>
           </Stack>
         )}
@@ -116,7 +116,7 @@ export default function ForecastComparisonChart({ entries = [], consensus = [] }
                             height: 18,
                             width: `${widthPct}%`,
                             minWidth: 4,
-                            backgroundColor: FUENTE_COLORS[fuente] || '#757575',
+                            backgroundColor: FUENTE_COLORS[fuente] || 'var(--fg-muted)',
                             borderRadius: '2px',
                             transition: 'width 0.3s ease',
                           }}
@@ -138,7 +138,7 @@ export default function ForecastComparisonChart({ entries = [], consensus = [] }
                         top: 0,
                         bottom: 0,
                         width: 2,
-                        backgroundColor: '#f44336',
+                        backgroundColor: 'var(--danger-light)',
                         borderRadius: '1px',
                         zIndex: 1,
                       }}

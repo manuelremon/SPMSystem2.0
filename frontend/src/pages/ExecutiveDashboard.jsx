@@ -18,7 +18,13 @@ import {
   LinearProgress,
   Tooltip,
   CircularProgress,
-  Alert
+  Alert,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -149,9 +155,10 @@ const ExecutiveDashboard = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
+    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('exec_dashboard_title', 'Dashboard Ejecutivo de Procurement')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -307,30 +314,30 @@ const ExecutiveDashboard = () => {
                   <CircularProgress />
                 </Box>
               ) : trendsData.length > 0 ? (
-                <Box sx={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ padding: '8px 12px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>
                           {t('exec_period', 'Periodo')}
-                        </th>
-                        <th style={{ padding: '8px 12px', borderBottom: '2px solid #ddd', textAlign: 'right' }}>
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
                           {modalTrend.nombre}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                       {trendsData.map((row, idx) => (
-                        <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#f9f9f9' : '#fff' }}>
-                          <td style={{ padding: '8px 12px', borderBottom: '1px solid #eee' }}>{row.periodo}</td>
-                          <td style={{ padding: '8px 12px', borderBottom: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>
+                        <TableRow key={idx} sx={{ '&:nth-of-type(even)': { bgcolor: 'grey.50' } }}>
+                          <TableCell>{row.periodo}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>
                             {Number(row.valor || 0).toFixed(2)}{modalTrend.unidad || ''}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
-                </Box>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               ) : (
                 <Alert severity="info">{t('exec_no_trend_data', 'No hay datos de tendencia disponibles')}</Alert>
               )}
@@ -375,6 +382,7 @@ const ExecutiveDashboard = () => {
           </>
         )}
       </Dialog>
+    </Box>
     </Box>
   );
 };

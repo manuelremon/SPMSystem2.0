@@ -158,7 +158,7 @@ function RoleBadge({ role }) {
       size="small"
       sx={{
         height: 20,
-        fontSize: "10px",
+        fontSize: "var(--text-2xs)",
         fontWeight: 600,
         bgcolor: colors.bgcolor,
         color: colors.color,
@@ -193,7 +193,7 @@ function RoleChips({ value = [], onChange }) {
             size="small"
             sx={{
               fontWeight: 600,
-              fontSize: "12px",
+              fontSize: "var(--text-sm)",
               cursor: "pointer",
               bgcolor: isActive ? "primary.main" : "grey.50",
               color: isActive ? "common.white" : "text.secondary",
@@ -218,7 +218,7 @@ function FormSection({ title, children }) {
       <Typography
         variant="overline"
         sx={{
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
           fontWeight: 600,
           color: "text.secondary",
           letterSpacing: 1,
@@ -323,7 +323,7 @@ function UsuariosTable({
             <Typography
               variant="caption"
               sx={{
-                fontSize: "10px",
+                fontSize: "var(--text-2xs)",
                 fontWeight: 600,
                 textTransform: "uppercase",
                 color: isActive ? "success.700" : "text.disabled",
@@ -382,7 +382,7 @@ function UsuariosTable({
           <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "error.800" }}>
             <WarningIcon sx={{ fontSize: 18 }} />
             <Typography variant="body2" fontWeight={500}>
-              Eliminar a{" "}
+              {t('admin_users_delete_confirm', 'Eliminar a')}{" "}
               <Box component="strong">
                 {data.find((u) => u.id_spm === deletingId)?.nombre}{" "}
                 {data.find((u) => u.id_spm === deletingId)?.apellido}
@@ -397,7 +397,7 @@ function UsuariosTable({
               onClick={onCancelDelete}
               disabled={submitting}
               sx={{
-                fontSize: "11px",
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 textTransform: "uppercase",
                 color: "text.secondary",
@@ -414,7 +414,7 @@ function UsuariosTable({
               onClick={() => onConfirmDelete && onConfirmDelete(deletingId)}
               disabled={submitting}
               sx={{
-                fontSize: "11px",
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 textTransform: "uppercase",
               }}
@@ -464,7 +464,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
             <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "error.800" }}>
               <WarningIcon sx={{ fontSize: 18 }} />
               <Typography variant="body2" fontWeight={500}>
-                Eliminar a{" "}
+                {t('admin_users_delete_confirm', 'Eliminar a')}{" "}
                 <Box component="strong">
                   {user.nombre} {user.apellido}
                 </Box>
@@ -477,7 +477,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                 variant="outlined"
                 onClick={onCancelDelete}
                 sx={{
-                  fontSize: "11px",
+                  fontSize: "var(--text-xs)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                   color: "text.secondary",
@@ -493,7 +493,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
                 color="error"
                 onClick={onConfirmDelete}
                 sx={{
-                  fontSize: "11px",
+                  fontSize: "var(--text-xs)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                 }}
@@ -519,7 +519,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
       }}
     >
       <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "13px" }}>
+        <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "var(--text-base)" }}>
           {user.id_spm}
         </Typography>
       </TableCell>
@@ -528,7 +528,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
           variant="body2"
           fontWeight={500}
           noWrap
-          sx={{ maxWidth: 160, fontSize: "13px" }}
+          sx={{ maxWidth: 160, fontSize: "var(--text-base)" }}
         >
           {user.nombre} {user.apellido}
         </Typography>
@@ -543,7 +543,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
         </Stack>
       </TableCell>
       <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Typography variant="body2" noWrap title={user.mail} sx={{ color: "text.secondary", fontSize: "13px" }}>
+        <Typography variant="body2" noWrap title={user.mail} sx={{ color: "text.secondary", fontSize: "var(--text-base)" }}>
           {user.mail || "-"}
         </Typography>
       </TableCell>
@@ -560,7 +560,7 @@ function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirm
           <Typography
             variant="caption"
             sx={{
-              fontSize: "10px",
+              fontSize: "var(--text-2xs)",
               fontWeight: 600,
               textTransform: "uppercase",
               color: isActive ? "success.700" : "text.disabled",
@@ -613,13 +613,13 @@ function EmptyState({ type = "no-data", onClearFilters }) {
           {t('admin_no_results', 'No se encontraron usuarios')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Prueba ajustando los filtros de busqueda
+          {t('admin_users_adjust_filters', 'Prueba ajustando los filtros de busqueda')}
         </Typography>
         <Button
           size="small"
           onClick={onClearFilters}
           sx={{
-            fontSize: "11px",
+            fontSize: "var(--text-xs)",
             fontWeight: 600,
             textTransform: "uppercase",
             color: "primary.main",
@@ -627,7 +627,7 @@ function EmptyState({ type = "no-data", onClearFilters }) {
             "&:hover": { bgcolor: "primary.100" },
           }}
         >
-          Limpiar filtros
+          {t('admin_users_clear_filters', 'Limpiar filtros')}
         </Button>
       </Box>
     );
@@ -841,7 +841,7 @@ export default function AdminUsuarios() {
     if (!form.nombre) errors.nombre = t('admin_required', 'Requerido');
     if (!form.apellido) errors.apellido = t('admin_required', 'Requerido');
     if (!form.mail) errors.mail = t('admin_required', 'Requerido');
-    if (!editingUser && !form.contrasena) errors.contrasena = "Requerida para nuevos usuarios";
+    if (!editingUser && !form.contrasena) errors.contrasena = t('admin_users_password_required', 'Requerida para nuevos usuarios');
     if (form.roles.length === 0) errors.roles = t('admin_select_role', 'Selecciona al menos un rol');
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -965,7 +965,7 @@ export default function AdminUsuarios() {
                 onClick={handleNew}
                 sx={{
                   fontWeight: 600,
-                  fontSize: "11px",
+                  fontSize: "var(--text-xs)",
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                   px: 2,
@@ -1000,9 +1000,9 @@ export default function AdminUsuarios() {
               <FilterListIcon sx={{ fontSize: 16, color: "text.secondary" }} />
               <Typography
                 variant="overline"
-                sx={{ fontSize: "11px", fontWeight: 600, color: "text.secondary", letterSpacing: 1 }}
+                sx={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "text.secondary", letterSpacing: 1 }}
               >
-                Filtros
+                {t('admin_users_filters', 'Filtros')}
               </Typography>
             </Stack>
           </Box>
@@ -1011,7 +1011,7 @@ export default function AdminUsuarios() {
               {/* Busqueda */}
               <TextField
                 size="small"
-                placeholder="Buscar por nombre, email o ID..."
+                placeholder={t('admin_users_search_placeholder', 'Buscar por nombre, email o ID...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 sx={{ flex: 1, minWidth: 250, maxWidth: 400 }}
@@ -1026,13 +1026,13 @@ export default function AdminUsuarios() {
 
               {/* Filtro Estado */}
               <FormControl size="small" sx={{ minWidth: 170 }}>
-                <InputLabel>Estado</InputLabel>
+                <InputLabel>{t('admin_users_status', 'Estado')}</InputLabel>
                 <Select
                   value={filterEstado}
                   onChange={(e) => setFilterEstado(e.target.value)}
-                  label="Estado"
+                  label={t('admin_users_status', 'Estado')}
                 >
-                  <MenuItem value="">Todos los estados</MenuItem>
+                  <MenuItem value="">{t('admin_users_all_statuses', 'Todos los estados')}</MenuItem>
                   {ESTADOS_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -1043,13 +1043,13 @@ export default function AdminUsuarios() {
 
               {/* Filtro Rol */}
               <FormControl size="small" sx={{ minWidth: 170 }}>
-                <InputLabel>Rol</InputLabel>
+                <InputLabel>{t('admin_users_role', 'Rol')}</InputLabel>
                 <Select
                   value={filterRol}
                   onChange={(e) => setFilterRol(e.target.value)}
-                  label="Rol"
+                  label={t('admin_users_role', 'Rol')}
                 >
-                  <MenuItem value="">Todos los roles</MenuItem>
+                  <MenuItem value="">{t('admin_users_all_roles', 'Todos los roles')}</MenuItem>
                   {ROLES_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -1070,11 +1070,11 @@ export default function AdminUsuarios() {
                     }}
                   />
                 }
-                label={`${filteredUsuarios.length} usuarios`}
+                label={`${filteredUsuarios.length} ${t('admin_users_count_label', 'usuarios')}`}
                 size="small"
                 sx={{
                   fontWeight: 600,
-                  fontSize: "11px",
+                  fontSize: "var(--text-xs)",
                   bgcolor: "grey.100",
                   color: "text.secondary",
                   "& .MuiChip-icon": { mr: 0.5 },
@@ -1089,9 +1089,9 @@ export default function AdminUsuarios() {
           <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
             <Typography
               variant="overline"
-              sx={{ fontSize: "11px", fontWeight: 600, color: "text.primary", letterSpacing: 1 }}
+              sx={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "text.primary", letterSpacing: 1 }}
             >
-              Lista de Usuarios
+              {t('admin_users_list_title', 'Lista de Usuarios')}
             </Typography>
           </Box>
 
@@ -1115,7 +1115,7 @@ export default function AdminUsuarios() {
           {!loading && filteredUsuarios.length > 0 && (
             <Box sx={{ px: 2, py: 1.5, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
               <Typography variant="caption" color="text.secondary">
-                Mostrando {filteredUsuarios.length} de {usuarios.length} usuarios
+                {t('admin_users_showing', 'Mostrando')} {filteredUsuarios.length} {t('admin_users_of', 'de')} {usuarios.length} {t('admin_users_count_label', 'usuarios')}
               </Typography>
             </Box>
           )}
@@ -1145,7 +1145,7 @@ export default function AdminUsuarios() {
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
-              {editingUser ? "Editar Usuario" : "Nuevo Usuario"}
+              {editingUser ? t('admin_users_edit_user', 'Editar Usuario') : t('admin_users_new_user', 'Nuevo Usuario')}
             </Typography>
             {editingUser && (
               <Typography variant="caption" color="text.secondary">
@@ -1162,12 +1162,12 @@ export default function AdminUsuarios() {
         <Box sx={{ flex: 1, overflow: "auto" }}>
           <Box component="form" id="user-form" onSubmit={handleSubmit}>
             {/* Datos Basicos */}
-            <FormSection title="Datos Basicos">
+            <FormSection title={t('admin_users_basic_data', 'Datos Basicos')}>
               <Stack direction="row" spacing={2}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="ID SPM"
+                  label={t('admin_users_id_spm', 'ID SPM')}
                   name="id_spm"
                   value={form.id_spm}
                   onChange={handleChange}
@@ -1179,7 +1179,7 @@ export default function AdminUsuarios() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="ID YPF"
+                  label={t('admin_users_id_ypf', 'ID YPF')}
                   name="id_ypf"
                   value={form.id_ypf}
                   onChange={handleChange}
@@ -1189,7 +1189,7 @@ export default function AdminUsuarios() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Nombre"
+                  label={t('admin_users_nombre', 'Nombre')}
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
@@ -1200,7 +1200,7 @@ export default function AdminUsuarios() {
                 <TextField
                   fullWidth
                   size="small"
-                  label="Apellido"
+                  label={t('admin_users_apellido', 'Apellido')}
                   name="apellido"
                   value={form.apellido}
                   onChange={handleChange}
@@ -1212,7 +1212,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label="Email"
+                label={t('admin_users_email', 'Email')}
                 name="mail"
                 type="email"
                 value={form.mail}
@@ -1224,7 +1224,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label="Telefono"
+                label={t('admin_users_telefono', 'Telefono')}
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
@@ -1234,15 +1234,15 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Puesto y Roles */}
-            <FormSection title="Puesto y Roles">
+            <FormSection title={t('admin_users_position_roles', 'Puesto y Roles')}>
               <Stack direction="row" spacing={2}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Puesto</InputLabel>
+                  <InputLabel>{t('admin_users_puesto', 'Puesto')}</InputLabel>
                   <Select
                     name="posicion"
                     value={form.posicion}
                     onChange={handleChange}
-                    label="Puesto"
+                    label={t('admin_users_puesto', 'Puesto')}
                   >
                     {PUESTOS_OPTIONS.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>
@@ -1252,14 +1252,14 @@ export default function AdminUsuarios() {
                   </Select>
                 </FormControl>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Sector</InputLabel>
+                  <InputLabel>{t('admin_users_sector', 'Sector')}</InputLabel>
                   <Select
                     name="sector"
                     value={form.sector}
                     onChange={handleChange}
-                    label="Sector"
+                    label={t('admin_users_sector', 'Sector')}
                   >
-                    <MenuItem value="">Seleccionar...</MenuItem>
+                    <MenuItem value="">{t('admin_users_select', 'Seleccionar...')}</MenuItem>
                     {SECTORES_OPTIONS.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -1280,7 +1280,7 @@ export default function AdminUsuarios() {
                     letterSpacing: 0.5,
                   }}
                 >
-                  Roles <Box component="span" sx={{ color: "error.main" }}>*</Box>
+                  {t('admin_users_roles', 'Roles')} <Box component="span" sx={{ color: "error.main" }}>*</Box>
                 </Typography>
                 <RoleChips value={form.roles} onChange={handleRolesChange} />
                 {formErrors.roles && (
@@ -1294,33 +1294,33 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Jerarquia */}
-            <FormSection title="Jerarquia">
+            <FormSection title={t('admin_users_hierarchy', 'Jerarquia')}>
               <TextField
                 fullWidth
                 size="small"
-                label="Centros"
+                label={t('admin_users_centros', 'Centros')}
                 name="centros"
                 value={form.centros}
                 onChange={handleChange}
-                placeholder="Ej: 1000, 2000, 3000"
+                placeholder={t('admin_users_centros_placeholder', 'Ej: 1000, 2000, 3000')}
               />
               <TextField
                 fullWidth
                 size="small"
-                label="Almacenes"
+                label={t('admin_users_almacenes', 'Almacenes')}
                 name="almacenes"
                 value={form.almacenes}
                 onChange={handleChange}
-                placeholder="Ej: ALM01, ALM02"
+                placeholder={t('admin_users_almacenes_placeholder', 'Ej: ALM01, ALM02')}
               />
               <Stack direction="row" spacing={2}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Jefe</InputLabel>
+                  <InputLabel>{t('admin_users_jefe', 'Jefe')}</InputLabel>
                   <Select
                     name="jefe"
                     value={form.jefe}
                     onChange={handleChange}
-                    label="Jefe"
+                    label={t('admin_users_jefe', 'Jefe')}
                   >
                     <MenuItem value="">-</MenuItem>
                     {jefesOptions.map((opt) => (
@@ -1331,12 +1331,12 @@ export default function AdminUsuarios() {
                   </Select>
                 </FormControl>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Gerente N1</InputLabel>
+                  <InputLabel>{t('admin_users_gerente_n1', 'Gerente N1')}</InputLabel>
                   <Select
                     name="gerente1"
                     value={form.gerente1}
                     onChange={handleChange}
-                    label="Gerente N1"
+                    label={t('admin_users_gerente_n1', 'Gerente N1')}
                   >
                     <MenuItem value="">-</MenuItem>
                     {gerentes1Options.map((opt) => (
@@ -1348,12 +1348,12 @@ export default function AdminUsuarios() {
                 </FormControl>
               </Stack>
               <FormControl fullWidth size="small">
-                <InputLabel>Gerente N2</InputLabel>
+                <InputLabel>{t('admin_users_gerente_n2', 'Gerente N2')}</InputLabel>
                 <Select
                   name="gerente2"
                   value={form.gerente2}
                   onChange={handleChange}
-                  label="Gerente N2"
+                  label={t('admin_users_gerente_n2', 'Gerente N2')}
                 >
                   <MenuItem value="">-</MenuItem>
                   {gerentes2Options.map((opt) => (
@@ -1368,14 +1368,14 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Estado y Acceso */}
-            <FormSection title="Estado y Acceso">
+            <FormSection title={t('admin_users_status_access', 'Estado y Acceso')}>
               <FormControl fullWidth size="small">
-                <InputLabel>Estado</InputLabel>
+                <InputLabel>{t('admin_users_status', 'Estado')}</InputLabel>
                 <Select
                   name="estado_registro"
                   value={form.estado_registro}
                   onChange={handleChange}
-                  label="Estado"
+                  label={t('admin_users_status', 'Estado')}
                 >
                   {ESTADOS_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
@@ -1387,7 +1387,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label="Contrasena"
+                label={t('admin_users_contrasena', 'Contrasena')}
                 name="contrasena"
                 type={showPassword ? "text" : "password"}
                 value={form.contrasena}
@@ -1395,7 +1395,7 @@ export default function AdminUsuarios() {
                 required={!editingUser}
                 error={!!formErrors.contrasena}
                 helperText={
-                  formErrors.contrasena || (editingUser ? "Dejar vacio para no cambiar" : "")
+                  formErrors.contrasena || (editingUser ? t('admin_users_password_hint', 'Dejar vacio para no cambiar') : "")
                 }
                 InputProps={{
                   endAdornment: (
@@ -1437,7 +1437,7 @@ export default function AdminUsuarios() {
             disabled={submitting}
             sx={{
               fontWeight: 600,
-              fontSize: "11px",
+              fontSize: "var(--text-xs)",
               textTransform: "uppercase",
             }}
           >
@@ -1451,7 +1451,7 @@ export default function AdminUsuarios() {
             startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : null}
             sx={{
               fontWeight: 600,
-              fontSize: "11px",
+              fontSize: "var(--text-xs)",
               textTransform: "uppercase",
             }}
           >

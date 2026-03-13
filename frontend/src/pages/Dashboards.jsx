@@ -170,7 +170,7 @@ export default function Dashboards() {
           <Box
             sx={{
               height: 120,
-              bgcolor: dashboard.color || '#3b82f6',
+              bgcolor: dashboard.color || 'var(--info)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -197,7 +197,7 @@ export default function Dashboards() {
                 position: 'absolute',
                 top: 4,
                 right: 4,
-                color: dashboard.es_favorito ? '#fbbf24' : 'rgba(255,255,255,0.7)',
+                color: dashboard.es_favorito ? 'var(--warning-light)' : 'rgba(255,255,255,0.7)',
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -319,7 +319,7 @@ export default function Dashboards() {
           {favoritos.length > 0 && (
             <Box sx={{ mb: 4 }}>
               <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <StarIcon sx={{ color: '#fbbf24' }} />
+                <StarIcon sx={{ color: 'var(--warning-light)' }} />
                 {t('dashboards_favorites', 'Favoritos')}
               </Typography>
               <Grid container spacing={2}>

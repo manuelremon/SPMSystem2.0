@@ -80,8 +80,8 @@ export const SelectField = React.forwardRef(
               onChange={onChange}
               disabled={disabled}
               style={{
-                color: "#334155",
-                backgroundColor: disabled ? "#f8fafc" : "#ffffff",
+                color: "var(--fg)",
+                backgroundColor: disabled ? "var(--bg)" : "var(--surface)",
                 paddingRight: "2.5rem",
               }}
               className={clsx(

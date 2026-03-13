@@ -24,11 +24,11 @@ import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { ArrowBack } from "@mui/icons-material";
 
 const CALIFICACION_OPTIONS = [
-  { value: "sin_calificar", label: "Sin calificar", color: "#64748b" },
-  { value: "cumplidor", label: "Cumplidor", color: "#10b981" },
-  { value: "muy_cumplidor", label: "Muy cumplidor", color: "#059669" },
-  { value: "incumplidor", label: "Incumplidor", color: "#f59e0b" },
-  { value: "muy_incumplidor", label: "Muy incumplidor", color: "#ef4444" },
+  { value: "sin_calificar", label: "Sin calificar", color: "var(--neutral)" },
+  { value: "cumplidor", label: "Cumplidor", color: "var(--success-light)" },
+  { value: "muy_cumplidor", label: "Muy cumplidor", color: "var(--success)" },
+  { value: "incumplidor", label: "Incumplidor", color: "var(--warning-light)" },
+  { value: "muy_incumplidor", label: "Muy incumplidor", color: "var(--danger-light)" },
 ];
 
 const initialFormInterno = {
@@ -144,10 +144,10 @@ export default function AdminProveedores() {
         <Typography
           variant="caption"
           sx={{
-            color: params.value ? "#1b5e20" : "#b71c1c",
+            color: params.value ? "var(--success-text)" : "var(--danger-text)",
             fontWeight: 600,
             textTransform: "uppercase",
-            fontSize: "11px",
+            fontSize: "var(--text-xs)",
           }}
         >
           {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
@@ -166,7 +166,7 @@ export default function AdminProveedores() {
             size="small"
             variant="outlined"
             onClick={() => handleEditInterno(params.data)}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
+            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
           >
             {t('admin_prov_editar', 'Editar')}
           </Button>
@@ -175,7 +175,7 @@ export default function AdminProveedores() {
             variant="outlined"
             color="error"
             onClick={() => setDeleteDialogInterno({ open: true, item: params.data })}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
+            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
           >
             {t('admin_prov_eliminar', 'Eliminar')}
           </Button>
@@ -211,7 +211,7 @@ export default function AdminProveedores() {
               color: opt.color,
               fontWeight: 600,
               textTransform: "uppercase",
-              fontSize: "11px",
+              fontSize: "var(--text-xs)",
             }}
           >
             {opt.label}
@@ -228,10 +228,10 @@ export default function AdminProveedores() {
         <Typography
           variant="caption"
           sx={{
-            color: params.value ? "#1b5e20" : "#b71c1c",
+            color: params.value ? "var(--success-text)" : "var(--danger-text)",
             fontWeight: 600,
             textTransform: "uppercase",
-            fontSize: "11px",
+            fontSize: "var(--text-xs)",
           }}
         >
           {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
@@ -250,7 +250,7 @@ export default function AdminProveedores() {
             size="small"
             variant="outlined"
             onClick={() => handleEditExterno(params.data)}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
+            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
           >
             {t('admin_prov_editar', 'Editar')}
           </Button>
@@ -259,7 +259,7 @@ export default function AdminProveedores() {
             variant="outlined"
             color="error"
             onClick={() => setDeleteDialogExterno({ open: true, item: params.data })}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "11px" }}
+            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
           >
             {t('admin_prov_eliminar', 'Eliminar')}
           </Button>

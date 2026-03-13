@@ -146,7 +146,7 @@ export default function CAPAList() {
         if (!params.value) return {};
         const date = new Date(params.value);
         const isOverdue = date < new Date() && params.data?.estado !== 'closed' && params.data?.estado !== 'cancelled';
-        return isOverdue ? { color: '#ef4444', fontWeight: 700 } : {};
+        return isOverdue ? { color: 'var(--danger-light)', fontWeight: 700 } : {};
       },
     },
     {

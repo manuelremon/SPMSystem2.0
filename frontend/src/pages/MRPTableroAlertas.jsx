@@ -99,7 +99,7 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
         variant="caption"
         sx={{
           display: "block",
-          fontSize: "10px",
+          fontSize: "var(--text-2xs)",
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.05em",
@@ -118,7 +118,7 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
           width: "100%",
           justifyContent: "space-between",
           textTransform: "none",
-          fontSize: "12px",
+          fontSize: "var(--text-sm)",
           py: 0.75,
           px: 1.5,
           color: selected.length === 0 ? "text.disabled" : "text.primary",
@@ -160,7 +160,7 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
           <ListItemText
             primary="Seleccionar todos"
             primaryTypographyProps={{
-              fontSize: "12px",
+              fontSize: "var(--text-sm)",
               fontWeight: 600,
             }}
           />
@@ -184,7 +184,7 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
               <ListItemText
                 primary={optLabel}
                 primaryTypographyProps={{
-                  fontSize: "12px",
+                  fontSize: "var(--text-sm)",
                   noWrap: true,
                 }}
               />
@@ -240,7 +240,7 @@ function SummaryCard({ titulo, valor, color, pct, showChart, total }) {
       </Typography>
       <Typography
         sx={{
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
           fontWeight: 600,
           textTransform: "uppercase",
           color: "text.secondary",
@@ -438,7 +438,7 @@ export default function MRPTableroAlertas() {
       danger: getComputedStyle(document.documentElement).getPropertyValue('--danger').trim() || '#ef4444',
       info: getComputedStyle(document.documentElement).getPropertyValue('--info').trim() || '#0ea5e9',
       warning: getComputedStyle(document.documentElement).getPropertyValue('--warning').trim() || '#f59e0b',
-      warningLight: '#ff3d00',
+      warningLight: getComputedStyle(document.documentElement).getPropertyValue('--warning-light').trim() || '#f59e0b',
       success: getComputedStyle(document.documentElement).getPropertyValue('--success').trim() || '#22c55e',
       border: getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0',
       fgMuted: getComputedStyle(document.documentElement).getPropertyValue('--fg-muted').trim() || '#64748b',
@@ -660,7 +660,7 @@ export default function MRPTableroAlertas() {
           return (
             <Typography
               sx={{
-                fontSize: "11px",
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 textTransform: "uppercase",
                 color: colors.color,
@@ -743,7 +743,7 @@ export default function MRPTableroAlertas() {
               disabled={loading || exporting || filteredAlertas.length === 0}
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
               sx={{
-                fontSize: "12px",
+                fontSize: "var(--text-sm)",
                 fontWeight: 500,
                 color: "success.dark",
                 borderColor: "success.light",
@@ -765,7 +765,7 @@ export default function MRPTableroAlertas() {
               disabled={loading || exporting || filteredAlertas.length === 0}
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
               sx={{
-                fontSize: "12px",
+                fontSize: "var(--text-sm)",
                 fontWeight: 500,
                 color: "error.dark",
                 borderColor: "error.light",
@@ -829,7 +829,7 @@ export default function MRPTableroAlertas() {
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontSize: "10px",
+                  fontSize: "var(--text-2xs)",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
@@ -860,10 +860,10 @@ export default function MRPTableroAlertas() {
                 }}
               />
               <Stack direction="row" justifyContent="space-between">
-                <Typography sx={{ fontSize: "10px", color: "text.disabled" }}>
+                <Typography sx={{ fontSize: "var(--text-2xs)", color: "text.disabled" }}>
                   Hace 1 ano
                 </Typography>
-                <Typography sx={{ fontSize: "10px", color: "text.disabled" }}>
+                <Typography sx={{ fontSize: "var(--text-2xs)", color: "text.disabled" }}>
                   Hoy
                 </Typography>
               </Stack>
@@ -918,7 +918,7 @@ export default function MRPTableroAlertas() {
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontSize: "10px",
+                  fontSize: "var(--text-2xs)",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
@@ -935,7 +935,7 @@ export default function MRPTableroAlertas() {
                 placeholder="Codigo..."
                 sx={{
                   "& .MuiInputBase-root": {
-                    fontSize: "12px",
+                    fontSize: "var(--text-sm)",
                   },
                   "& .MuiInputBase-input": {
                     py: 0.75,
@@ -952,7 +952,7 @@ export default function MRPTableroAlertas() {
               onClick={handleLimpiarFiltros}
               startIcon={<FilterListOffIcon sx={{ fontSize: 16 }} />}
               sx={{
-                fontSize: "12px",
+                fontSize: "var(--text-sm)",
                 fontWeight: 500,
                 color: "text.secondary",
                 borderColor: "divider",

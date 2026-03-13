@@ -35,8 +35,8 @@ const MODELOS_NOMBRES = {
 
 // Colores MUI oficial
 const COLORS = {
-  mejor: '#2e7d32',     // MUI Green 800
-  normal: '#1976d2',    // MUI Blue 700
+  mejor: 'var(--success-text)',     // MUI Green 800
+  normal: 'var(--primary)',    // MUI Blue 700
 };
 
 const ModelComparison = ({

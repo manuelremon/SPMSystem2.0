@@ -249,10 +249,10 @@ export default function SolicitudDetalle() {
       } else if (res.data) {
         setSolicitud(res.data);
       } else {
-        setError("No se encontro la solicitud");
+        setError(t("solicitud_not_found_error", "No se encontro la solicitud"));
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message || "Error al cargar la solicitud");
+      setError(err.response?.data?.error?.message || err.message || t("solicitud_load_error", "Error al cargar la solicitud"));
     } finally {
       setLoading(false);
     }
@@ -278,10 +278,10 @@ export default function SolicitudDetalle() {
     setError("");
     try {
       await solicitudes.aprobar(id);
-      setSuccess("Solicitud aprobada correctamente");
+      setSuccess(t("solicitud_approved_success", "Solicitud aprobada correctamente"));
       await fetchSolicitud();
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error al aprobar la solicitud");
+      setError(err.response?.data?.error?.message || t("solicitud_approve_error", "Error al aprobar la solicitud"));
     } finally {
       setActionLoading(false);
     }
@@ -290,18 +290,18 @@ export default function SolicitudDetalle() {
   const handleRechazar = async () => {
     const motivo = rejectDialog.motivo.trim();
     if (motivo.length < 5) {
-      setError("El motivo debe tener al menos 5 caracteres");
+      setError(t("solicitud_reason_min_length", "El motivo debe tener al menos 5 caracteres"));
       return;
     }
     setActionLoading(true);
     setError("");
     try {
       await solicitudes.rechazar(id, motivo);
-      setSuccess("Solicitud rechazada");
+      setSuccess(t("solicitud_rejected_success", "Solicitud rechazada"));
       setRejectDialog({ open: false, motivo: "" });
       await fetchSolicitud();
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error al rechazar la solicitud");
+      setError(err.response?.data?.error?.message || t("solicitud_reject_error", "Error al rechazar la solicitud"));
     } finally {
       setActionLoading(false);
     }
@@ -403,7 +403,7 @@ export default function SolicitudDetalle() {
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "warning.50", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "warning.dark" }}>
-              Esta solicitud requiere tu aprobacion
+              {t('solicitud_requires_approval', 'Esta solicitud requiere tu aprobacion')}
             </Typography>
             <Stack direction="row" spacing={1}>
               <Button
@@ -415,7 +415,7 @@ export default function SolicitudDetalle() {
                 disabled={actionLoading}
                 sx={{ textTransform: "none" }}
               >
-                {actionLoading ? "Procesando..." : "Aprobar"}
+                {actionLoading ? t('solicitud_processing', 'Procesando...') : t('solicitud_approve', 'Aprobar')}
               </Button>
               <Button
                 variant="outlined"
@@ -426,7 +426,7 @@ export default function SolicitudDetalle() {
                 disabled={actionLoading}
                 sx={{ textTransform: "none" }}
               >
-                Rechazar
+                {t('solicitud_reject', 'Rechazar')}
               </Button>
             </Stack>
           </Box>
@@ -546,28 +546,28 @@ export default function SolicitudDetalle() {
       {/* Reject Dialog */}
       <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, motivo: "" })} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-          Rechazar Solicitud #{id}
+          {t('solicitud_reject_title', 'Rechazar Solicitud')} #{id}
           <IconButton size="small" onClick={() => setRejectDialog({ open: false, motivo: "" })}><CloseIcon /></IconButton>
         </DialogTitle>
         <Divider />
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Esta accion no se puede deshacer. El solicitante sera notificado.
+            {t('solicitud_reject_warning', 'Esta accion no se puede deshacer. El solicitante sera notificado.')}
           </Alert>
           <TextField
             fullWidth
             multiline
             rows={4}
-            label="Motivo del rechazo"
+            label={t('solicitud_reject_reason', 'Motivo del rechazo')}
             value={rejectDialog.motivo}
             onChange={(e) => setRejectDialog(prev => ({ ...prev, motivo: e.target.value }))}
-            placeholder="Explica el motivo del rechazo (min. 5 caracteres)..."
+            placeholder={t('solicitud_reject_placeholder', 'Explica el motivo del rechazo (min. 5 caracteres)...')}
             error={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5}
-            helperText={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5 ? "Minimo 5 caracteres" : ""}
+            helperText={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5 ? t('solicitud_min_chars', 'Minimo 5 caracteres') : ""}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setRejectDialog({ open: false, motivo: "" })} sx={{ textTransform: "none" }}>Cancelar</Button>
+          <Button onClick={() => setRejectDialog({ open: false, motivo: "" })} sx={{ textTransform: "none" }}>{t('common_cancelar', 'Cancelar')}</Button>
           <Button
             variant="contained"
             color="error"
@@ -576,7 +576,7 @@ export default function SolicitudDetalle() {
             disabled={actionLoading || rejectDialog.motivo.trim().length < 5}
             sx={{ textTransform: "none" }}
           >
-            {actionLoading ? "Procesando..." : "Confirmar Rechazo"}
+            {actionLoading ? t('solicitud_processing', 'Procesando...') : t('solicitud_confirm_reject', 'Confirmar Rechazo')}
           </Button>
         </DialogActions>
       </Dialog>

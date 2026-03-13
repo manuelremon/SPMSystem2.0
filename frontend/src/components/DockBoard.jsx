@@ -13,9 +13,9 @@ import Chip from '@mui/material/Chip';
 import { useI18n } from '../context/i18n';
 
 const ESTADO_COLORS = {
-  available: { color: '#4caf50', borderColor: '#4caf50' },
-  occupied: { color: '#f44336', borderColor: '#f44336' },
-  maintenance: { color: '#9e9e9e', borderColor: '#9e9e9e' },
+  available: { color: 'var(--success)', borderColor: 'var(--success)' },
+  occupied: { color: 'var(--danger)', borderColor: 'var(--danger)' },
+  maintenance: { color: 'var(--neutral)', borderColor: 'var(--neutral)' },
 };
 
 const ESTADO_LABEL_KEYS = {

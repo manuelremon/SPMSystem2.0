@@ -607,7 +607,7 @@ export default function TodasLasSolicitudes() {
         cellRenderer: (params) => {
           const priority = params.value;
           if (!priority) return null;
-          const colors = { 'Critica': '#ef4444', 'Alta': '#f59e0b', 'Media': '#3b82f6', 'Baja': '#6b7280' };
+          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
           return (
             <Typography variant="body2" fontWeight={700}
               sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>

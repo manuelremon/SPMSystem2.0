@@ -293,7 +293,7 @@ const ForecastIndividual = () => {
               color: "var(--fg-muted)",
               borderColor: "var(--border)",
               px: 2,
-              "&:hover": { color: "var(--danger, #dc2626)", borderColor: "var(--danger, #dc2626)", bgcolor: 'rgba(220,38,38,0.04)' },
+              "&:hover": { color: "var(--danger, #dc2626)", borderColor: "var(--danger, #dc2626)", bgcolor: 'var(--danger-bg)' },
             }}
           >
             Limpiar
@@ -313,7 +313,7 @@ const ForecastIndividual = () => {
           borderColor: 'divider',
           overflow: "hidden",
           transition: 'box-shadow 0.2s ease-in-out',
-          '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
+          '&:hover': { boxShadow: 'var(--shadow-md)' },
         }}
       >
         <form onSubmit={handleSearch}>
@@ -431,7 +431,7 @@ const ForecastIndividual = () => {
                   fontSize: FONT_SIZES.md,
                   textTransform: 'none',
                   boxShadow: 'none',
-                  '&:hover': { boxShadow: '0 2px 8px rgba(0, 112, 243, 0.3)' },
+                  '&:hover': { boxShadow: 'var(--shadow-md)' },
                 }}
               >
                 {loading ? 'Analizando...' : 'Analizar'}
@@ -535,9 +535,9 @@ const ForecastIndividual = () => {
                   sx={{
                     fontSize: FONT_SIZES.xs,
                     height: 24,
-                    bgcolor: 'rgba(217, 119, 6, 0.08)',
+                    bgcolor: 'var(--warning-bg-light)',
                     color: 'var(--warning, #d97706)',
-                    border: '1px solid rgba(217, 119, 6, 0.2)',
+                    border: '1px solid var(--warning-border)',
                     fontWeight: 600,
                   }}
                 />
@@ -618,7 +618,7 @@ const ForecastIndividual = () => {
               borderColor: 'divider',
               overflow: 'hidden',
               transition: 'box-shadow 0.2s ease-in-out',
-              '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' },
+              '&:hover': { boxShadow: 'var(--shadow-md)' },
             }}
           >
             {/* Material header */}
@@ -630,7 +630,7 @@ const ForecastIndividual = () => {
                     sx={{
                       width: 40,
                       height: 40,
-                      bgcolor: simulationMode ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0, 112, 243, 0.08)',
+                      bgcolor: simulationMode ? 'var(--warning-bg-light)' : 'var(--primary-bg-light)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -676,10 +676,10 @@ const ForecastIndividual = () => {
                           height: 22,
                           fontSize: FONT_SIZES.xs,
                           fontWeight: 600,
-                          bgcolor: simulationMode ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0, 112, 243, 0.08)',
+                          bgcolor: simulationMode ? 'var(--warning-bg-light)' : 'var(--primary-bg-light)',
                           color: simulationMode ? 'var(--warning, #d97706)' : 'var(--primary)',
                           border: '1px solid',
-                          borderColor: simulationMode ? 'rgba(217, 119, 6, 0.2)' : 'rgba(0, 112, 243, 0.2)',
+                          borderColor: simulationMode ? 'var(--warning-border)' : 'var(--info-border)',
                           '& .MuiChip-label': { px: 1 },
                         }}
                       />
@@ -732,7 +732,7 @@ const ForecastIndividual = () => {
                               color: 'var(--fg-muted)',
                               textTransform: 'none',
                               px: 1.5,
-                              '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                              '&:hover': { bgcolor: 'var(--bg-soft)' },
                             }}
                           >
                             {loadingBacktest ? 'Ejecutando...' : 'Backtesting'}
@@ -752,7 +752,7 @@ const ForecastIndividual = () => {
                               color: 'var(--fg-muted)',
                               textTransform: 'none',
                               px: 1.5,
-                              '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+                              '&:hover': { bgcolor: 'var(--bg-soft)' },
                             }}
                           >
                             {loadingComparacion ? 'Comparando...' : 'Comparar'}
@@ -771,7 +771,7 @@ const ForecastIndividual = () => {
                         color: 'var(--warning, #d97706)',
                         textTransform: 'none',
                         px: 1.5,
-                        '&:hover': { bgcolor: 'rgba(217, 119, 6, 0.04)' },
+                        '&:hover': { bgcolor: 'var(--warning-bg)' },
                       }}
                     >
                       {t('forecast_salir_simulacion', 'Salir de Simulación')}
@@ -961,8 +961,8 @@ const ForecastIndividual = () => {
                 width: 72,
                 height: 72,
                 borderRadius: 3,
-                bgcolor: 'rgba(0, 112, 243, 0.06)',
-                border: '1px solid rgba(0, 112, 243, 0.12)',
+                bgcolor: 'var(--primary-bg-light)',
+                border: '1px solid var(--info-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1035,7 +1035,7 @@ const ForecastIndividual = () => {
               bgcolor: 'var(--surface)',
               border: '1px solid',
               borderColor: 'divider',
-              boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.18)',
+              boxShadow: 'var(--shadow-xl)',
               p: 4,
               outline: 'none',
             }}
@@ -1046,7 +1046,7 @@ const ForecastIndividual = () => {
                 sx={{
                   width: 44,
                   height: 44,
-                  bgcolor: 'rgba(0, 112, 243, 0.08)',
+                  bgcolor: 'var(--primary-bg-light)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

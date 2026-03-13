@@ -23,12 +23,12 @@ import { useI18n } from '../../../context/i18n'
  */
 function StatusDot({ status }) {
   const colors = {
-    connected: '#10b981', // emerald-500
-    healthy: '#10b981',
-    warning: '#f59e0b', // amber-500
-    error: '#ef4444', // red-500
-    disconnected: '#ef4444',
-    unavailable: '#94a3b8', // slate-400
+    connected: 'var(--success-light)', // emerald-500
+    healthy: 'var(--success-light)',
+    warning: 'var(--warning-light)', // amber-500
+    error: 'var(--danger-light)', // red-500
+    disconnected: 'var(--danger-light)',
+    unavailable: 'var(--fg-subtle)', // slate-400
   }
   return (
     <Box
@@ -38,7 +38,7 @@ function StatusDot({ status }) {
         width: 10,
         height: 10,
         borderRadius: '50%',
-        bgcolor: colors[status] || '#94a3b8',
+        bgcolor: colors[status] || 'var(--fg-subtle)',
       }}
     />
   )

@@ -19,8 +19,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 
-const MISMATCH_BG = 'rgba(239, 68, 68, 0.08)';
-const MISMATCH_COLOR = '#dc2626';
+const MISMATCH_BG = 'var(--danger-bg-light)';
+const MISMATCH_COLOR = 'var(--danger)';
 
 function hasMismatch(poVal, receiptVal, invoiceVal) {
   const vals = [poVal, receiptVal, invoiceVal].filter(v => v != null);

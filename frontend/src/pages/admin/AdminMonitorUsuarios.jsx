@@ -167,7 +167,7 @@ function ActionBadge({ action }) {
       }
       sx={{
         height: 24,
-        fontSize: "11px",
+        fontSize: "var(--text-xs)",
         fontWeight: 600,
         textTransform: "uppercase",
         letterSpacing: "0.05em",
@@ -198,7 +198,7 @@ function EntityIdChip({ entityType, entityId, onClick }) {
         deleteIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
         sx={{
           height: 24,
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
           fontFamily: "monospace",
           fontWeight: 600,
           bgcolor: "primary.50",
@@ -220,7 +220,7 @@ function EntityIdChip({ entityType, entityId, onClick }) {
   return (
     <Typography
       variant="body2"
-      sx={{ color: "text.secondary", fontFamily: "monospace", fontSize: "13px" }}
+      sx={{ color: "text.secondary", fontFamily: "monospace", fontSize: "var(--text-base)" }}
     >
       {entityId || "—"}
     </Typography>
@@ -364,7 +364,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
                       height: 32,
                       bgcolor: "grey.200",
                       color: "grey.600",
-                      fontSize: "12px",
+                      fontSize: "var(--text-sm)",
                       fontWeight: 600,
                     }}
                   >
@@ -399,7 +399,7 @@ function DayPresetButtons({ value, onChange }) {
           color: "text.secondary",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
         }}
       >
         Período
@@ -413,7 +413,7 @@ function DayPresetButtons({ value, onChange }) {
           "& .MuiToggleButton-root": {
             px: 1.5,
             py: 0.5,
-            fontSize: "12px",
+            fontSize: "var(--text-sm)",
             fontWeight: 600,
             borderColor: "grey.300",
             "&.Mui-selected": {
@@ -447,7 +447,7 @@ function ActionTypeSelect({ value, onChange }) {
           color: "text.secondary",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
         }}
       >
         Acción
@@ -511,7 +511,7 @@ function ResultsCounter({ count, loading }) {
         height: 28,
         bgcolor: "grey.100",
         color: "text.secondary",
-        fontSize: "12px",
+        fontSize: "var(--text-sm)",
         fontWeight: 600,
         fontVariantNumeric: "tabular-nums",
         "& .MuiChip-icon": {
@@ -613,7 +613,7 @@ function ActivityTable({ data, selectedUser }) {
           <AccessTimeIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
           <Typography
             variant="body2"
-            sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontSize: '13px', color: 'text.secondary' }}
+            sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontSize: 'var(--text-base)', color: 'text.secondary' }}
           >
             {params.value}
           </Typography>
@@ -663,7 +663,7 @@ function ActivityTable({ data, selectedUser }) {
         textAlign: 'right',
         fontFamily: 'monospace',
         fontVariantNumeric: 'tabular-nums',
-        fontSize: '12px',
+        fontSize: 'var(--text-sm)',
       },
     },
   ], [t, navigate])
@@ -849,7 +849,7 @@ export default function AdminMonitorUsuarios() {
                       color: "text.primary",
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
-                      fontSize: "13px",
+                      fontSize: "var(--text-base)",
                     }}
                   >
                     {t("admin_monitor_usuarios", "Monitor de Usuarios")}
@@ -868,7 +868,7 @@ export default function AdminMonitorUsuarios() {
               sx={{
                 textTransform: "uppercase",
                 fontWeight: 600,
-                fontSize: "12px",
+                fontSize: "var(--text-sm)",
                 letterSpacing: "0.05em",
               }}
             >
@@ -906,7 +906,7 @@ export default function AdminMonitorUsuarios() {
                   color: "text.secondary",
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
-                  fontSize: "11px",
+                  fontSize: "var(--text-xs)",
                 }}
               >
                 Filtros
@@ -964,7 +964,7 @@ export default function AdminMonitorUsuarios() {
                     color: "text.secondary",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
-                    fontSize: "11px",
+                    fontSize: "var(--text-xs)",
                   }}
                 >
                   {t("monitor_user_activity", "Historial de Actividad")}

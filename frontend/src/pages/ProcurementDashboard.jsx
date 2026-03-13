@@ -674,7 +674,7 @@ export default function ProcurementDashboard() {
               width: "100%",
               padding: "12px",
               border: "1px dashed var(--border)",
-              borderRadius: "8px",
+              borderRadius: "var(--radius-md)",
               cursor: importing ? "not-allowed" : "pointer"
             }}
           />

@@ -59,14 +59,14 @@ export function Modal({
   // Estilos personalizados para el Dialog
   const dialogSx = {
     '& .MuiDialog-paper': {
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+      boxShadow: 'var(--shadow-xl)',
       border: '1px solid var(--border)',
       backgroundColor: 'var(--card)',
       backgroundImage: 'none',
       maxHeight: '90vh',
     },
     '& .MuiBackdrop-root': {
-      backgroundColor: 'rgba(15, 23, 42, 0.5)',
+      backgroundColor: 'var(--overlay)',
       backdropFilter: 'blur(4px)',
     },
   };
@@ -122,7 +122,7 @@ export function Modal({
             borderTopRightRadius: '12px',
             maxHeight: '90vh',
             backgroundColor: 'var(--card)',
-            boxShadow: '0 -10px 40px -10px rgba(0, 0, 0, 0.2)',
+            boxShadow: 'var(--shadow-xl)',
           },
         }}
       >

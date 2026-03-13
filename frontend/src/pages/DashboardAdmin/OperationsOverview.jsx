@@ -116,7 +116,7 @@ function ModuleCard({ config, t }) {
         p: 1.5,
         cursor: 'pointer',
         transition: 'box-shadow 0.2s ease-in-out',
-        '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
+        '&:hover': { boxShadow: 'var(--shadow-md)' },
       }}
     >
       <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>

@@ -45,7 +45,15 @@ const ESTADO_COLORS = {
   baja: 'error',
 }
 
-const ESTADO_LABELS = {
+const ESTADO_KEYS = {
+  activo: 'fms_status_active',
+  inactivo: 'fms_status_inactive',
+  vacaciones: 'fms_status_vacation',
+  incapacidad: 'fms_status_disability',
+  baja: 'fms_status_terminated',
+}
+
+const ESTADO_FALLBACKS = {
   activo: 'Activo',
   inactivo: 'Inactivo',
   vacaciones: 'Vacaciones',
@@ -55,14 +63,14 @@ const ESTADO_LABELS = {
 
 const TIPOS_LICENCIA = ['A', 'B', 'C', 'D', 'E', 'Federal']
 
-function getDateChip(dateStr) {
-  if (!dateStr) return { label: 'Sin fecha', color: 'default' }
+function getDateChipKey(dateStr) {
+  if (!dateStr) return { key: 'fms_no_date', fallback: 'Sin fecha', color: 'default' }
   const now = new Date()
   const target = new Date(dateStr)
   const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24))
-  if (diffDays < 0) return { label: 'Vencido', color: 'error' }
-  if (diffDays <= 30) return { label: 'Por vencer', color: 'warning' }
-  return { label: 'Vigente', color: 'success' }
+  if (diffDays < 0) return { key: 'fms_expired', fallback: 'Vencido', color: 'error' }
+  if (diffDays <= 30) return { key: 'fms_expiring_soon', fallback: 'Por vencer', color: 'warning' }
+  return { key: 'fms_valid', fallback: 'Vigente', color: 'success' }
 }
 
 const EMPTY_FORM = {
@@ -195,20 +203,20 @@ export default function DriversList() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Licencia</TableCell>
-                <TableCell>Tipo Lic.</TableCell>
-                <TableCell>Vigencia Lic.</TableCell>
-                <TableCell>Vigencia Medica</TableCell>
-                <TableCell align="center">Hazmat</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="center">Acciones</TableCell>
+                <TableCell>{t('fms_col_name', 'Nombre')}</TableCell>
+                <TableCell>{t('fms_col_license', 'Licencia')}</TableCell>
+                <TableCell>{t('fms_col_license_type', 'Tipo Lic.')}</TableCell>
+                <TableCell>{t('fms_col_license_expiry', 'Vigencia Lic.')}</TableCell>
+                <TableCell>{t('fms_col_medical_expiry', 'Vigencia Medica')}</TableCell>
+                <TableCell align="center">{t('fms_col_hazmat', 'Hazmat')}</TableCell>
+                <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
+                <TableCell align="center">{t('fms_col_actions', 'Acciones')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredDrivers.map((d) => {
-                const licStatus = getDateChip(d.vigencia_licencia)
-                const medStatus = getDateChip(d.vigencia_medica)
+                const licStatus = getDateChipKey(d.vigencia_licencia)
+                const medStatus = getDateChipKey(d.vigencia_medica)
                 return (
                   <TableRow key={d.id} hover>
                     <TableCell>
@@ -221,13 +229,13 @@ export default function DriversList() {
                     <TableCell>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2">{d.vigencia_licencia || '--'}</Typography>
-                        <Chip label={licStatus.label} color={licStatus.color} size="small" />
+                        <Chip label={t(licStatus.key, licStatus.fallback)} color={licStatus.color} size="small" />
                       </Stack>
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2">{d.vigencia_medica || '--'}</Typography>
-                        <Chip label={medStatus.label} color={medStatus.color} size="small" />
+                        <Chip label={t(medStatus.key, medStatus.fallback)} color={medStatus.color} size="small" />
                       </Stack>
                     </TableCell>
                     <TableCell align="center">
@@ -239,7 +247,7 @@ export default function DriversList() {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={ESTADO_LABELS[d.estado] || d.estado || 'activo'}
+                        label={t(ESTADO_KEYS[d.estado], ESTADO_FALLBACKS[d.estado]) || d.estado || t('fms_status_active', 'Activo')}
                         color={ESTADO_COLORS[d.estado] || 'default'}
                         size="small"
                       />
@@ -260,14 +268,14 @@ export default function DriversList() {
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingDriver ? 'Editar Conductor' : 'Nuevo Conductor'}
+          {editingDriver ? t('fms_edit_driver', 'Editar Conductor') : t('fms_new_driver', 'Nuevo Conductor')}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={2}>
               <TextField
                 size="small"
-                label="Nombre"
+                label={t('fms_first_name', 'Nombre')}
                 value={form.nombre}
                 onChange={(e) => updateField('nombre', e.target.value)}
                 fullWidth
@@ -275,7 +283,7 @@ export default function DriversList() {
               />
               <TextField
                 size="small"
-                label="Apellido"
+                label={t('fms_last_name', 'Apellido')}
                 value={form.apellido}
                 onChange={(e) => updateField('apellido', e.target.value)}
                 fullWidth
@@ -284,16 +292,16 @@ export default function DriversList() {
             </Stack>
             <TextField
               size="small"
-              label="Numero de Licencia"
+              label={t('fms_license_number', 'Numero de Licencia')}
               value={form.numero_licencia}
               onChange={(e) => updateField('numero_licencia', e.target.value)}
               fullWidth
             />
             <FormControl fullWidth size="small">
-              <InputLabel>Tipo de Licencia</InputLabel>
+              <InputLabel>{t('fms_license_type', 'Tipo de Licencia')}</InputLabel>
               <Select
                 value={form.tipo_licencia}
-                label="Tipo de Licencia"
+                label={t('fms_license_type', 'Tipo de Licencia')}
                 onChange={(e) => updateField('tipo_licencia', e.target.value)}
               >
                 {TIPOS_LICENCIA.map((tipo) => (
@@ -303,7 +311,7 @@ export default function DriversList() {
             </FormControl>
             <TextField
               size="small"
-              label="Vigencia Licencia"
+              label={t('fms_license_expiry', 'Vigencia Licencia')}
               type="date"
               value={form.vigencia_licencia}
               onChange={(e) => updateField('vigencia_licencia', e.target.value)}
@@ -312,7 +320,7 @@ export default function DriversList() {
             />
             <TextField
               size="small"
-              label="Vigencia Medica"
+              label={t('fms_medical_expiry', 'Vigencia Medica')}
               type="date"
               value={form.vigencia_medica}
               onChange={(e) => updateField('vigencia_medica', e.target.value)}
@@ -321,7 +329,7 @@ export default function DriversList() {
             />
             <TextField
               size="small"
-              label="Telefono"
+              label={t('fms_phone', 'Telefono')}
               value={form.telefono}
               onChange={(e) => updateField('telefono', e.target.value)}
               fullWidth
@@ -334,18 +342,18 @@ export default function DriversList() {
                   onChange={(e) => updateField('hazmat', e.target.checked)}
                 />
               }
-              label="Certificacion Hazmat"
+              label={t('fms_hazmat_cert', 'Certificacion Hazmat')}
             />
             {editingDriver && (
               <FormControl fullWidth size="small">
-                <InputLabel>Estado</InputLabel>
+                <InputLabel>{t('fms_col_status', 'Estado')}</InputLabel>
                 <Select
                   value={form.estado}
-                  label="Estado"
+                  label={t('fms_col_status', 'Estado')}
                   onChange={(e) => updateField('estado', e.target.value)}
                 >
-                  {Object.entries(ESTADO_LABELS).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>{v}</MenuItem>
+                  {Object.entries(ESTADO_FALLBACKS).map(([k, v]) => (
+                    <MenuItem key={k} value={k}>{t(ESTADO_KEYS[k], v)}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -353,13 +361,13 @@ export default function DriversList() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setDialogOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
             onClick={handleSave}
             disabled={saving || !form.nombre}
           >
-            {saving ? <CircularProgress size={20} /> : (editingDriver ? 'Guardar' : 'Crear')}
+            {saving ? <CircularProgress size={20} /> : (editingDriver ? t('fms_save', 'Guardar') : t('fms_create', 'Crear'))}
           </Button>
         </DialogActions>
       </Dialog>

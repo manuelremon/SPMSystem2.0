@@ -23,8 +23,8 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import KraljicMatrix from '../components/KraljicMatrix';
 
 const CATEGORY_COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#64748b',
+  'var(--indigo)', 'var(--success)', 'var(--warning-light)', 'var(--danger-light)', 'var(--purple)',
+  'var(--cyan)', 'var(--purple-light)', 'var(--accent)', 'var(--warning)', 'var(--neutral)',
 ];
 
 export default function SpendAnalytics() {
@@ -102,7 +102,7 @@ export default function SpendAnalytics() {
       cellRenderer: (p) => {
         if (p.value == null) return '-';
         const val = Number(p.value);
-        const color = val > 0 ? '#ef4444' : val < 0 ? '#10b981' : '#9ca3af';
+        const color = val > 0 ? 'var(--danger-light)' : val < 0 ? 'var(--success-light)' : 'var(--fg-subtle)';
         const arrow = val > 0 ? '\u25B2' : val < 0 ? '\u25BC' : '\u2014';
         return <span style={{ color, fontWeight: 600 }}>{arrow} {Math.abs(val).toFixed(1)}%</span>;
       },

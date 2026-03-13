@@ -137,7 +137,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
               p: 2,
               borderRadius: 3,
               backgroundColor: "var(--card)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+              boxShadow: "var(--shadow-sm)",
             }}
           >
             <Box
@@ -153,7 +153,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                   textAlign: "center",
                   p: 2,
                   borderRadius: 3,
-                  backgroundColor: "rgba(16, 185, 129, 0.08)",
+                  backgroundColor: "var(--success-bg-light)",
                 }}
               >
                 <Typography
@@ -193,7 +193,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                   textAlign: "center",
                   p: 2,
                   borderRadius: 3,
-                  backgroundColor: "rgba(59, 130, 246, 0.08)",
+                  backgroundColor: "var(--primary-bg-light)",
                 }}
               >
                 <Typography
@@ -233,7 +233,7 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
                   textAlign: "center",
                   p: 2,
                   borderRadius: 3,
-                  backgroundColor: "rgba(139, 92, 246, 0.08)",
+                  backgroundColor: "var(--purple-bg-light)",
                 }}
               >
                 <Typography
@@ -277,15 +277,15 @@ export default function Paso3RevisionFinal({ items = [], decisiones = {} }) {
 function SectionHeader({ icon: Icon, title, variant }) {
   const variantStyles = {
     success: {
-      bg: "rgba(16, 185, 129, 0.12)",
+      bg: "var(--success-bg-light)",
       text: "var(--success)",
     },
     info: {
-      bg: "rgba(59, 130, 246, 0.12)",
+      bg: "var(--info-bg-light)",
       text: "var(--info)",
     },
     warning: {
-      bg: "rgba(139, 92, 246, 0.12)",
+      bg: "var(--purple-bg-light)",
       text: "var(--primary)",
     },
   };
@@ -348,7 +348,7 @@ function StockTable({ rows }) {
       sx={{
         borderRadius: 3,
         backgroundColor: "var(--card)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+        boxShadow: "var(--shadow-sm)",
         overflow: "hidden",
       }}
     >
@@ -391,7 +391,7 @@ function StockTable({ rows }) {
                       fontWeight: 500,
                       px: 0.5,
                       py: 0.25,
-                      backgroundColor: "rgba(16, 185, 129, 0.12)",
+                      backgroundColor: "var(--success-bg-light)",
                       color: "var(--success)",
                       "& .MuiChip-label": { px: 1, py: 0.25 },
                     }}
@@ -454,7 +454,7 @@ function CompraTable({ rows }) {
       sx={{
         borderRadius: 3,
         backgroundColor: "var(--card)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)",
+        boxShadow: "var(--shadow-sm)",
         overflow: "hidden",
       }}
     >
@@ -497,7 +497,7 @@ function CompraTable({ rows }) {
                       fontWeight: 500,
                       px: 0.5,
                       py: 0.25,
-                      backgroundColor: "rgba(59, 130, 246, 0.12)",
+                      backgroundColor: "var(--info-bg-light)",
                       color: "var(--info)",
                       "& .MuiChip-label": { px: 1, py: 0.25 },
                     }}

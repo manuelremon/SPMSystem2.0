@@ -13,9 +13,9 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 
 // Colores MUI oficial
 const COLORS = {
-  semanal: '#1976d2',      // MUI Blue 700
-  finDeSemana: '#2e7d32',  // MUI Green 800
-  mensual: '#9c27b0',      // MUI Purple 500
+  semanal: 'var(--primary)',      // MUI Blue 700
+  finDeSemana: 'var(--success-text)',  // MUI Green 800
+  mensual: 'var(--purple-dark)',      // MUI Purple 500
 };
 
 const PatternCharts = ({

@@ -27,11 +27,11 @@ export default function OfflineBanner() {
         left: 0,
         right: 0,
         zIndex: 9999,
-        background: '#f59e0b',
-        color: '#1a1a1a',
+        background: 'var(--warning-light)',
+        color: 'var(--fg-strong)',
         textAlign: 'center',
-        padding: '8px 16px',
-        fontSize: '14px',
+        padding: 'var(--space-2) var(--space-4)',
+        fontSize: 'var(--text-sm)',
         fontWeight: 500,
       }}
     >

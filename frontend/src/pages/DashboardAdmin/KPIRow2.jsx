@@ -71,12 +71,12 @@ function KPIRow2({
           });
 
           const chartData = [
-            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
-            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
-            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
-            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
-            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
-            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
+            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || 'var(--status-borrador)' },
+            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || 'var(--status-enviada)' },
+            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || 'var(--status-aprobada)' },
+            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || 'var(--status-planificacion)' },
+            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || 'var(--status-rechazada)' },
+            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || 'var(--status-cerrada)' },
           ];
 
           return (
@@ -93,7 +93,7 @@ function KPIRow2({
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  boxShadow: 'var(--shadow-md)',
                 },
                 p: 1.5,
                 overflow: 'visible',
@@ -140,7 +140,7 @@ function KPIRow2({
             p: 2,
             transition: 'box-shadow 0.2s ease-in-out',
             '&:hover': {
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+              boxShadow: 'var(--shadow-md)',
             },
           }}
         >
@@ -218,7 +218,7 @@ function KPIRow2({
                 cursor: onKpiDrillDown ? 'pointer' : 'default',
                 transition: 'box-shadow 0.2s ease-in-out',
                 '&:hover': {
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                  boxShadow: 'var(--shadow-md)',
                 },
                 p: 1.5,
                 overflow: 'visible',

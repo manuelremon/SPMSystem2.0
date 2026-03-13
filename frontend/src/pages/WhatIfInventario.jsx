@@ -27,9 +27,9 @@ import { SPMBar } from '../components/ui/SPMChartJS';
 import api from '../services/api';
 
 const RISK_COLORS = {
-  bajo: '#22c55e',
-  medio: '#f59e0b',
-  alto: '#ef4444',
+  bajo: 'var(--success-light)',
+  medio: 'var(--warning-light)',
+  alto: 'var(--danger-light)',
 };
 
 export default function WhatIfInventario() {

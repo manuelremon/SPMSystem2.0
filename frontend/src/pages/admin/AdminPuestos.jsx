@@ -209,7 +209,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
           borderRightColor: "divider",
         }}
       >
-        <Typography variant="body2" fontWeight={500} color="text.primary" fontSize="13px">
+        <Typography variant="body2" fontWeight={500} color="text.primary" fontSize="var(--text-base)">
           {puesto.nombre}
         </Typography>
       </TableCell>
@@ -227,7 +227,7 @@ function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onCon
           label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
           sx={{
             height: 20,
-            fontSize: "10px",
+            fontSize: "var(--text-2xs)",
             fontWeight: 600,
             textTransform: "uppercase",
             bgcolor: isActivo ? "success.lighter" : "action.disabledBackground",
@@ -567,7 +567,7 @@ return (
                       sx={{
                         px: 1.5,
                         py: 1.5,
-                        fontSize: "11px",
+                        fontSize: "var(--text-xs)",
                         fontWeight: 600,
                         color: "text.secondary",
                         textTransform: "uppercase",
@@ -585,7 +585,7 @@ return (
                       sx={{
                         px: 1.5,
                         py: 1.5,
-                        fontSize: "11px",
+                        fontSize: "var(--text-xs)",
                         fontWeight: 600,
                         color: "text.secondary",
                         textTransform: "uppercase",
@@ -604,7 +604,7 @@ return (
                       sx={{
                         px: 1.5,
                         py: 1.5,
-                        fontSize: "11px",
+                        fontSize: "var(--text-xs)",
                         fontWeight: 600,
                         color: "text.secondary",
                         textTransform: "uppercase",
@@ -623,7 +623,7 @@ return (
                       sx={{
                         px: 1,
                         py: 1.5,
-                        fontSize: "11px",
+                        fontSize: "var(--text-xs)",
                         fontWeight: 600,
                         color: "text.secondary",
                         textTransform: "uppercase",

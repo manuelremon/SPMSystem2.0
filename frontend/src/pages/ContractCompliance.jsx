@@ -132,7 +132,7 @@ export default function ContractCompliance() {
       valueFormatter: (p) => p.value != null ? `${p.value.toFixed(2)}%` : '-',
       cellStyle: (p) => {
         if (p.value == null) return {};
-        return { color: p.value > 0 ? '#d32f2f' : p.value < 0 ? '#2e7d32' : 'inherit' };
+        return { color: p.value > 0 ? 'var(--danger)' : p.value < 0 ? 'var(--success-text)' : 'inherit' };
       },
     },
   ], [t]);

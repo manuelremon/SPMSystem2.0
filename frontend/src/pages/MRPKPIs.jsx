@@ -489,9 +489,9 @@ export default function MRPKPIs() {
               getAriaLabel={() => "Rango de fechas"}
               sx={{ color: "var(--primary)", "& .MuiSlider-thumb": { width: 14, height: 14 }, "& .MuiSlider-valueLabel": { fontSize: 10 } }}
             />
-            <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--fg-subtle)", mt: -0.5 }}>
-              <Typography variant="caption" sx={{ fontSize: "10px", color: "inherit" }}>Hace 1 año</Typography>
-              <Typography variant="caption" sx={{ fontSize: "10px", color: "inherit" }}>Hoy</Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-2xs)", color: "var(--fg-subtle)", mt: -0.5 }}>
+              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>Hace 1 año</Typography>
+              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>Hoy</Typography>
             </Box>
           </Box>
 

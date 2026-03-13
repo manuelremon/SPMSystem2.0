@@ -49,13 +49,13 @@ const tipoLabels = {
 };
 
 const tipoColors = {
-  notificacion: { bg: "rgba(59, 130, 246, 0.12)", color: "var(--primary)" },
-  mensaje: { bg: "rgba(168, 85, 247, 0.12)", color: "#a855f7" },
-  stock_consulta: { bg: "rgba(249, 115, 22, 0.12)", color: "#f97316" },
-  solicitud_approved: { bg: "rgba(34, 197, 94, 0.12)", color: "var(--success)" },
-  solicitud_rejected: { bg: "rgba(239, 68, 68, 0.12)", color: "var(--danger)" },
-  solicitud_planned: { bg: "rgba(6, 182, 212, 0.12)", color: "#06b6d4" },
-  warning: { bg: "rgba(245, 158, 11, 0.12)", color: "var(--warning)" },
+  notificacion: { bg: "var(--info-bg)", color: "var(--primary)" },
+  mensaje: { bg: "var(--neutral-bg)", color: "var(--purple)" },
+  stock_consulta: { bg: "var(--warning-bg)", color: "var(--warning-light)" },
+  solicitud_approved: { bg: "var(--success-bg)", color: "var(--success)" },
+  solicitud_rejected: { bg: "var(--danger-bg)", color: "var(--danger)" },
+  solicitud_planned: { bg: "var(--info-bg)", color: "var(--cyan)" },
+  warning: { bg: "var(--warning-bg)", color: "var(--warning)" },
   info: { bg: "var(--bg-soft)", color: "var(--fg-muted)" },
 };
 
@@ -146,8 +146,8 @@ export default function TimelineDetailModal({ item, onClose }) {
             sx={{
               mt: 2,
               p: 2,
-              bgcolor: "rgba(59, 130, 246, 0.08)",
-              border: "1px solid rgba(59, 130, 246, 0.2)",
+              bgcolor: "var(--primary-bg-light)",
+              border: "1px solid var(--info-border)",
             }}
           >
             <Typography variant="body2" sx={{ color: "var(--primary)", fontWeight: 500 }}>
@@ -177,7 +177,7 @@ export default function TimelineDetailModal({ item, onClose }) {
             size="small"
             onClick={handleVerSolicitud}
             startIcon={<FileText style={{ width: 16, height: 16 }} />}
-            sx={{ bgcolor: "#567ebb", "&:hover": { bgcolor: "#4a6da8" }, textTransform: "none" }}
+            sx={{ bgcolor: "primary.main", "&:hover": { bgcolor: "primary.dark" }, textTransform: "none" }}
           >
             {t("centro_ver_solicitud", "Ver Solicitud")}
           </Button>

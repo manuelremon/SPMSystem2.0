@@ -99,9 +99,9 @@ const priceMaterials = [
 // Categorias y materiales para drag & drop
 const categoryGame = {
   categories: [
-    { id: "electrico", name: "Electrico", color: "#eab308" },
-    { id: "mecanico", name: "Mecanico", color: "#3b82f6" },
-    { id: "instrumentacion", name: "Instrumentacion", color: "#22c55e" },
+    { id: "electrico", name: "Electrico", color: "var(--warning)" },
+    { id: "mecanico", name: "Mecanico", color: "var(--info)" },
+    { id: "instrumentacion", name: "Instrumentacion", color: "var(--success-light)" },
   ],
   rounds: [
     {

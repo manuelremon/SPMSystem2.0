@@ -348,7 +348,7 @@ export function SearchDropdown({
                   py: 0.25,
                   bgcolor: 'action.hover',
                   borderRadius: 0.5,
-                  fontSize: '10px',
+                  fontSize: 'var(--text-2xs)',
                   fontFamily: 'monospace',
                   mr: 0.5,
                 }}
@@ -362,7 +362,7 @@ export function SearchDropdown({
                   py: 0.25,
                   bgcolor: 'action.hover',
                   borderRadius: 0.5,
-                  fontSize: '10px',
+                  fontSize: 'var(--text-2xs)',
                   fontFamily: 'monospace',
                   mr: 0.5,
                 }}
@@ -379,7 +379,7 @@ export function SearchDropdown({
                   py: 0.25,
                   bgcolor: 'action.hover',
                   borderRadius: 0.5,
-                  fontSize: '10px',
+                  fontSize: 'var(--text-2xs)',
                   fontFamily: 'monospace',
                   mr: 0.5,
                 }}
@@ -396,7 +396,7 @@ export function SearchDropdown({
                   py: 0.25,
                   bgcolor: 'action.hover',
                   borderRadius: 0.5,
-                  fontSize: '10px',
+                  fontSize: 'var(--text-2xs)',
                   fontFamily: 'monospace',
                   mr: 0.5,
                 }}

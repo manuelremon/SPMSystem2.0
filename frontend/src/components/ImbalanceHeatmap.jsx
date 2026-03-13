@@ -17,10 +17,10 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 
 function getRatioColor(ratio) {
-  if (ratio < 0.5) return '#ef5350';
-  if (ratio < 1.0) return '#ff9800';
-  if (ratio <= 1.5) return '#4caf50';
-  return '#2196f3';
+  if (ratio < 0.5) return 'var(--danger-light)';
+  if (ratio < 1.0) return 'var(--warning-light)';
+  if (ratio <= 1.5) return 'var(--success)';
+  return 'var(--info)';
 }
 
 function getRatioLabel(ratio) {
@@ -63,10 +63,10 @@ export default function ImbalanceHeatmap({ data = [] }) {
       {/* Legend */}
       <Stack direction="row" gap={2} sx={{ mb: 2 }} flexWrap="wrap">
         {[
-          { color: '#ef5350', label: '< 0.5 (Critico)' },
-          { color: '#ff9800', label: '0.5 - 1.0 (Bajo)' },
-          { color: '#4caf50', label: '1.0 - 1.5 (Optimo)' },
-          { color: '#2196f3', label: '> 1.5 (Exceso)' },
+          { color: 'var(--danger-light)', label: '< 0.5 (Critico)' },
+          { color: 'var(--warning-light)', label: '0.5 - 1.0 (Bajo)' },
+          { color: 'var(--success)', label: '1.0 - 1.5 (Optimo)' },
+          { color: 'var(--info)', label: '> 1.5 (Exceso)' },
         ].map(l => (
           <Stack key={l.label} direction="row" alignItems="center" gap={0.5}>
             <Box sx={{ width: 14, height: 14, borderRadius: '2px', backgroundColor: l.color }} />
@@ -113,7 +113,7 @@ export default function ImbalanceHeatmap({ data = [] }) {
                   <Box
                     key={key}
                     sx={{
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: 'var(--bg-soft)',
                       borderRadius: '2px',
                       minHeight: 28,
                     }}

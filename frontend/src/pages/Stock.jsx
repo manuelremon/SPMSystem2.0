@@ -86,7 +86,7 @@ function SummaryCard({ label, value, subvalue, variant = "default" }) {
       <Typography
         variant="caption"
         sx={{
-          fontSize: "11px",
+          fontSize: "var(--text-xs)",
           fontWeight: 600,
           color: "text.secondary",
           textTransform: "uppercase",
@@ -136,7 +136,7 @@ function BooleanCellRenderer({ value }) {
         size="small"
         sx={{
           height: 22,
-          fontSize: "10px",
+          fontSize: "var(--text-2xs)",
           fontWeight: 600,
           bgcolor: "success.50",
           color: "success.800",
@@ -156,7 +156,7 @@ function BooleanCellRenderer({ value }) {
       size="small"
       sx={{
         height: 22,
-        fontSize: "10px",
+        fontSize: "var(--text-2xs)",
         fontWeight: 600,
         bgcolor: "grey.100",
         color: "grey.600",
@@ -173,16 +173,16 @@ function BooleanCellRenderer({ value }) {
 /** Days without movement cell renderer with color coding */
 function DaysCellRenderer({ value }) {
   const days = value;
-  if (days == null) return <span style={{ color: "#9e9e9e" }}>-</span>;
+  if (days == null) return <span style={{ color: "var(--fg-subtle)" }}>-</span>;
 
-  let color = "#666";
+  let color = "var(--fg-muted)";
   let fontWeight = 400;
 
   if (days > 365) {
-    color = "#d32f2f"; // error.main
+    color = "var(--danger)"; // error.main
     fontWeight = 600;
   } else if (days > 180) {
-    color = "#ed6c02"; // warning.main
+    color = "var(--warning)"; // warning.main
     fontWeight = 500;
   }
 

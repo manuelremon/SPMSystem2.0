@@ -111,10 +111,10 @@ function EstadosChart({ estados }) {
     'En Revisión': 'var(--warning)',
     'Aprobada': 'var(--success)',
     'Rechazada': 'var(--danger)',
-    'En Planificacion': '#8b5cf6',
-    'En Planificación': '#8b5cf6',
-    'Despachada': '#06b6d4',
-    'Cerrada': '#6b7280',
+    'En Planificacion': 'var(--purple)',
+    'En Planificación': 'var(--purple)',
+    'Despachada': 'var(--cyan)',
+    'Cerrada': 'var(--neutral)',
   }
 
   return (

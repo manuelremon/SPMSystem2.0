@@ -53,11 +53,11 @@ export default function Foro() {
   const [selectedCategoria, setSelectedCategoria] = useState(null);
 
   const categorias = [
-    { id: "general", label: "General", color: "#2563eb" },
-    { id: "ayuda", label: "Ayuda", color: "#3b82f6" },
-    { id: "sugerencias", label: "Sugerencias", color: "#10b981" },
-    { id: "problemas", label: "Problemas", color: "#ef4444" },
-    { id: "anuncios", label: "Anuncios", color: "#f59e0b" },
+    { id: "general", label: "General", color: "var(--primary)" },
+    { id: "ayuda", label: "Ayuda", color: "var(--info)" },
+    { id: "sugerencias", label: "Sugerencias", color: "var(--success)" },
+    { id: "problemas", label: "Problemas", color: "var(--danger)" },
+    { id: "anuncios", label: "Anuncios", color: "var(--warning)" },
   ];
 
   // Cargar posts

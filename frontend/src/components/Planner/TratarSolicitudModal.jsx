@@ -68,7 +68,7 @@ const CustomStepIconRoot = styled("div")(({ theme, ownerState }) => ({
     ? theme.palette.primary.main
     : theme.palette.grey[300],
   zIndex: 1,
-  color: "#fff",
+  color: "#ffffff",
   width: 44,
   height: 44,
   display: "flex",
@@ -596,7 +596,7 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
         alignItems: 'center',
         justifyContent: 'center',
         p: 1,
-        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+        backgroundColor: 'var(--overlay)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
       }}

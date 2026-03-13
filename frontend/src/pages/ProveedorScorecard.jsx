@@ -311,7 +311,7 @@ export default function ProveedorScorecard() {
       cellRenderer: (p) => {
         if (p.value == null) return '-';
         const arrow = p.value > 0 ? '\u25B2' : p.value < 0 ? '\u25BC' : '\u2014';
-        const color = p.value > 0 ? '#10b981' : p.value < 0 ? '#ef4444' : '#9ca3af';
+        const color = p.value > 0 ? 'var(--success-light)' : p.value < 0 ? 'var(--danger-light)' : 'var(--fg-subtle)';
         return <span style={{ color, fontWeight: 600 }}>{arrow} {Math.abs(p.value).toFixed(1)}</span>;
       },
     },

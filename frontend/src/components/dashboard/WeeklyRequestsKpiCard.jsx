@@ -22,19 +22,19 @@ import { FONT_SIZES, TOOLTIP_CONFIG } from '../ui/SPMChartJS';
  */
 const CHART_COLORS = {
   positive: {
-    line: '#10b981',
+    line: 'var(--success-light)',
     gradient: ['rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.02)'],
-    point: '#10b981',
+    point: 'var(--success-light)',
   },
   negative: {
-    line: '#ef4444',
+    line: 'var(--danger-light)',
     gradient: ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.02)'],
-    point: '#ef4444',
+    point: 'var(--danger-light)',
   },
   neutral: {
-    line: '#3b82f6',
+    line: 'var(--info)',
     gradient: ['rgba(59, 130, 246, 0.3)', 'rgba(59, 130, 246, 0.02)'],
-    point: '#3b82f6',
+    point: 'var(--info)',
   },
 };
 
@@ -83,7 +83,7 @@ function ProfessionalSparkline({ data, labels = [], height = 60, trend = 'neutra
       },
       pointRadius: 0,
       pointHoverRadius: 6,
-      pointHoverBackgroundColor: '#ffffff',
+      pointHoverBackgroundColor: 'var(--surface)',
       pointHoverBorderColor: colors.point,
       pointHoverBorderWidth: 2.5,
     }],
@@ -179,8 +179,8 @@ function TrendIndicator({ variacionPct, trend }) {
 
   const isPositive = trend === 'positive';
   const Icon = isPositive ? TrendingUp : TrendingDown;
-  const color = isPositive ? '#10b981' : '#ef4444';
-  const bgColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+  const color = isPositive ? 'var(--success-light)' : 'var(--danger-light)';
+  const bgColor = isPositive ? 'var(--success-bg)' : 'var(--danger-bg)';
 
   return (
     <Stack
@@ -230,13 +230,13 @@ export function WeeklyRequestsKpiCard({
       sx={{
         width: '100%',
         height: '100%',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
         transition: 'box-shadow 0.2s ease-in-out',
         '&:hover': {
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+          boxShadow: 'var(--shadow-md)',
         },
         ...sx,
       }}

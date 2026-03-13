@@ -89,7 +89,7 @@ const ForecastSimulationPanel = ({
         p: 4,
         border: '2px dashed',
         borderColor: 'warning.light',
-        bgcolor: 'rgba(251, 191, 36, 0.04)',
+        bgcolor: 'var(--warning-bg)',
       }}
     >
       {/* Header */}

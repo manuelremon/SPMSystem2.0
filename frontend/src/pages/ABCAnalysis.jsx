@@ -161,9 +161,9 @@ const ABCAnalysis = () => {
         width: 100,
         cellStyle: (params) => {
           const clase = params.value;
-          if (clase === 'A') return { backgroundColor: '#dcfce7', color: '#166534', fontWeight: 'bold' };
-          if (clase === 'B') return { backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 'bold' };
-          if (clase === 'C') return { backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 'bold' };
+          if (clase === 'A') return { backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', fontWeight: 'bold' };
+          if (clase === 'B') return { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)', fontWeight: 'bold' };
+          if (clase === 'C') return { backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)', fontWeight: 'bold' };
           return {};
         },
       },

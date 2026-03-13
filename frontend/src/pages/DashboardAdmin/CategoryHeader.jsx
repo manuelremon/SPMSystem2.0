@@ -53,7 +53,7 @@ function CategoryHeader({ icon, title, subtitle, count, color = 'primary.main', 
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   bgcolor: color,
-                  color: '#fff',
+                  color: 'common.white',
                   '& .MuiChip-label': { px: 0.75 },
                 }}
               />

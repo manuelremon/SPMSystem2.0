@@ -167,7 +167,7 @@ export default function CycleCountDetail() {
       width: 140,
       type: 'numericColumn',
       editable: isInProgress,
-      cellStyle: isInProgress ? { backgroundColor: '#fff8e1' } : undefined,
+      cellStyle: isInProgress ? { backgroundColor: 'var(--warning-bg)' } : undefined,
     },
     {
       field: 'varianza',

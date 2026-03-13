@@ -19,32 +19,32 @@ import {
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useI18n } from '../../context/i18n';
 
-// Paleta de colores con mayor contraste
+// Paleta de colores — CSS variables del design system
 const COLORS = {
-  historico: '#475569',           // Slate 600 - contexto (gris azulado)
-  prediccion: '#6366f1',          // Indigo vibrante - protagonista
-  intervalo: 'rgba(99, 102, 241, 0.12)', // Indigo con 12% opacidad
-  grid: '#e2e8f0',                // Gris muy claro para grilla
+  historico: 'var(--fg-muted)',         // contexto gris azulado
+  prediccion: 'var(--indigo)',          // protagonista
+  intervalo: 'var(--info-bg)',          // Indigo transparente
+  grid: 'var(--border)',                // grilla
   navigator: {
-    background: '#f8fafc',        // Slate 50
-    selection: 'rgba(59, 130, 246, 0.15)', // Blue with transparency
-    border: '#3b82f6',            // Blue 500
-    handle: '#3b82f6',            // Blue 500
-    line: '#94a3b8',              // Slate 400
+    background: 'var(--bg)',
+    selection: 'var(--info-bg)',
+    border: 'var(--info)',
+    handle: 'var(--info)',
+    line: 'var(--fg-subtle)',
   }
 };
 
 // Colores para modo simulacion (Cold Start)
 const COLORS_SIMULATION = {
-  prediccion: '#f59e0b',          // Amber-500 - color distintivo
-  intervalo: 'rgba(245, 158, 11, 0.15)', // Amber con transparencia
-  safetyStock: '#ef4444',         // Red-500 para safety stock
+  prediccion: 'var(--warning-light)',   // Amber distintivo
+  intervalo: 'var(--warning-bg)',       // Amber transparente
+  safetyStock: 'var(--danger-light)',   // safety stock
   navigator: {
-    background: '#fffbeb',        // Amber 50
-    selection: 'rgba(245, 158, 11, 0.15)',
-    border: '#f59e0b',
-    handle: '#f59e0b',
-    line: '#fbbf24',
+    background: 'var(--warning-bg)',
+    selection: 'var(--warning-bg)',
+    border: 'var(--warning-light)',
+    handle: 'var(--warning-light)',
+    line: 'var(--warning)',
   }
 };
 
@@ -227,13 +227,13 @@ const TimeRangeNavigator = ({
     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
       {/* Labels de rango */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1, px: 0.5 }}>
-        <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500, color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'text.secondary' }}>
           {startLabel}
         </Typography>
-        <Typography variant="caption" sx={{ fontSize: '11px', color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontSize: 'var(--text-xs)', color: 'text.secondary' }}>
           {t('forecast_navigator_rango', 'Rango visible')}: {visibleRange[1] - visibleRange[0]} {t('common_dias', 'dias')}
         </Typography>
-        <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 500, color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'text.secondary' }}>
           {endLabel}
         </Typography>
       </Stack>
@@ -388,7 +388,7 @@ const TimeRangeNavigator = ({
           color={visibleRange[0] === 0 && visibleRange[1] === totalPoints ? 'primary' : 'inherit'}
           onClick={() => onRangeChange([0, totalPoints])}
           sx={{
-            fontSize: '11px',
+            fontSize: 'var(--text-xs)',
             fontWeight: 500,
             minWidth: 'auto',
             px: 1.5,
@@ -405,7 +405,7 @@ const TimeRangeNavigator = ({
             variant="text"
             color="inherit"
             onClick={() => onRangeChange([Math.max(0, totalPoints - 30), totalPoints])}
-            sx={{ fontSize: '11px', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
+            sx={{ fontSize: 'var(--text-xs)', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
           >
             30D
           </Button>
@@ -416,7 +416,7 @@ const TimeRangeNavigator = ({
             variant="text"
             color="inherit"
             onClick={() => onRangeChange([Math.max(0, totalPoints - 90), totalPoints])}
-            sx={{ fontSize: '11px', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
+            sx={{ fontSize: 'var(--text-xs)', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
           >
             90D
           </Button>
@@ -427,7 +427,7 @@ const TimeRangeNavigator = ({
             variant="text"
             color="inherit"
             onClick={() => onRangeChange([Math.max(0, totalPoints - 180), totalPoints])}
-            sx={{ fontSize: '11px', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
+            sx={{ fontSize: 'var(--text-xs)', fontWeight: 500, minWidth: 'auto', px: 1.5, py: 0.5, textTransform: 'none', color: 'text.secondary' }}
           >
             6M
           </Button>
@@ -703,7 +703,7 @@ const ForecastChart = ({
         },
         ticks: {
           font: { size: 11 },
-          color: '#64748b',
+          color: 'var(--neutral)',
           maxRotation: 45,
           minRotation: 0,
           autoSkip: true,
@@ -718,7 +718,7 @@ const ForecastChart = ({
         },
         ticks: {
           font: { size: 11 },
-          color: '#64748b',
+          color: 'var(--neutral)',
         },
       },
     },

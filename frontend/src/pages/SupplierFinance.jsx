@@ -83,7 +83,7 @@ export default function SupplierFinance() {
         }
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al cargar datos', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_load', 'Error al cargar datos'), 'error');
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export default function SupplierFinance() {
     try {
       const res = await api.post('/supplier-finance/programs', newProgram);
       if (res.data.ok) {
-        addToast('Programa creado exitosamente', 'success');
+        addToast(t('supplier_finance_program_created', 'Programa creado exitosamente'), 'success');
         setProgramDialogOpen(false);
         setNewProgram({
           nombre: '',
@@ -106,7 +106,7 @@ export default function SupplierFinance() {
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al crear programa', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_create', 'Error al crear programa'), 'error');
     }
   };
 
@@ -117,13 +117,13 @@ export default function SupplierFinance() {
         { dias_horizonte: diasHorizonte }
       );
       if (res.data.ok) {
-        addToast(`${res.data.ofertas_generadas} ofertas generadas`, 'success');
+        addToast(`${res.data.ofertas_generadas} ${t('supplier_finance_offers_generated', 'ofertas generadas')}`, 'success');
         setGenerateDialogOpen(false);
         setActiveTab(1); // Switch to offers tab
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al generar ofertas', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_generate', 'Error al generar ofertas'), 'error');
     }
   };
 
@@ -131,11 +131,11 @@ export default function SupplierFinance() {
     try {
       const res = await api.put(`/supplier-finance/offers/${ofertaId}/accept`);
       if (res.data.ok) {
-        addToast('Oferta aceptada', 'success');
+        addToast(t('supplier_finance_offer_accepted', 'Oferta aceptada'), 'success');
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al aceptar oferta', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_accept', 'Error al aceptar oferta'), 'error');
     }
   };
 
@@ -143,11 +143,11 @@ export default function SupplierFinance() {
     try {
       const res = await api.put(`/supplier-finance/offers/${ofertaId}/reject`);
       if (res.data.ok) {
-        addToast('Oferta rechazada', 'success');
+        addToast(t('supplier_finance_offer_rejected', 'Oferta rechazada'), 'success');
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al rechazar oferta', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_reject', 'Error al rechazar oferta'), 'error');
     }
   };
 
@@ -155,11 +155,11 @@ export default function SupplierFinance() {
     try {
       const res = await api.put(`/supplier-finance/offers/${ofertaId}/pay`);
       if (res.data.ok) {
-        addToast('Oferta marcada como pagada', 'success');
+        addToast(t('supplier_finance_offer_paid', 'Oferta marcada como pagada'), 'success');
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al marcar como pagada', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_pay', 'Error al marcar como pagada'), 'error');
     }
   };
 
@@ -169,11 +169,11 @@ export default function SupplierFinance() {
       const body = { [field]: newValue };
       const res = await api.put(`/supplier-finance/payment-terms/${proveedor_cuit}`, body);
       if (res.data.ok) {
-        addToast('Términos actualizados', 'success');
+        addToast(t('supplier_finance_terms_updated', 'Términos actualizados'), 'success');
         loadData();
       }
     } catch (error) {
-      addToast(error.response?.data?.error || 'Error al actualizar términos', 'error');
+      addToast(error.response?.data?.error || t('supplier_finance_error_update_terms', 'Error al actualizar términos'), 'error');
     }
   };
 
@@ -207,7 +207,7 @@ export default function SupplierFinance() {
       },
       {
         field: 'estado',
-        headerName: 'Estado',
+        headerName: t('supplier_finance_status', 'Estado'),
         flex: 1,
         cellRenderer: (params) => {
           const stateMap = {
@@ -227,7 +227,7 @@ export default function SupplierFinance() {
       },
       {
         field: 'actions',
-        headerName: 'Acciones',
+        headerName: t('supplier_finance_actions', 'Acciones'),
         flex: 1,
         cellRenderer: (params) => (
           <Button
@@ -249,7 +249,7 @@ export default function SupplierFinance() {
   // AG-Grid columns for offers
   const offersColumns = useMemo(
     () => [
-      { field: 'programa_nombre', headerName: 'Programa', flex: 1.5 },
+      { field: 'programa_nombre', headerName: t('supplier_finance_program', 'Programa'), flex: 1.5 },
       { field: 'proveedor_cuit', headerName: t('finance_supplier_cuit'), flex: 1 },
       {
         field: 'monto_factura',
@@ -265,7 +265,7 @@ export default function SupplierFinance() {
       },
       {
         field: 'monto_descuento',
-        headerName: 'Ahorro',
+        headerName: t('supplier_finance_savings', 'Ahorro'),
         flex: 1,
         valueFormatter: (params) => formatCurrency(params.value),
       },
@@ -283,7 +283,7 @@ export default function SupplierFinance() {
       },
       {
         field: 'estado',
-        headerName: 'Estado',
+        headerName: t('supplier_finance_status', 'Estado'),
         flex: 1,
         cellRenderer: (params) => {
           const stateMap = {
@@ -298,7 +298,7 @@ export default function SupplierFinance() {
       },
       {
         field: 'actions',
-        headerName: 'Acciones',
+        headerName: t('supplier_finance_actions', 'Acciones'),
         flex: 1.5,
         cellRenderer: (params) => {
           const { estado, id } = params.data;
@@ -421,7 +421,7 @@ export default function SupplierFinance() {
                 <Typography color="textSecondary" gutterBottom variant="body2">
                   {t('finance_avg_dpo')}
                 </Typography>
-                <Typography variant="h5">{kpis.avg_dpo} días</Typography>
+                <Typography variant="h5">{kpis.avg_dpo} {t('supplier_finance_days', 'días')}</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -433,7 +433,7 @@ export default function SupplierFinance() {
                 </Typography>
                 <Typography variant="h5">{formatCurrency(kpis.remaining_budget)}</Typography>
                 <Typography variant="caption" color="textSecondary">
-                  ({kpis.budget_utilization_pct}% utilizado)
+                  ({kpis.budget_utilization_pct}% {t('supplier_finance_utilized', 'utilizado')})
                 </Typography>
               </CardContent>
             </Card>
@@ -495,7 +495,7 @@ export default function SupplierFinance() {
       {activeTab === 2 && (
         <Box>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Términos editables: haga doble clic en una celda para editar
+            {t('supplier_finance_terms_editable', 'Términos editables: haga doble clic en una celda para editar')}
           </Alert>
           <SPMAgGrid
             rowData={terminos}
@@ -560,8 +560,8 @@ export default function SupplierFinance() {
               value={newProgram.formula}
               onChange={(e) => setNewProgram({ ...newProgram, formula: e.target.value })}
               fullWidth
-              placeholder="base_pct * (dias_ant / 30)"
-              helperText="Opcional: usar base_pct, dias_ant, monto"
+              placeholder={t('supplier_finance_formula_placeholder', 'base_pct * (dias_ant / 30)')}
+              helperText={t('supplier_finance_formula_helper', 'Opcional: usar base_pct, dias_ant, monto')}
             />
             <TextField
               label={t('finance_annual_budget')}
@@ -579,9 +579,9 @@ export default function SupplierFinance() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setProgramDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setProgramDialogOpen(false)}>{t('common_cancelar', 'Cancelar')}</Button>
           <Button onClick={handleCreateProgram} variant="contained" disabled={!newProgram.nombre}>
-            Crear
+            {t('supplier_finance_create', 'Crear')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -591,20 +591,20 @@ export default function SupplierFinance() {
         <DialogTitle>{t('finance_generate_offers')}</DialogTitle>
         <DialogContent>
           <TextField
-            label="Días de horizonte"
+            label={t('supplier_finance_horizon_days', 'Días de horizonte')}
             type="number"
             value={diasHorizonte}
             onChange={(e) => setDiasHorizonte(parseInt(e.target.value, 10))}
             fullWidth
             sx={{ mt: 2 }}
             inputProps={{ step: 1, min: 1, max: 90 }}
-            helperText="Facturas con vencimiento dentro de este período"
+            helperText={t('supplier_finance_horizon_helper', 'Facturas con vencimiento dentro de este período')}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGenerateDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setGenerateDialogOpen(false)}>{t('common_cancelar', 'Cancelar')}</Button>
           <Button onClick={handleGenerateOffers} variant="contained">
-            Generar
+            {t('supplier_finance_generate', 'Generar')}
           </Button>
         </DialogActions>
       </Dialog>

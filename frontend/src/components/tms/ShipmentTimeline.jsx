@@ -18,15 +18,15 @@ const EVENT_ICONS = {
 }
 
 const EVENT_COLORS = {
-  salida: '#2196f3',
-  parada: '#ff9800',
-  carga_combustible: '#4caf50',
-  checkpoint: '#9c27b0',
-  incidencia: '#f44336',
-  entrega_parcial: '#ff9800',
-  entrega: '#4caf50',
-  posicion: '#607d8b',
-  otro: '#9e9e9e',
+  salida: 'var(--info)',
+  parada: 'var(--warning-light)',
+  carga_combustible: 'var(--success)',
+  checkpoint: 'var(--purple-dark)',
+  incidencia: 'var(--danger-light)',
+  entrega_parcial: 'var(--warning-light)',
+  entrega: 'var(--success)',
+  posicion: 'var(--neutral)',
+  otro: 'var(--fg-subtle)',
 }
 
 export default function ShipmentTimeline({ events = [] }) {
@@ -48,7 +48,7 @@ export default function ShipmentTimeline({ events = [] }) {
 
       {events.map((event, idx) => {
         const Icon = EVENT_ICONS[event.evento_tipo] || Clock
-        const color = EVENT_COLORS[event.evento_tipo] || '#9e9e9e'
+        const color = EVENT_COLORS[event.evento_tipo] || 'var(--fg-subtle)'
         const date = event.created_at ? new Date(event.created_at) : null
 
         return (

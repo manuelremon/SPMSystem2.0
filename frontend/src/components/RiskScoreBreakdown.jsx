@@ -35,18 +35,18 @@ const NIVEL_LABELS = {
 
 function getBarColor(value) {
   const v = Number(value) || 0;
-  if (v <= 25) return '#22c55e';
-  if (v <= 50) return '#eab308';
-  if (v <= 75) return '#f97316';
-  return '#ef4444';
+  if (v <= 25) return 'var(--success-light)';
+  if (v <= 50) return 'var(--warning)';
+  if (v <= 75) return 'var(--warning-light)';
+  return 'var(--danger-light)';
 }
 
 function getBarBgColor(value) {
   const v = Number(value) || 0;
-  if (v <= 25) return 'rgba(34, 197, 94, 0.12)';
-  if (v <= 50) return 'rgba(234, 179, 8, 0.12)';
-  if (v <= 75) return 'rgba(249, 115, 22, 0.12)';
-  return 'rgba(239, 68, 68, 0.12)';
+  if (v <= 25) return 'var(--success-bg-light)';
+  if (v <= 50) return 'var(--warning-bg-light)';
+  if (v <= 75) return 'var(--warning-bg-light)';
+  return 'var(--danger-bg-light)';
 }
 
 const DIMENSIONS = [
@@ -164,7 +164,7 @@ export default function RiskScoreBreakdown({ risk }) {
                       top: 0,
                       width: 1,
                       height: '100%',
-                      bgcolor: 'rgba(0,0,0,0.08)',
+                      bgcolor: 'var(--bg-soft)',
                     }}
                   />
                 ))}
@@ -177,10 +177,10 @@ export default function RiskScoreBreakdown({ risk }) {
       {/* Legend */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, px: 0.5 }}>
         {[
-          { label: '0-25', color: '#22c55e', text: t('risk_legend_low', 'Bajo') },
-          { label: '25-50', color: '#eab308', text: t('risk_legend_medium', 'Medio') },
-          { label: '50-75', color: '#f97316', text: t('risk_legend_high', 'Alto') },
-          { label: '75-100', color: '#ef4444', text: t('risk_legend_critical', 'Critico') },
+          { label: '0-25', color: 'var(--success-light)', text: t('risk_legend_low', 'Bajo') },
+          { label: '25-50', color: 'var(--warning)', text: t('risk_legend_medium', 'Medio') },
+          { label: '50-75', color: 'var(--warning-light)', text: t('risk_legend_high', 'Alto') },
+          { label: '75-100', color: 'var(--danger-light)', text: t('risk_legend_critical', 'Critico') },
         ].map(item => (
           <Stack key={item.label} direction="row" alignItems="center" gap={0.3}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.color }} />

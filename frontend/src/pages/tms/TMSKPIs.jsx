@@ -15,7 +15,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_active_shipments',
     fallback: 'Envios Activos',
     icon: Truck,
-    color: '#1976d2',
+    color: 'var(--primary)',
     format: 'number',
   },
   {
@@ -23,7 +23,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_on_time',
     fallback: 'Entregas a Tiempo',
     icon: CheckCircle,
-    color: '#2e7d32',
+    color: 'var(--success-text)',
     format: 'percent',
   },
   {
@@ -31,7 +31,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_avg_cost',
     fallback: 'Costo Promedio / Envio',
     icon: DollarSign,
-    color: '#ed6c02',
+    color: 'var(--warning)',
     format: 'currency',
   },
   {
@@ -39,7 +39,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_avg_delivery_time',
     fallback: 'Tiempo Promedio Entrega',
     icon: Clock,
-    color: '#0288d1',
+    color: 'var(--info)',
     format: 'hours',
   },
   {
@@ -47,7 +47,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_incidents',
     fallback: 'Incidentes del Mes',
     icon: AlertTriangle,
-    color: '#d32f2f',
+    color: 'var(--danger)',
     format: 'number',
   },
   {
@@ -55,7 +55,7 @@ const KPI_CONFIGS = [
     label: 'tms_kpi_avg_margin',
     fallback: 'Margen Promedio',
     icon: TrendingUp,
-    color: '#7b1fa2',
+    color: 'var(--purple-dark)',
     format: 'percent',
   },
 ]

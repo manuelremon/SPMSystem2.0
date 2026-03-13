@@ -49,8 +49,8 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
     <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TrendingUpIcon sx={{ color: "#6366f1", fontSize: 20 }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1f1f20" }}>
+          <TrendingUpIcon sx={{ color: "var(--indigo)", fontSize: 20 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
             {t("trends", "Tendencias")} ({selectedHours}h)
           </Typography>
         </Box>
@@ -66,7 +66,7 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
                 fontSize: "0.75rem",
                 ...(selectedHours === hours
                   ? { bgcolor: "primary.main" }
-                  : { color: "#606d80", borderColor: "var(--border)" }),
+                  : { color: "var(--fg-muted)", borderColor: "var(--border)" }),
               }}
             >
               {hours}h
@@ -82,7 +82,7 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
             <SingleMetricChart data={historyData} metricType="cache_hit" title="Cache Hit Rate" height={150} />
           </Box>
         ) : (
-          <Box sx={{ textAlign: "center", py: 6, color: "#9ca3af" }}>
+          <Box sx={{ textAlign: "center", py: 6, color: "var(--fg-subtle)" }}>
             <TrendingUpIcon sx={{ fontSize: 48, opacity: 0.5, mb: 1.5 }} />
             <Typography variant="body2">{t("no_history_data", "Sin datos históricos")}</Typography>
             <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
@@ -103,7 +103,7 @@ function LoadingState({ t, navigate }) {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
         <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -179,14 +179,14 @@ export default function AdminEstado() {
       {/* Header con ultimo update */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "#606d80" }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
             <ArrowBackIcon />
           </IconButton>
           <Box>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {t("admin_estado", "ESTADO DEL SISTEMA")}
             </Typography>
-            <Typography variant="body2" sx={{ color: "#606d80" }}>
+            <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
               {t("admin_estado_subtitle", "Monitoreo en tiempo real")}
             </Typography>
           </Box>
@@ -194,11 +194,11 @@ export default function AdminEstado() {
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           {lastUpdate && (
-            <Typography variant="caption" sx={{ color: "#9ca3af" }}>
+            <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
               {t("updated", "Actualizado")}: {lastUpdate.toLocaleTimeString()}
             </Typography>
           )}
-          <IconButton onClick={fetchData} disabled={loading} size="small" sx={{ color: "#606d80" }}>
+          <IconButton onClick={fetchData} disabled={loading} size="small" sx={{ color: "var(--fg-muted)" }}>
             <RefreshIcon sx={{ animation: loading ? "spin 1s linear infinite" : "none", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }} />
           </IconButton>
         </Box>

@@ -218,11 +218,11 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
 
   const getOptionStyles = (color, isSelected) => {
     const colorMap = {
-      success: { main: "success.main", light: "success.light", bg: "rgba(46, 125, 50, 0.08)" },
-      warning: { main: "warning.main", light: "warning.light", bg: "rgba(237, 108, 2, 0.08)" },
-      info: { main: "info.main", light: "info.light", bg: "rgba(2, 136, 209, 0.08)" },
-      secondary: { main: "secondary.main", light: "secondary.light", bg: "rgba(156, 39, 176, 0.08)" },
-      error: { main: "error.main", light: "error.light", bg: "rgba(211, 47, 47, 0.08)" },
+      success: { main: "success.main", light: "success.light", bg: "var(--success-bg-light)" },
+      warning: { main: "warning.main", light: "warning.light", bg: "var(--warning-bg-light)" },
+      info: { main: "info.main", light: "info.light", bg: "var(--info-bg-light)" },
+      secondary: { main: "secondary.main", light: "secondary.light", bg: "var(--purple-bg-light)" },
+      error: { main: "error.main", light: "error.light", bg: "var(--danger-bg-light)" },
     };
     const colors = colorMap[color] || colorMap.success;
 
@@ -355,7 +355,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
 
           {/* Campos adicionales segun opcion */}
           {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_PARCIAL && (
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(237, 108, 2, 0.05)", borderColor: "warning.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "var(--warning-bg)", borderColor: "warning.light" }}>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -393,7 +393,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
           )}
 
           {opcionSeleccionada === OPCIONES_RESPUESTA.CEDER_CON_DEVOLUCION && (
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(2, 136, 209, 0.05)", borderColor: "info.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "var(--info-bg)", borderColor: "info.light" }}>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -431,7 +431,7 @@ export default function ResponderConsultaModal({ consulta, onClose, onSuccess })
           )}
 
           {opcionSeleccionada === OPCIONES_RESPUESTA.CONFIRMAR_TOTAL && (
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: "rgba(46, 125, 50, 0.05)", borderColor: "success.light" }}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "var(--success-bg)", borderColor: "success.light" }}>
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: 0.5 }}>
                   <CalendarTodayIcon sx={{ fontSize: 16 }} />

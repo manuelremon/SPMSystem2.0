@@ -16,9 +16,9 @@ const customStyles = {
     width: '100%',
     height: '100%',
     minHeight: '500px',
-    border: '1px solid var(--border-color, #e5e7eb)',
+    border: '1px solid var(--border)',
     overflow: 'hidden',
-    backgroundColor: 'var(--bg-primary, #ffffff)',
+    backgroundColor: 'var(--surface)',
   },
 };
 

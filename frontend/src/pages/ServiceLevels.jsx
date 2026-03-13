@@ -114,7 +114,7 @@ export default function ServiceLevels() {
       field: 'nivel_servicio', headerName: t('service_nivel', 'Nivel Servicio (%)'), width: 160,
       editable: true,
       type: 'numericColumn',
-      cellStyle: { backgroundColor: 'rgba(25, 118, 210, 0.04)', cursor: 'pointer' },
+      cellStyle: { backgroundColor: 'var(--primary-bg-light)', cursor: 'pointer' },
       valueFormatter: (p) => p.value != null ? `${Number(p.value).toFixed(1)}%` : '-',
     },
     {
@@ -159,7 +159,7 @@ export default function ServiceLevels() {
       </Stack>
 
       {/* Info */}
-      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', backgroundColor: 'rgba(25, 118, 210, 0.04)' }}>
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', backgroundColor: 'var(--primary-bg-light)' }}>
         <Typography variant="body2" color="text.secondary">
           {t('service_info', 'Haga clic en la columna "Nivel Servicio (%)" para editar el valor. Los cambios se guardan automaticamente. El stock de seguridad y punto de reorden se recalculan al usar "Recalcular Todo".')}
         </Typography>

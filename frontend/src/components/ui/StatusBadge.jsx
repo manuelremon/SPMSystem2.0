@@ -164,7 +164,7 @@ const StatusBadge = memo(function StatusBadge({
             bgcolor: "var(--card)",
             color: "var(--fg)",
             border: "1px solid var(--border)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            boxShadow: "var(--shadow-md)",
             fontSize: "0.75rem",
             maxWidth: 300,
             "& .MuiTooltip-arrow": {

@@ -46,7 +46,17 @@ const ESTADO_COLORS = {
   cancelled: 'error',
 }
 
-const ESTADO_LABELS = {
+const ESTADO_KEYS = {
+  draft: 'fms_wo_draft',
+  approved: 'fms_wo_approved',
+  in_progress: 'fms_wo_in_progress',
+  pending_parts: 'fms_wo_pending_parts',
+  completed: 'fms_wo_completed',
+  closed: 'fms_wo_closed',
+  cancelled: 'fms_wo_cancelled',
+}
+
+const ESTADO_FALLBACKS = {
   draft: 'Borrador',
   approved: 'Aprobada',
   in_progress: 'En Progreso',
@@ -56,20 +66,7 @@ const ESTADO_LABELS = {
   cancelled: 'Cancelada',
 }
 
-const TIPOS_OT = [
-  { value: '', label: 'Todos' },
-  { value: 'preventivo', label: 'Preventivo' },
-  { value: 'correctivo', label: 'Correctivo' },
-  { value: 'emergencia', label: 'Emergencia' },
-]
-
-const PRIORIDADES = [
-  { value: '', label: 'Todas' },
-  { value: '1', label: '1 - Crítica' },
-  { value: '2', label: '2 - Alta' },
-  { value: '3', label: '3 - Media' },
-  { value: '4', label: '4 - Baja' },
-]
+// TIPOS_OT and PRIORIDADES labels are now i18n-driven inline
 
 function PriorityStars({ priority }) {
   const p = Number(priority) || 3
@@ -175,42 +172,45 @@ export default function WorkOrders() {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Estado</InputLabel>
+            <InputLabel>{t('fms_col_status', 'Estado')}</InputLabel>
             <Select
               value={filtroEstado}
-              label="Estado"
+              label={t('fms_col_status', 'Estado')}
               onChange={(e) => { setFiltroEstado(e.target.value); setPage(0) }}
             >
-              <MenuItem value="">Todos</MenuItem>
-              {Object.entries(ESTADO_LABELS).map(([k, v]) => (
-                <MenuItem key={k} value={k}>{v}</MenuItem>
+              <MenuItem value="">{t('fms_all', 'Todos')}</MenuItem>
+              {Object.entries(ESTADO_FALLBACKS).map(([k, fallback]) => (
+                <MenuItem key={k} value={k}>{t(ESTADO_KEYS[k], fallback)}</MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Tipo</InputLabel>
+            <InputLabel>{t('fms_doc_type', 'Tipo')}</InputLabel>
             <Select
               value={filtroTipo}
-              label="Tipo"
+              label={t('fms_doc_type', 'Tipo')}
               onChange={(e) => { setFiltroTipo(e.target.value); setPage(0) }}
             >
-              {TIPOS_OT.map((t) => (
-                <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-              ))}
+              <MenuItem value="">{t('fms_all', 'Todos')}</MenuItem>
+              <MenuItem value="preventivo">{t('fms_preventive', 'Preventivo')}</MenuItem>
+              <MenuItem value="correctivo">{t('fms_corrective', 'Correctivo')}</MenuItem>
+              <MenuItem value="emergencia">{t('fms_emergency', 'Emergencia')}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Prioridad</InputLabel>
+            <InputLabel>{t('fms_priority', 'Prioridad')}</InputLabel>
             <Select
               value={filtroPrioridad}
-              label="Prioridad"
+              label={t('fms_priority', 'Prioridad')}
               onChange={(e) => { setFiltroPrioridad(e.target.value); setPage(0) }}
             >
-              {PRIORIDADES.map((p) => (
-                <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
-              ))}
+              <MenuItem value="">{t('fms_all_fem', 'Todas')}</MenuItem>
+              <MenuItem value="1">{t('fms_priority_critical', '1 - Critica')}</MenuItem>
+              <MenuItem value="2">{t('fms_priority_high', '2 - Alta')}</MenuItem>
+              <MenuItem value="3">{t('fms_priority_medium', '3 - Media')}</MenuItem>
+              <MenuItem value="4">{t('fms_priority_low', '4 - Baja')}</MenuItem>
             </Select>
           </FormControl>
 
@@ -248,14 +248,14 @@ export default function WorkOrders() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Código</TableCell>
-                  <TableCell>Vehículo</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell>Prioridad</TableCell>
-                  <TableCell>Descripción</TableCell>
-                  <TableCell>Fecha Ingreso</TableCell>
-                  <TableCell align="right">Costo Total</TableCell>
+                  <TableCell>{t('fms_col_code', 'Codigo')}</TableCell>
+                  <TableCell>{t('fms_col_vehicle', 'Vehiculo')}</TableCell>
+                  <TableCell>{t('fms_doc_type', 'Tipo')}</TableCell>
+                  <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
+                  <TableCell>{t('fms_priority', 'Prioridad')}</TableCell>
+                  <TableCell>{t('fms_description', 'Descripcion')}</TableCell>
+                  <TableCell>{t('fms_col_entry_date', 'Fecha Ingreso')}</TableCell>
+                  <TableCell align="right">{t('fms_col_total_cost', 'Costo Total')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -282,7 +282,7 @@ export default function WorkOrders() {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={ESTADO_LABELS[wo.estado] || wo.estado || '--'}
+                        label={t(ESTADO_KEYS[wo.estado], ESTADO_FALLBACKS[wo.estado]) || wo.estado || '--'}
                         color={ESTADO_COLORS[wo.estado] || 'default'}
                         size="small"
                       />
@@ -310,54 +310,54 @@ export default function WorkOrders() {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[10, 25, 50]}
-            labelRowsPerPage="Filas por página:"
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
+            labelRowsPerPage={t('fms_rows_per_page', 'Filas por pagina:')}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${t('fms_of', 'de')} ${count !== -1 ? count : `${t('fms_more_than', 'mas de')} ${to}`}`}
           />
         </Paper>
       )}
 
       {/* Create Work Order Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Nueva Orden de Trabajo</DialogTitle>
+        <DialogTitle>{t('fms_new_work_order', 'Nueva Orden de Trabajo')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="ID Vehículo"
+              label={t('fms_vehicle_id', 'ID Vehiculo')}
               type="number"
               value={createForm.vehicle_id}
               onChange={(e) => setCreateForm({ ...createForm, vehicle_id: e.target.value })}
               fullWidth
-              helperText="Ingrese el ID del vehículo"
+              helperText={t('fms_enter_vehicle_id', 'Ingrese el ID del vehiculo')}
             />
             <FormControl fullWidth size="small">
-              <InputLabel>Tipo</InputLabel>
+              <InputLabel>{t('fms_doc_type', 'Tipo')}</InputLabel>
               <Select
                 value={createForm.tipo}
-                label="Tipo"
+                label={t('fms_doc_type', 'Tipo')}
                 onChange={(e) => setCreateForm({ ...createForm, tipo: e.target.value })}
               >
-                <MenuItem value="preventivo">Preventivo</MenuItem>
-                <MenuItem value="correctivo">Correctivo</MenuItem>
-                <MenuItem value="emergencia">Emergencia</MenuItem>
+                <MenuItem value="preventivo">{t('fms_preventive', 'Preventivo')}</MenuItem>
+                <MenuItem value="correctivo">{t('fms_corrective', 'Correctivo')}</MenuItem>
+                <MenuItem value="emergencia">{t('fms_emergency', 'Emergencia')}</MenuItem>
               </Select>
             </FormControl>
             <FormControl fullWidth size="small">
-              <InputLabel>Prioridad</InputLabel>
+              <InputLabel>{t('fms_priority', 'Prioridad')}</InputLabel>
               <Select
                 value={createForm.prioridad}
-                label="Prioridad"
+                label={t('fms_priority', 'Prioridad')}
                 onChange={(e) => setCreateForm({ ...createForm, prioridad: e.target.value })}
               >
-                <MenuItem value={1}>1 - Crítica</MenuItem>
-                <MenuItem value={2}>2 - Alta</MenuItem>
-                <MenuItem value={3}>3 - Media</MenuItem>
-                <MenuItem value={4}>4 - Baja</MenuItem>
+                <MenuItem value={1}>{t('fms_priority_critical', '1 - Critica')}</MenuItem>
+                <MenuItem value={2}>{t('fms_priority_high', '2 - Alta')}</MenuItem>
+                <MenuItem value={3}>{t('fms_priority_medium', '3 - Media')}</MenuItem>
+                <MenuItem value={4}>{t('fms_priority_low', '4 - Baja')}</MenuItem>
               </Select>
             </FormControl>
             <TextField
               size="small"
-              label="Descripción"
+              label={t('fms_description', 'Descripcion')}
               value={createForm.descripcion}
               onChange={(e) => setCreateForm({ ...createForm, descripcion: e.target.value })}
               multiline
@@ -367,13 +367,13 @@ export default function WorkOrders() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setCreateOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
             onClick={handleCreate}
             disabled={saving || !createForm.vehicle_id || !createForm.descripcion}
           >
-            {saving ? <CircularProgress size={20} /> : 'Crear'}
+            {saving ? <CircularProgress size={20} /> : t('fms_create', 'Crear')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -61,12 +61,12 @@ function ExpandedCardDialog({
             else estados.enProceso++;
           });
           const data = [
-            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || '#94a3b8' },
-            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || '#3b82f6' },
-            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || '#10b981' },
-            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || '#8b5cf6' },
-            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || '#ef4444' },
-            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || '#8b5cf6' },
+            { id: 'borrador', label: t('sol_tab_borrador', 'Borrador'), value: estados.borrador, color: STATUS_COLORS['borrador'] || 'var(--status-borrador)' },
+            { id: 'enviadas', label: t('sol_tab_enviadas', 'Enviadas'), value: estados.enviadas, color: STATUS_COLORS['enviadas'] || 'var(--status-enviada)' },
+            { id: 'aprobadas', label: t('sol_tab_aprobadas', 'Aprobadas'), value: estados.aprobadas, color: STATUS_COLORS['aprobadas'] || 'var(--status-aprobada)' },
+            { id: 'enProceso', label: t('sol_tab_en_proceso', 'En Proceso'), value: estados.enProceso, color: STATUS_COLORS['enProceso'] || 'var(--status-planificacion)' },
+            { id: 'rechazadas', label: t('sol_tab_rechazadas', 'Rechazadas'), value: estados.rechazadas, color: STATUS_COLORS['rechazadas'] || 'var(--status-rechazada)' },
+            { id: 'cerradas', label: t('sol_tab_cerradas', 'Cerradas'), value: estados.cerradas, color: STATUS_COLORS['cerradas'] || 'var(--status-cerrada)' },
           ];
           return (
             <Box sx={{ height: 400 }}>
@@ -175,18 +175,18 @@ function ExpandedCardDialog({
             <Stack spacing={3} sx={{ py: 2 }}>
               <Typography variant="body1" sx={{ fontWeight: 600, textAlign: 'center' }}>{t('dash_promedio', 'Promedio')} total: {total}d</Typography>
               <Stack direction="row" spacing={0.5} sx={{ width: '100%', height: 32, overflow: 'hidden' }}>
-                <Box sx={{ flex: avgA, bgcolor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.75rem' }}>{avgA}d</Typography>
+                <Box sx={{ flex: avgA, bgcolor: 'info.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'common.white', fontWeight: 600, fontSize: '0.75rem' }}>{avgA}d</Typography>
                 </Box>
-                <Box sx={{ flex: avgP, bgcolor: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.75rem' }}>{avgP}d</Typography>
+                <Box sx={{ flex: avgP, bgcolor: 'warning.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'common.white', fontWeight: 600, fontSize: '0.75rem' }}>{avgP}d</Typography>
                 </Box>
-                <Box sx={{ flex: avgPr, bgcolor: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.75rem' }}>{avgPr}d</Typography>
+                <Box sx={{ flex: avgPr, bgcolor: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'common.white', fontWeight: 600, fontSize: '0.75rem' }}>{avgPr}d</Typography>
                 </Box>
               </Stack>
               <Stack direction="row" justifyContent="space-around">
-                {[{ label: t('dash_aprobacion', 'Aprobación'), val: avgA, color: '#3b82f6' }, { label: t('dash_planificacion', 'Planificación'), val: avgP, color: '#f59e0b' }, { label: t('common_proveedor', 'Proveedor'), val: avgPr, color: '#10b981' }].map(item => (
+                {[{ label: t('dash_aprobacion', 'Aprobación'), val: avgA, color: 'info.main' }, { label: t('dash_planificacion', 'Planificación'), val: avgP, color: 'warning.main' }, { label: t('common_proveedor', 'Proveedor'), val: avgPr, color: 'success.main' }].map(item => (
                   <Stack key={item.label} alignItems="center" spacing={0.5}>
                     <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: item.color }} />
                     <Typography variant="body2" sx={{ fontWeight: 700, color: item.color }}>{item.val}d</Typography>

@@ -1,6 +1,19 @@
 import React, { useState, useCallback } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Paper from '@mui/material/Paper'
+import Chip from '@mui/material/Chip'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import Autocomplete from '@mui/material/Autocomplete'
+import Grid from '@mui/material/Grid'
+import SearchIcon from '@mui/icons-material/Search'
 import { useI18n } from '../context/i18n'
 import { getAnomalias } from '../services/ai'
 import api from '../services/api'
@@ -53,133 +66,224 @@ export default function AnomaliaDetection() {
   }, [selectedMaterial, centro, dias])
 
   const getSeverityColor = (score) => {
-    if (score >= 0.8) return 'var(--error)'
-    if (score >= 0.6) return 'var(--warning)'
-    return 'var(--info)'
+    if (score >= 0.8) return 'error'
+    if (score >= 0.6) return 'warning'
+    return 'info'
   }
+
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-        {t('anomalias_title', 'Deteccion de Anomalias')}
-      </Typography>
-      <p style={{ color: 'var(--fg-muted)', marginBottom: 24, fontSize: 14 }}>
-        {t('anomalias_desc', 'Identifica patrones inusuales de consumo usando Isolation Forest (ML).')}
-      </p>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+          {t('anomalias_title', 'Deteccion de Anomalias')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {t('anomalias_desc', 'Identifica patrones inusuales de consumo usando Isolation Forest (ML).')}
+        </Typography>
 
-      {/* Search & Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ flex: 1, minWidth: 280, position: 'relative' }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Material</label>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearch}
-            placeholder="Buscar por codigo o descripcion..."
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }}
-          />
-          {searchResults.length > 0 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'var(--bg-base)', border: '1px solid var(--border)', maxHeight: 200, overflowY: 'auto' }}>
-              {searchResults.map(mat => (
-                <div key={mat.codigo} onClick={() => selectMaterial(mat)}
-                  style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-soft)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        {/* Search & Filters */}
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <Box sx={{ flex: 1, minWidth: 280, position: 'relative' }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                Material
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={searchQuery}
+                onChange={handleSearch}
+                placeholder="Buscar por codigo o descripcion..."
+              />
+              {searchResults.length > 0 && (
+                <Paper
+                  elevation={4}
+                  sx={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 50,
+                    maxHeight: 200,
+                    overflowY: 'auto',
+                    mt: 0.5,
+                  }}
                 >
-                  <span style={{ fontWeight: 600 }}>{mat.codigo}</span>
-                  <span style={{ color: 'var(--fg-muted)', marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mat.descripcion}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ width: 160 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Centro</label>
-          <input type="text" value={centro} onChange={e => setCentro(e.target.value)} placeholder="Ej: AA101"
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }} />
-        </div>
-        <div style={{ width: 120 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dias</label>
-          <select value={dias} onChange={e => setDias(Number(e.target.value))}
-            style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg-base)' }}>
-            <option value={30}>30 dias</option>
-            <option value={60}>60 dias</option>
-            <option value={90}>90 dias</option>
-            <option value={180}>180 dias</option>
-            <option value={365}>1 ano</option>
-          </select>
-        </div>
-        <button onClick={detectar} disabled={!selectedMaterial || loading}
-          style={{ padding: '8px 24px', background: loading ? 'var(--fg-muted)' : 'var(--primary)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', height: 38 }}>
-          {loading ? 'Analizando...' : 'Detectar'}
-        </button>
-      </div>
+                  {searchResults.map(mat => (
+                    <Box
+                      key={mat.codigo}
+                      onClick={() => selectMaterial(mat)}
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        transition: 'background-color 0.15s',
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={600}>{mat.codigo}</Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap sx={{ ml: 1 }}>{mat.descripcion}</Typography>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+            <Box sx={{ width: 160 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, display: 'block' }}>
+                Centro
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={centro}
+                onChange={e => setCentro(e.target.value)}
+                placeholder="Ej: AA101"
+              />
+            </Box>
+            <FormControl size="small" sx={{ width: 120 }}>
+              <InputLabel>{t('anomalias_dias', 'Dias')}</InputLabel>
+              <Select
+                value={dias}
+                label={t('anomalias_dias', 'Dias')}
+                onChange={e => setDias(Number(e.target.value))}
+              >
+                <MenuItem value={30}>30 dias</MenuItem>
+                <MenuItem value={60}>60 dias</MenuItem>
+                <MenuItem value={90}>90 dias</MenuItem>
+                <MenuItem value={180}>180 dias</MenuItem>
+                <MenuItem value={365}>1 ano</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              onClick={detectar}
+              disabled={!selectedMaterial || loading}
+              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
+              sx={{ height: 40, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+            >
+              {loading ? 'Analizando...' : 'Detectar'}
+            </Button>
+          </Box>
+        </Paper>
 
-      {error && (
-        <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', marginBottom: 24, fontSize: 14 }}>
-          {error}
-        </div>
-      )}
+        {error && (
+          <Alert severity="error">{error}</Alert>
+        )}
 
-      {/* Results */}
-      {anomalias && (
-        <div>
-          {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Total Registros</div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{anomalias.total_registros}</div>
-            </div>
-            <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Anomalias Detectadas</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--error)' }}>{anomalias.anomalias_detectadas}</div>
-            </div>
-            <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Proporcion</div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{(Number(anomalias.proporcion_anomalias) * 100).toFixed(1)}%</div>
-            </div>
-            <div style={{ padding: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 4 }}>Significativas</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--warning)' }}>{anomalias.anomalias_significativas}</div>
-            </div>
-          </div>
+        {/* Results */}
+        {anomalias && (
+          <>
+            {/* Summary cards */}
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Total Registros
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} sx={{ mt: 0.5 }}>
+                    {anomalias.total_registros}
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Anomalias Detectadas
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="error.main" sx={{ mt: 0.5 }}>
+                    {anomalias.anomalias_detectadas}
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Proporcion
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} sx={{ mt: 0.5 }}>
+                    {(Number(anomalias.proporcion_anomalias) * 100).toFixed(1)}%
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
+                    Significativas
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="warning.main" sx={{ mt: 0.5 }}>
+                    {anomalias.anomalias_significativas}
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
 
-          {/* Anomalies timeline */}
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Anomalias Detectadas</h2>
-          {anomalias.explicaciones?.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
-              No se detectaron anomalias significativas en el periodo analizado.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {anomalias.explicaciones?.map((exp, i) => (
-                <div key={i} style={{ padding: '12px 16px', border: '1px solid var(--border)', borderLeft: `4px solid ${getSeverityColor(exp.score)}`, background: 'var(--bg-base)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-muted)' }}>{exp.fecha?.split('T')[0] || exp.fecha}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', background: getSeverityColor(exp.score), color: 'white', textTransform: 'uppercase' }}>
-                        Score: {(Number(exp.score) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 13 }}>
-                      {exp.tipos_anomalia?.map((tipo, j) => (
-                        <span key={j} style={{ display: 'inline-block', marginRight: 8, marginBottom: 4, padding: '2px 8px', background: 'var(--bg-soft)', border: '1px solid var(--border)', fontSize: 12 }}>
-                          {tipo}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right', minWidth: 80 }}>
-                    <div style={{ fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase' }}>Cantidad</div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{Number(exp.cantidad || 0).toFixed(1)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+            {/* Anomalies timeline */}
+            <Typography variant="h6" fontWeight={700}>
+              Anomalias Detectadas
+            </Typography>
+            {anomalias.explicaciones?.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography color="text.secondary">
+                  No se detectaron anomalias significativas en el periodo analizado.
+                </Typography>
+              </Paper>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {anomalias.explicaciones?.map((exp, i) => (
+                  <Paper
+                    key={i}
+                    sx={{
+                      p: 2,
+                      borderLeft: 4,
+                      borderColor: `${getSeverityColor(exp.score)}.main`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography variant="caption" fontWeight={600} color="text.secondary">
+                          {exp.fecha?.split('T')[0] || exp.fecha}
+                        </Typography>
+                        <Chip
+                          label={`Score: ${(Number(exp.score) * 100).toFixed(0)}%`}
+                          size="small"
+                          color={getSeverityColor(exp.score)}
+                          sx={{ fontWeight: 700, textTransform: 'uppercase' }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {exp.tipos_anomalia?.map((tipo, j) => (
+                          <Chip
+                            key={j}
+                            label={tipo}
+                            size="small"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                    <Box sx={{ textAlign: 'right', minWidth: 80 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
+                        Cantidad
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {Number(exp.cantidad || 0).toFixed(1)}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </>
+        )}
       </Box>
     </Box>
   )

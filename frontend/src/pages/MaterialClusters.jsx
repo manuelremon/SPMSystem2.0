@@ -25,7 +25,11 @@ export default function MaterialClusters() {
     } finally { setLoading(false) }
   }, [centro, nClusters])
 
-  const clusterColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
+  const clusterColors = [
+    'var(--info)', 'var(--success)', 'var(--warning-light)', 'var(--danger-light)',
+    'var(--purple)', 'var(--purple-light)', 'var(--accent)', 'var(--warning)',
+    'var(--indigo)', 'var(--success-light)',
+  ]
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
@@ -33,9 +37,9 @@ export default function MaterialClusters() {
       <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary" sx={{ mb: 1 }}>
         {t('clusters_title', 'Clustering de Materiales')}
       </Typography>
-      <p style={{ color: 'var(--fg-muted)', marginBottom: 24, fontSize: 14 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Agrupa materiales por similitud (consumo, stock, precio) usando K-Means para identificar patrones de compra.
-      </p>
+      </Typography>
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -58,7 +62,7 @@ export default function MaterialClusters() {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', marginBottom: 24, fontSize: 14 }}>{error}</div>
+        <div style={{ padding: '12px 16px', background: 'var(--danger-bg-light)', border: '1px solid var(--error)', marginBottom: 24, fontSize: 14 }}>{error}</div>
       )}
 
       {data && (

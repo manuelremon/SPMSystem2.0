@@ -524,7 +524,7 @@ export default function ChatAssistant() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: '#093170',
+          backgroundColor: 'var(--spm-brand-blue)',
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
         }}
@@ -540,7 +540,7 @@ export default function ChatAssistant() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#fc1b80',
+                backgroundColor: 'var(--accent)',
                 boxShadow: 2,
                 animation: isSpeaking ? 'pulse 1.5s infinite' : 'none',
                 '@keyframes pulse': {
@@ -698,7 +698,7 @@ export default function ChatAssistant() {
           flex: 1,
           overflowY: 'auto',
           p: 2,
-          backgroundColor: '#faf1e1',
+          backgroundColor: 'var(--bg-soft)',
           display: 'flex',
           flexDirection: 'column',
           gap: 1.5,

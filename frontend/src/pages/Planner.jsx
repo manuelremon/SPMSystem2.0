@@ -122,7 +122,7 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
           letterSpacing: "0.05em",
           color: "text.secondary",
           mb: 0.5,
-          fontSize: "10px",
+          fontSize: "var(--text-2xs)",
         }}
       >
         {label}
@@ -391,7 +391,7 @@ export default function Planner({ filterMode }) {
                   minWidth: "auto",
                   px: 1,
                   py: 0.5,
-                  fontSize: "10px",
+                  fontSize: "var(--text-2xs)",
                   fontWeight: 700,
                   textTransform: "uppercase",
                 }}
@@ -412,7 +412,7 @@ export default function Planner({ filterMode }) {
                     minWidth: "auto",
                     px: 1,
                     py: 0.5,
-                    fontSize: "10px",
+                    fontSize: "var(--text-2xs)",
                     fontWeight: 700,
                     textTransform: "uppercase",
                   }}
@@ -434,7 +434,7 @@ export default function Planner({ filterMode }) {
                     minWidth: "auto",
                     px: 1,
                     py: 0.5,
-                    fontSize: "10px",
+                    fontSize: "var(--text-2xs)",
                     fontWeight: 700,
                     textTransform: "uppercase",
                   }}
@@ -528,7 +528,7 @@ export default function Planner({ filterMode }) {
           const priority = params.value;
           const score = params.data?.ai_score;
           if (!priority) return null;
-          const colors = { 'Critica': '#ef4444', 'Alta': '#f59e0b', 'Media': '#3b82f6', 'Baja': '#6b7280' };
+          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
           return (
             <Typography variant="body2" fontWeight={700} title={`Score: ${score ? (score * 100).toFixed(0) + '%' : '-'}`}
               sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
@@ -705,7 +705,7 @@ export default function Planner({ filterMode }) {
                   letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
-                  fontSize: "10px",
+                  fontSize: "var(--text-2xs)",
                 }}
               >
                 Desde{" "}
@@ -757,7 +757,7 @@ export default function Planner({ filterMode }) {
                   letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
-                  fontSize: "10px",
+                  fontSize: "var(--text-2xs)",
                 }}
               >
                 Buscar
@@ -859,7 +859,7 @@ export default function Planner({ filterMode }) {
           sx={{
             border: 1,
             borderColor: "divider",
-            borderRadius: "8px 8px 0 0",
+            borderRadius: "var(--radius-md) var(--radius-md) 0 0",
           }}
         >
           <Tabs
@@ -896,7 +896,7 @@ export default function Planner({ filterMode }) {
                       color={activeTab === tab ? "primary" : "default"}
                       sx={{
                         height: 20,
-                        fontSize: "10px",
+                        fontSize: "var(--text-2xs)",
                         fontWeight: 700,
                         "& .MuiChip-label": { px: 1 },
                       }}
@@ -915,7 +915,7 @@ export default function Planner({ filterMode }) {
             border: 1,
             borderTop: 0,
             borderColor: "divider",
-            borderRadius: "0 0 8px 8px",
+            borderRadius: "0 0 var(--radius-md) var(--radius-md)",
             overflow: "hidden",
           }}
         >

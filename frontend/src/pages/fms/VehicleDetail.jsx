@@ -56,7 +56,15 @@ const ESTADO_COLORS = {
   baja: 'default',
 }
 
-const ESTADO_LABELS = {
+const ESTADO_KEYS = {
+  disponible: 'fms_vehicle_available',
+  en_ruta: 'fms_vehicle_en_route',
+  en_mantenimiento: 'fms_vehicle_in_maintenance',
+  fuera_servicio: 'fms_vehicle_out_of_service',
+  baja: 'fms_vehicle_decommissioned',
+}
+
+const ESTADO_FALLBACKS = {
   disponible: 'Disponible',
   en_ruta: 'En Ruta',
   en_mantenimiento: 'En Mantenimiento',
@@ -64,14 +72,14 @@ const ESTADO_LABELS = {
   baja: 'Baja',
 }
 
-function getDocStatusChip(fechaVencimiento) {
-  if (!fechaVencimiento) return { label: 'Sin fecha', color: 'default' }
+function getDocStatusChipKey(fechaVencimiento) {
+  if (!fechaVencimiento) return { key: 'fms_no_date', fallback: 'Sin fecha', color: 'default' }
   const now = new Date()
   const venc = new Date(fechaVencimiento)
   const diffDays = Math.ceil((venc - now) / (1000 * 60 * 60 * 24))
-  if (diffDays < 0) return { label: 'Vencido', color: 'error' }
-  if (diffDays <= 30) return { label: 'Por vencer', color: 'warning' }
-  return { label: 'Vigente', color: 'success' }
+  if (diffDays < 0) return { key: 'fms_expired', fallback: 'Vencido', color: 'error' }
+  if (diffDays <= 30) return { key: 'fms_expiring_soon', fallback: 'Por vencer', color: 'warning' }
+  return { key: 'fms_valid', fallback: 'Vigente', color: 'success' }
 }
 
 function TabPanel({ children, value, index }) {
@@ -181,7 +189,7 @@ export default function VehicleDetail() {
         <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
         <Alert severity="error">{t('fms_vehicle_not_found', 'Vehículo no encontrado')}</Alert>
         <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/vehicles')} sx={{ mt: 2 }}>
-          Volver
+          {t('fms_back', 'Volver')}
         </Button>
         </Box>
       </Box>
@@ -198,9 +206,9 @@ export default function VehicleDetail() {
         </IconButton>
         <Box sx={{ flexGrow: 1 }}>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Typography variant="h4" fontWeight={700}>{v.placa}</Typography>
+            <Typography variant="h5" fontWeight={700} textTransform="uppercase" letterSpacing="0.5px">{v.placa}</Typography>
             <Chip
-              label={ESTADO_LABELS[v.estado] || v.estado}
+              label={t(ESTADO_KEYS[v.estado], ESTADO_FALLBACKS[v.estado]) || v.estado}
               color={ESTADO_COLORS[v.estado] || 'default'}
             />
           </Stack>
@@ -209,10 +217,10 @@ export default function VehicleDetail() {
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<Settings />} onClick={() => setStatusDialogOpen(true)}>
-          Cambiar Estado
+          {t('fms_change_status', 'Cambiar Estado')}
         </Button>
         <Button variant="outlined" startIcon={<Edit2 />} onClick={() => navigate(`/fms/vehicles/${id}/edit`)}>
-          Editar
+          {t('fms_edit', 'Editar')}
         </Button>
       </Stack>
 
@@ -234,47 +242,47 @@ export default function VehicleDetail() {
           <CardContent>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Placa</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_plate', 'Placa')}</Typography>
                 <Typography variant="body1" fontWeight={500} mb={2}>{v.placa}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Tipo</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_type', 'Tipo')}</Typography>
                 <Typography variant="body1" mb={2}>{v.tipo ? v.tipo.replace(/_/g, ' ') : '--'}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Marca</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_brand', 'Marca')}</Typography>
                 <Typography variant="body1" mb={2}>{v.marca || '--'}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_model', 'Modelo')}</Typography>
                 <Typography variant="body1" mb={2}>{v.modelo || '--'}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Año</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_year', 'Ano')}</Typography>
                 <Typography variant="body1" mb={2}>{v.anio || '--'}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">VIN</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_vin', 'VIN')}</Typography>
                 <Typography variant="body1" mb={2}>{v.vin || '--'}</Typography>
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Capacidad (kg)</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_capacity_kg', 'Capacidad (kg)')}</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.capacidad_kg ? Number(v.capacidad_kg).toLocaleString() : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Capacidad Volumen (m³)</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_capacity_volume', 'Capacidad Volumen (m3)')}</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.capacidad_volumen_m3 ? Number(v.capacidad_volumen_m3).toLocaleString() : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Odómetro Actual</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_current_odometer', 'Odometro Actual')}</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.odometro_actual ? `${Number(v.odometro_actual).toLocaleString()} km` : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Rendimiento Combustible</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_fuel_efficiency', 'Rendimiento Combustible')}</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.rendimiento_combustible ? `${v.rendimiento_combustible} km/l` : '--'}
                 </Typography>
 
-                <Typography variant="subtitle2" color="text.secondary">Centro Asignado</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{t('fms_assigned_center', 'Centro Asignado')}</Typography>
                 <Typography variant="body1" mb={2}>{v.centro_id || '--'}</Typography>
 
                 <Divider sx={{ my: 2 }} />
@@ -301,21 +309,21 @@ export default function VehicleDetail() {
       {/* Tab 2: Documentos */}
       <TabPanel value={tab} index={1}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Documentos del Vehículo</Typography>
+          <Typography variant="h6">{t('fms_vehicle_documents', 'Documentos del Vehiculo')}</Typography>
           <Button variant="contained" size="small" startIcon={<Plus />} onClick={() => setDocDialogOpen(true)}>
-            Agregar Documento
+            {t('fms_add_document', 'Agregar Documento')}
           </Button>
         </Stack>
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Tipo</TableCell>
-                <TableCell>Número</TableCell>
-                <TableCell>Emisión</TableCell>
-                <TableCell>Vencimiento</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell>Notas</TableCell>
+                <TableCell>{t('fms_doc_type', 'Tipo')}</TableCell>
+                <TableCell>{t('fms_doc_number', 'Numero')}</TableCell>
+                <TableCell>{t('fms_doc_issue_date', 'Emision')}</TableCell>
+                <TableCell>{t('fms_doc_expiry_date', 'Vencimiento')}</TableCell>
+                <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
+                <TableCell>{t('fms_doc_notes', 'Notas')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -323,13 +331,13 @@ export default function VehicleDetail() {
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="text.secondary" py={2}>
-                      No hay documentos registrados
+                      {t('fms_no_documents', 'No hay documentos registrados')}
                     </Typography>
                   </TableCell>
                 </TableRow>
               )}
               {documents.map((doc, i) => {
-                const status = getDocStatusChip(doc.fecha_vencimiento)
+                const status = getDocStatusChipKey(doc.fecha_vencimiento)
                 return (
                   <TableRow key={doc.id || i}>
                     <TableCell>{doc.tipo_documento}</TableCell>
@@ -337,7 +345,7 @@ export default function VehicleDetail() {
                     <TableCell>{formatDate(doc.fecha_emision)}</TableCell>
                     <TableCell>{formatDate(doc.fecha_vencimiento)}</TableCell>
                     <TableCell>
-                      <Chip label={status.label} color={status.color} size="small" />
+                      <Chip label={t(status.key, status.fallback)} color={status.color} size="small" />
                     </TableCell>
                     <TableCell>{doc.notas || '--'}</TableCell>
                   </TableRow>
@@ -351,22 +359,22 @@ export default function VehicleDetail() {
       {/* Tab 3: Mantenimiento */}
       <TabPanel value={tab} index={2}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Planes de Mantenimiento</Typography>
+          <Typography variant="h6">{t('fms_maintenance_plans', 'Planes de Mantenimiento')}</Typography>
           <Button variant="contained" size="small" startIcon={<Plus />} onClick={() => setPlanDialogOpen(true)}>
-            Crear Plan
+            {t('fms_create_plan', 'Crear Plan')}
           </Button>
         </Stack>
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Tipo</TableCell>
-                <TableCell>Descripción</TableCell>
-                <TableCell align="right">Intervalo (km)</TableCell>
-                <TableCell align="right">Intervalo (días)</TableCell>
-                <TableCell>Próximo km</TableCell>
-                <TableCell>Próxima Fecha</TableCell>
-                <TableCell>Estado</TableCell>
+                <TableCell>{t('fms_doc_type', 'Tipo')}</TableCell>
+                <TableCell>{t('fms_description', 'Descripcion')}</TableCell>
+                <TableCell align="right">{t('fms_interval_km', 'Intervalo (km)')}</TableCell>
+                <TableCell align="right">{t('fms_interval_days', 'Intervalo (dias)')}</TableCell>
+                <TableCell>{t('fms_next_km', 'Proximo km')}</TableCell>
+                <TableCell>{t('fms_next_date', 'Proxima Fecha')}</TableCell>
+                <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -374,7 +382,7 @@ export default function VehicleDetail() {
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     <Typography variant="body2" color="text.secondary" py={2}>
-                      No hay planes de mantenimiento
+                      {t('fms_no_maintenance_plans', 'No hay planes de mantenimiento')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -391,7 +399,7 @@ export default function VehicleDetail() {
                   <TableCell>{formatDate(plan.proxima_fecha)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={plan.activo !== false ? 'Activo' : 'Inactivo'}
+                      label={plan.activo !== false ? t('fms_active', 'Activo') : t('fms_inactive', 'Inactivo')}
                       color={plan.activo !== false ? 'success' : 'default'}
                       size="small"
                     />
@@ -405,17 +413,17 @@ export default function VehicleDetail() {
 
       {/* Tab 4: Historial */}
       <TabPanel value={tab} index={3}>
-        <Typography variant="h6" mb={2}>Órdenes de Trabajo Recientes</Typography>
+        <Typography variant="h6" mb={2}>{t('fms_recent_work_orders', 'Ordenes de Trabajo Recientes')}</Typography>
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Código</TableCell>
-                <TableCell>Tipo</TableCell>
-                <TableCell>Descripción</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell>Fecha</TableCell>
-                <TableCell align="right">Costo Total</TableCell>
+                <TableCell>{t('fms_col_code', 'Codigo')}</TableCell>
+                <TableCell>{t('fms_doc_type', 'Tipo')}</TableCell>
+                <TableCell>{t('fms_description', 'Descripcion')}</TableCell>
+                <TableCell>{t('fms_col_status', 'Estado')}</TableCell>
+                <TableCell>{t('fms_col_date', 'Fecha')}</TableCell>
+                <TableCell align="right">{t('fms_col_total_cost', 'Costo Total')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -423,7 +431,7 @@ export default function VehicleDetail() {
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="text.secondary" py={2}>
-                      No hay órdenes de trabajo
+                      {t('fms_no_work_orders', 'No hay ordenes de trabajo')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -458,33 +466,33 @@ export default function VehicleDetail() {
 
       {/* Add Document Dialog */}
       <Dialog open={docDialogOpen} onClose={() => setDocDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Agregar Documento</DialogTitle>
+        <DialogTitle>{t('fms_add_document', 'Agregar Documento')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Tipo de Documento</InputLabel>
+              <InputLabel>{t('fms_document_type', 'Tipo de Documento')}</InputLabel>
               <Select
                 value={docForm.tipo_documento}
-                label="Tipo de Documento"
+                label={t('fms_document_type', 'Tipo de Documento')}
                 onChange={(e) => setDocForm({ ...docForm, tipo_documento: e.target.value })}
               >
-                <MenuItem value="tarjeta_circulacion">Tarjeta de Circulación</MenuItem>
-                <MenuItem value="seguro">Seguro</MenuItem>
-                <MenuItem value="verificacion">Verificación</MenuItem>
-                <MenuItem value="permiso_carga">Permiso de Carga</MenuItem>
-                <MenuItem value="otro">Otro</MenuItem>
+                <MenuItem value="tarjeta_circulacion">{t('fms_doc_registration_card', 'Tarjeta de Circulacion')}</MenuItem>
+                <MenuItem value="seguro">{t('fms_doc_insurance', 'Seguro')}</MenuItem>
+                <MenuItem value="verificacion">{t('fms_doc_verification', 'Verificacion')}</MenuItem>
+                <MenuItem value="permiso_carga">{t('fms_doc_cargo_permit', 'Permiso de Carga')}</MenuItem>
+                <MenuItem value="otro">{t('fms_doc_other', 'Otro')}</MenuItem>
               </Select>
             </FormControl>
             <TextField
               size="small"
-              label="Número de Documento"
+              label={t('fms_document_number', 'Numero de Documento')}
               value={docForm.numero_documento}
               onChange={(e) => setDocForm({ ...docForm, numero_documento: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="Fecha de Emisión"
+              label={t('fms_issue_date', 'Fecha de Emision')}
               type="date"
               value={docForm.fecha_emision}
               onChange={(e) => setDocForm({ ...docForm, fecha_emision: e.target.value })}
@@ -493,7 +501,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Fecha de Vencimiento"
+              label={t('fms_expiry_date', 'Fecha de Vencimiento')}
               type="date"
               value={docForm.fecha_vencimiento}
               onChange={(e) => setDocForm({ ...docForm, fecha_vencimiento: e.target.value })}
@@ -502,7 +510,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Notas"
+              label={t('fms_notes', 'Notas')}
               value={docForm.notas}
               onChange={(e) => setDocForm({ ...docForm, notas: e.target.value })}
               multiline
@@ -512,32 +520,32 @@ export default function VehicleDetail() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDocDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setDocDialogOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button variant="contained" onClick={handleAddDocument} disabled={saving || !docForm.tipo_documento}>
-            {saving ? <CircularProgress size={20} /> : 'Guardar'}
+            {saving ? <CircularProgress size={20} /> : t('fms_save', 'Guardar')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Create Maintenance Plan Dialog */}
       <Dialog open={planDialogOpen} onClose={() => setPlanDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Crear Plan de Mantenimiento</DialogTitle>
+        <DialogTitle>{t('fms_create_maintenance_plan', 'Crear Plan de Mantenimiento')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Tipo</InputLabel>
+              <InputLabel>{t('fms_doc_type', 'Tipo')}</InputLabel>
               <Select
                 value={planForm.tipo}
-                label="Tipo"
+                label={t('fms_doc_type', 'Tipo')}
                 onChange={(e) => setPlanForm({ ...planForm, tipo: e.target.value })}
               >
-                <MenuItem value="preventivo">Preventivo</MenuItem>
-                <MenuItem value="correctivo">Correctivo</MenuItem>
+                <MenuItem value="preventivo">{t('fms_preventive', 'Preventivo')}</MenuItem>
+                <MenuItem value="correctivo">{t('fms_corrective', 'Correctivo')}</MenuItem>
               </Select>
             </FormControl>
             <TextField
               size="small"
-              label="Descripción"
+              label={t('fms_description', 'Descripcion')}
               value={planForm.descripcion}
               onChange={(e) => setPlanForm({ ...planForm, descripcion: e.target.value })}
               multiline
@@ -546,7 +554,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Intervalo (km)"
+              label={t('fms_interval_km', 'Intervalo (km)')}
               type="number"
               value={planForm.intervalo_km}
               onChange={(e) => setPlanForm({ ...planForm, intervalo_km: e.target.value })}
@@ -554,7 +562,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Intervalo (días)"
+              label={t('fms_interval_days', 'Intervalo (dias)')}
               type="number"
               value={planForm.intervalo_dias}
               onChange={(e) => setPlanForm({ ...planForm, intervalo_dias: e.target.value })}
@@ -562,7 +570,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Próximo km"
+              label={t('fms_next_km', 'Proximo km')}
               type="number"
               value={planForm.proximo_km}
               onChange={(e) => setPlanForm({ ...planForm, proximo_km: e.target.value })}
@@ -570,7 +578,7 @@ export default function VehicleDetail() {
             />
             <TextField
               size="small"
-              label="Próxima Fecha"
+              label={t('fms_next_date', 'Proxima Fecha')}
               type="date"
               value={planForm.proxima_fecha}
               onChange={(e) => setPlanForm({ ...planForm, proxima_fecha: e.target.value })}
@@ -580,39 +588,39 @@ export default function VehicleDetail() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPlanDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setPlanDialogOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button variant="contained" onClick={handleAddPlan} disabled={saving || !planForm.descripcion}>
-            {saving ? <CircularProgress size={20} /> : 'Crear'}
+            {saving ? <CircularProgress size={20} /> : t('fms_create', 'Crear')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Change Status Dialog */}
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Cambiar Estado del Vehículo</DialogTitle>
+        <DialogTitle>{t('fms_change_vehicle_status', 'Cambiar Estado del Vehiculo')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            Estado actual: <Chip label={ESTADO_LABELS[v.estado] || v.estado} color={ESTADO_COLORS[v.estado] || 'default'} size="small" />
+            {t('fms_current_status', 'Estado actual')}: <Chip label={t(ESTADO_KEYS[v.estado], ESTADO_FALLBACKS[v.estado]) || v.estado} color={ESTADO_COLORS[v.estado] || 'default'} size="small" />
           </Typography>
           <FormControl fullWidth size="small">
-            <InputLabel>Nuevo Estado</InputLabel>
+            <InputLabel>{t('fms_new_status', 'Nuevo Estado')}</InputLabel>
             <Select
               value={newStatus}
-              label="Nuevo Estado"
+              label={t('fms_new_status', 'Nuevo Estado')}
               onChange={(e) => setNewStatus(e.target.value)}
             >
-              {Object.entries(ESTADO_LABELS)
+              {Object.entries(ESTADO_FALLBACKS)
                 .filter(([k]) => k !== v.estado)
-                .map(([k, label]) => (
-                  <MenuItem key={k} value={k}>{label}</MenuItem>
+                .map(([k, fallback]) => (
+                  <MenuItem key={k} value={k}>{t(ESTADO_KEYS[k], fallback)}</MenuItem>
                 ))}
             </Select>
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setStatusDialogOpen(false)}>{t('fms_cancel', 'Cancelar')}</Button>
           <Button variant="contained" onClick={handleChangeStatus} disabled={saving || !newStatus}>
-            {saving ? <CircularProgress size={20} /> : 'Confirmar'}
+            {saving ? <CircularProgress size={20} /> : t('fms_confirm', 'Confirmar')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -161,7 +161,7 @@ function PresupuestoCard({ resumen, solicitud, onPresupuestoInsuficiente }) {
             borderColor: alcanza ? "var(--success)" : "var(--danger)",
             bgcolor: alcanza ? "var(--success-bg)" : "var(--danger-bg)",
             cursor: alcanza ? "default" : "pointer",
-            "&:hover": !alcanza ? { bgcolor: "rgba(239, 68, 68, 0.1)" } : {},
+            "&:hover": !alcanza ? { bgcolor: "var(--danger-bg-light)" } : {},
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -198,7 +198,7 @@ function AlertCard({ title, count, emptyLabel, items, variant }) {
         <Chip
           label={count}
           size="small"
-          sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, bgcolor: c.badge, color: "#fff" }}
+          sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, bgcolor: c.badge, color: "common.white" }}
         />
       </Box>
 
