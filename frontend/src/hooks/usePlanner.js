@@ -100,7 +100,8 @@ export function usePlanner({ t, filterMode }) {
       // Sin filterMode: admin y planificador ven todas (para poder "tomar" de otros)
 
       const res = await planner.listar(params);
-      setItems(Array.isArray(res.data) ? res.data : []);
+      const data = res.data;
+      setItems(Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
