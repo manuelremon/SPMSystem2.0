@@ -321,8 +321,8 @@ export default function VMI() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Stack direction="row" alignItems="center" gap={1}>
           <StorefrontIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-            {t('vmi_title', 'VMI - Inventario Gestionado por Proveedor')}
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t('vmi_title', 'Inventario Gestionado por Proveedor (VMI)')}
           </Typography>
         </Stack>
         <Button

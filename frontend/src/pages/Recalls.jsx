@@ -170,7 +170,7 @@ export default function Recalls() {
           setRecalls(res.data.recalls || res.data.items || []);
         }
       } catch {
-        if (!cancelled) toastRef.current.error(tRef.current('recall_error_load', 'Error al cargar recalls'));
+        if (!cancelled) toastRef.current.error(tRef.current('recall_error_load', 'Error al cargar retiros'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -200,13 +200,13 @@ export default function Recalls() {
       };
       const res = await api.post('/lots/recalls', payload);
       if (res.data?.ok) {
-        toastRef.current.success(tRef.current('recall_created', 'Recall creado'));
+        toastRef.current.success(tRef.current('recall_created', 'Retiro creado'));
         setCreateOpen(false);
         setRecallForm(INITIAL_RECALL_FORM);
         reload();
       }
     } catch (err) {
-      toastRef.current.error(err.response?.data?.error || tRef.current('recall_error_create', 'Error al crear recall'));
+      toastRef.current.error(err.response?.data?.error || tRef.current('recall_error_create', 'Error al crear retiro'));
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +217,7 @@ export default function Recalls() {
   }, []);
 
   const columnDefs = useMemo(() => [
-    { field: 'numero_recall', headerName: t('recall_numero', 'N. Recall'), flex: 1, minWidth: 130 },
+    { field: 'numero_recall', headerName: t('recall_numero', 'N. Retiro'), flex: 1, minWidth: 130 },
     { field: 'titulo', headerName: t('recall_titulo', 'Titulo'), flex: 2, minWidth: 200 },
     {
       field: 'severidad',
@@ -291,8 +291,8 @@ export default function Recalls() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Stack direction="row" alignItems="center" gap={1}>
           <ReportProblemIcon sx={{ color: 'error.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-            {t('recall_title', 'Recalls')}
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {t('recall_title', 'Retiros de Mercado')}
           </Typography>
         </Stack>
         <Button
@@ -300,9 +300,9 @@ export default function Recalls() {
           color="error"
           startIcon={<AddIcon />}
           onClick={() => setCreateOpen(true)}
-          aria-label={t('recall_new', 'Crear Recall')}
+          aria-label={t('recall_new', 'Crear Retiro')}
         >
-          {t('recall_new', 'Crear Recall')}
+          {t('recall_new', 'Crear Retiro')}
         </Button>
       </Stack>
 
@@ -313,7 +313,7 @@ export default function Recalls() {
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
               <WarningAmberIcon fontSize="small" sx={{ color: 'error.main' }} />
               <Typography variant="caption" color="text.secondary">
-                {t('recall_kpi_activos', 'Recalls Activos')}
+                {t('recall_kpi_activos', 'Retiros Activos')}
               </Typography>
             </Stack>
             <Typography variant="h5" sx={{ fontWeight: 700, color: 'error.main' }}>
@@ -390,7 +390,7 @@ export default function Recalls() {
       <Paper
         elevation={0}
         sx={{ border: '1px solid', borderColor: 'divider' }}
-        aria-label={t('recall_title', 'Recalls')}
+        aria-label={t('recall_title', 'Retiros de Mercado')}
       >
         <SPMAgGrid
           columnDefs={columnDefs}
@@ -402,7 +402,7 @@ export default function Recalls() {
           enableQuickFilter={true}
           onRowClick={(row) => { if (row?.id) navigate(`/operations/recalls/${row.id}`); }}
           exportFileName="recalls"
-          emptyMessage={t('recall_empty', 'No hay recalls registrados')}
+          emptyMessage={t('recall_empty', 'No hay retiros registrados')}
           getRowId={(params) => String(params.data.id)}
         />
       </Paper>

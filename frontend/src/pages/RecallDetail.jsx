@@ -109,7 +109,7 @@ export default function RecallDetail() {
           setRecall(data);
         }
       } catch {
-        if (!cancelled) toastRef.current.error(tRef.current('recall_error_detail', 'Error al cargar recall'));
+        if (!cancelled) toastRef.current.error(tRef.current('recall_error_detail', 'Error al cargar retiro'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -200,7 +200,7 @@ export default function RecallDetail() {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
         <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 4 }}>
-          <Alert severity="error">{t('recall_not_found', 'Recall no encontrado')}</Alert>
+          <Alert severity="error">{t('recall_not_found', 'Retiro no encontrado')}</Alert>
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} sx={{ mt: 2 }}>
             {t('common_volver', 'Volver')}
           </Button>
@@ -322,7 +322,7 @@ export default function RecallDetail() {
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <AssignmentIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {t('recall_plan_title', 'Plan de Accion')}
+              {t('recall_plan_title', 'Plan de Acción')}
             </Typography>
           </Stack>
           <Typography

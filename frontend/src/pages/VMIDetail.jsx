@@ -313,7 +313,7 @@ export default function VMIDetail() {
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
               <StorefrontIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {t('vmi_programa', 'Programa VMI')} #{programa.id}
               </Typography>
               <Chip size="small" label={ESTADO_LABELS[estado] || estado} color={ESTADO_COLORS[estado] || 'default'} />
