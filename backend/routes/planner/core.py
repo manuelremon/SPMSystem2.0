@@ -186,14 +186,11 @@ def listar_solicitudes_aprobadas():
     if sin_asignar:
         # Mostrar solo solicitudes sin asignar
         filters["sin_asignar"] = True
-    elif is_admin:
-        # Admin puede filtrar por planner_id especifico o ver todas
+    else:
+        # Admin y planificador pueden filtrar por planner_id especifico o ver todas
         planner_id = request.args.get("planner_id")
         if planner_id:
             filters["planner_id"] = planner_id
-    else:
-        # Usuario normal solo ve las asignadas a el
-        filters["planner_id"] = user.get("id_spm")
 
     data = _load_solicitudes(filters, page=page, page_size=page_size)
     return jsonify(data), 200

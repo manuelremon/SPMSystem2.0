@@ -6,6 +6,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlanner, renderSolicitante } from "../hooks/usePlanner";
+import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatCurrency, getSectorNombre } from "../utils/formatters";
 import { getCriticidadConfig } from "../utils/styleConfig";
@@ -52,6 +53,26 @@ import SearchIcon from "@mui/icons-material/Search";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+
+/* ─────────────────────────────────────────────────────────────
+   Helper: normalize estado string to canonical key
+───────────────────────────────────────────────────────────── */
+const ESTADO_MAP = {
+  aprobada: "approved", aprobado: "approved", approved: "approved",
+  "en progreso": "in_treatment", "en tratamiento": "in_treatment",
+  in_treatment: "in_treatment", in_planning: "in_planning",
+  completada: "completed", completed: "completed",
+  finalizada: "completed", tratado: "treated", treated: "treated",
+  cerrada: "closed", closed: "closed",
+  despachada: "dispatched", dispatched: "dispatched",
+  rechazada: "rejected", rejected: "rejected",
+  cancelada: "cancelled", cancelled: "cancelled",
+};
+
+function normalizeEstado(val) {
+  const key = (val || "").toLowerCase().trim();
+  return ESTADO_MAP[key] || key;
+}
 
 /* ─────────────────────────────────────────────────────────────
    Multi-Select Dropdown Component (MUI)
@@ -271,6 +292,7 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
 export default function Planner({ filterMode }) {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // Modal de detalle
   const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
@@ -318,6 +340,7 @@ export default function Planner({ filterMode }) {
     setFiltroCriticidades,
     setActiveTab,
     handleTratar,
+    handleTomar,
     rechazar,
     closeTratarModal,
     onTratarComplete,
@@ -340,53 +363,88 @@ export default function Planner({ filterMode }) {
       {
         field: "acciones",
         headerName: "Acción",
-        flex: 0.6,
-        minWidth: 120,
+        flex: 0.8,
+        minWidth: 160,
         sortable: false,
-        cellRenderer: (params) => (
-          <Stack direction="row" spacing={0.5}>
-            <Button
-              size="small"
-              variant="outlined"
-              color="primary"
-              aria-label={`${t("planner_ver", "Ver")} ${t("common_solicitud", "solicitud")} #${params.data.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setDetalleModal({ open: true, solicitud: params.data });
-              }}
-              sx={{
-                minWidth: "auto",
-                px: 1,
-                py: 0.5,
-                fontSize: "10px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Ver
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              aria-label={`${t("planner_tratar", "Tratar")} ${t("common_solicitud", "solicitud")} #${params.data.id}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTratar(params.data);
-              }}
-              sx={{
-                minWidth: "auto",
-                px: 1,
-                py: 0.5,
-                fontSize: "10px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
-              Tratar
-            </Button>
-          </Stack>
-        ),
+        cellRenderer: (params) => {
+          const row = params.data;
+          const estado = normalizeEstado(row.status || row.estado || "");
+          const currentUserId = String(user?.id_spm || user?.id || "");
+          const plannerId = String(row.planner_id || "").trim();
+          const isMine = !plannerId || plannerId === currentUserId;
+          const isFinished = ["completed", "closed", "treated", "dispatched", "cancelled"].includes(estado);
+          const canTomar = !isMine && !isFinished;
+          const canTratar = isMine && !isFinished;
+
+          return (
+            <Stack direction="row" spacing={0.5}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="primary"
+                aria-label={`${t("planner_ver", "Ver")} ${t("common_solicitud", "solicitud")} #${row.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetalleModal({ open: true, solicitud: row });
+                }}
+                sx={{
+                  minWidth: "auto",
+                  px: 1,
+                  py: 0.5,
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                {t("planner_ver", "Ver")}
+              </Button>
+              {canTratar && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  aria-label={`${t("planner_tratar", "Tratar")} ${t("common_solicitud", "solicitud")} #${row.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTratar(row);
+                  }}
+                  sx={{
+                    minWidth: "auto",
+                    px: 1,
+                    py: 0.5,
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t("planner_tratar", "Tratar")}
+                </Button>
+              )}
+              {canTomar && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  aria-label={`${t("planner_tomar", "Tomar")} ${t("common_solicitud", "solicitud")} #${row.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTomar(row);
+                  }}
+                  sx={{
+                    minWidth: "auto",
+                    px: 1,
+                    py: 0.5,
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t("planner_tomar", "Tomar")}
+                </Button>
+              )}
+            </Stack>
+          );
+        },
       },
       {
         field: "items_count",
@@ -552,7 +610,7 @@ export default function Planner({ filterMode }) {
         },
       },
     ],
-    [handleTratar]
+    [handleTratar, handleTomar, user, t]
   );
 
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);

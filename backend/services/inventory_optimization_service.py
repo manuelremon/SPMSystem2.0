@@ -14,10 +14,10 @@ from backend.core.db import get_db_connection, get_db_transaction, is_using_post
 
 def detectar_desbalances() -> list:
     """
-    Detecta desbalances de inventario entre almacenes.
+    Detecta desbalances de inventario entre centros/almacenes.
 
-    Encuentra materiales donde un almacén tiene exceso (>2x safety stock)
-    y otro tiene déficit (<safety stock).
+    Compara stock actual vs safety stock calculado para encontrar materiales
+    donde un centro tiene exceso (>2x safety stock) y otro tiene déficit (<safety stock).
 
     Returns:
         List de dicts con [{material_codigo, almacen_exceso, almacen_deficit,
@@ -27,16 +27,19 @@ def detectar_desbalances() -> list:
     cur = conn.cursor()
 
     try:
-        # Obtener niveles de servicio y stock actual
         cur.execute("""
             SELECT
                 ns.material_codigo,
                 ns.almacen,
                 ns.stock_seguridad_calculado,
-                COALESCE(s.stock, 0) as stock_actual
+                COALESCE(s.stock_actual, 0) as stock_actual
             FROM nivel_servicio_objetivo ns
-            LEFT JOIN stock s ON ns.material_codigo = s.material
-                              AND ns.almacen = s.centro
+            LEFT JOIN (
+                SELECT material, centro, SUM(stock) as stock_actual
+                FROM sap_stock
+                GROUP BY material, centro
+            ) s ON ns.material_codigo = s.material
+                AND ns.almacen = s.centro
             WHERE ns.stock_seguridad_calculado > 0
         """)
 
@@ -56,18 +59,16 @@ def detectar_desbalances() -> list:
                 'ratio': stock_actual / safety_stock if safety_stock > 0 else 0
             }
 
-        # Detectar desbalances
         desbalances = []
 
         for material, almacenes in stock_data.items():
             if len(almacenes) < 2:
                 continue
 
-            # Encontrar almacén con exceso y déficit
             for almacen_exc, data_exc in almacenes.items():
-                if data_exc['ratio'] > 2:  # Exceso: más de 2x safety stock
+                if data_exc['ratio'] > 2:
                     for almacen_def, data_def in almacenes.items():
-                        if almacen_def != almacen_exc and data_def['ratio'] < 1:  # Déficit
+                        if almacen_def != almacen_exc and data_def['ratio'] < 1:
                             qty_exceso = data_exc['stock_actual'] - data_exc['safety_stock']
                             qty_deficit = data_def['safety_stock'] - data_def['stock_actual']
 
@@ -104,13 +105,11 @@ def proponer_transferencias(desbalances: Optional[list] = None) -> list:
         transferencia_ids = []
 
         for desbalance in desbalances:
-            # Calcular cantidad a transferir (el menor entre exceso y déficit)
             cantidad = min(desbalance['qty_exceso'], desbalance['qty_deficit'])
 
             if cantidad <= 0:
                 continue
 
-            # Generar número de transferencia
             if is_using_postgresql():
                 cur.execute("""
                     SELECT COUNT(*) FROM transferencia_inventario
@@ -125,13 +124,12 @@ def proponer_transferencias(desbalances: Optional[list] = None) -> list:
             count = cur.fetchone()[0] + 1
             numero_transferencia = f"TRF-{datetime.now().strftime('%Y%m%d')}-{count:04d}"
 
-            # Crear transferencia
             if is_using_postgresql():
                 cur.execute("""
                     INSERT INTO transferencia_inventario
                         (numero_transferencia, material_codigo, almacen_origen,
-                         almacen_destino, cantidad, estado, tipo_transferencia)
-                    VALUES (%s, %s, %s, %s, %s, 'proposed', 'balanceo')
+                         almacen_destino, cantidad, estado, prioridad, razon)
+                    VALUES (%s, %s, %s, %s, %s, 'proposed', 'normal', 'Balanceo automático de inventario')
                     RETURNING id
                 """, (numero_transferencia, desbalance['material_codigo'],
                       desbalance['almacen_exceso'], desbalance['almacen_deficit'],
@@ -141,8 +139,8 @@ def proponer_transferencias(desbalances: Optional[list] = None) -> list:
                 cur.execute("""
                     INSERT INTO transferencia_inventario
                         (numero_transferencia, material_codigo, almacen_origen,
-                         almacen_destino, cantidad, estado, tipo_transferencia)
-                    VALUES (?, ?, ?, ?, ?, 'proposed', 'balanceo')
+                         almacen_destino, cantidad, estado, prioridad, razon)
+                    VALUES (?, ?, ?, ?, ?, 'proposed', 'normal', 'Balanceo automático de inventario')
                 """, (numero_transferencia, desbalance['material_codigo'],
                       desbalance['almacen_exceso'], desbalance['almacen_deficit'],
                       cantidad))
@@ -168,32 +166,30 @@ def obtener_transferencias(filtros: dict) -> dict:
         filtros: Dict con {estado?, material_codigo?, almacen?, page=1, per_page=20}
 
     Returns:
-        Dict con {items, total, page, pages}
+        Dict con {transfers, total, page, pages}
     """
     conn = get_db_connection()
     cur = conn.cursor()
 
     try:
         page = filtros.get('page', 1)
-        per_page = min(filtros.get('per_page', 20), 100)
+        per_page = min(filtros.get('per_page', 50), 100)
         offset = (page - 1) * per_page
 
         where_clauses = []
         params = []
+        ph = "%s" if is_using_postgresql() else "?"
 
         if filtros.get('estado'):
-            where_clauses.append("estado = ?" if not is_using_postgresql() else "estado = %s")
+            where_clauses.append(f"estado = {ph}")
             params.append(filtros['estado'])
 
         if filtros.get('material_codigo'):
-            where_clauses.append("material_codigo = ?" if not is_using_postgresql() else "material_codigo = %s")
+            where_clauses.append(f"material_codigo = {ph}")
             params.append(filtros['material_codigo'])
 
         if filtros.get('almacen'):
-            where_clauses.append(
-                "(almacen_origen = ? OR almacen_destino = ?)" if not is_using_postgresql()
-                else "(almacen_origen = %s OR almacen_destino = %s)"
-            )
+            where_clauses.append(f"(almacen_origen = {ph} OR almacen_destino = {ph})")
             params.extend([filtros['almacen'], filtros['almacen']])
 
         where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
@@ -208,17 +204,16 @@ def obtener_transferencias(filtros: dict) -> dict:
             SELECT * FROM transferencia_inventario
             {where_sql}
             ORDER BY created_at DESC
-            LIMIT {"?" if not is_using_postgresql() else "%s"}
-            OFFSET {"?" if not is_using_postgresql() else "%s"}
+            LIMIT {ph} OFFSET {ph}
         """, params_with_limit)
 
         rows = cur.fetchall()
         items = [dict(row) for row in rows]
 
-        pages = (total + per_page - 1) // per_page
+        pages = max(1, (total + per_page - 1) // per_page)
 
         return {
-            'items': items,
+            'transfers': items,
             'total': total,
             'page': page,
             'pages': pages,
@@ -230,16 +225,7 @@ def obtener_transferencias(filtros: dict) -> dict:
 
 
 def aprobar_transferencia(transferencia_id: int, user_id: int) -> dict:
-    """
-    Aprueba una transferencia de inventario.
-
-    Args:
-        transferencia_id: ID de la transferencia
-        user_id: ID del usuario que aprueba
-
-    Returns:
-        Dict con la transferencia actualizada
-    """
+    """Aprueba una transferencia de inventario."""
     conn, cur = get_db_transaction()
 
     try:
@@ -277,16 +263,7 @@ def aprobar_transferencia(transferencia_id: int, user_id: int) -> dict:
 
 
 def completar_transferencia(transferencia_id: int, user_id: int) -> dict:
-    """
-    Marca una transferencia como recibida/completada.
-
-    Args:
-        transferencia_id: ID de la transferencia
-        user_id: ID del usuario que completa
-
-    Returns:
-        Dict con la transferencia actualizada
-    """
+    """Marca una transferencia como recibida/completada."""
     conn, cur = get_db_transaction()
 
     try:
@@ -323,16 +300,16 @@ def completar_transferencia(transferencia_id: int, user_id: int) -> dict:
         conn.close()
 
 
-def calcular_niveles_servicio(material_codigo: str, almacen: str) -> dict:
+def calcular_niveles_servicio(material_codigo: str, centro: str) -> dict:
     """
-    Calcula niveles de servicio para un material en un almacén.
+    Calcula niveles de servicio para un material en un centro.
 
     Usa la fórmula: Safety Stock = Z * σ * √L
     Donde Z = factor de servicio, σ = desviación estándar de demanda, L = lead time
 
     Args:
         material_codigo: Código del material
-        almacen: Código del almacén
+        centro: Código del centro
 
     Returns:
         Dict con {safety_stock, reorder_point, service_level}
@@ -340,28 +317,18 @@ def calcular_niveles_servicio(material_codigo: str, almacen: str) -> dict:
     conn, cur = get_db_transaction()
 
     try:
-        # Obtener histórico de consumo (últimos 90 días)
-        cur.execute("""
-            SELECT cantidad, fecha_consumo
-            FROM consumo_historico
-            WHERE codigo = ?
-              AND almacen = ?
-              AND DATE(fecha_consumo) >= ?
-            ORDER BY fecha_consumo
-        """ if not is_using_postgresql() else """
-            SELECT cantidad, fecha_consumo
-            FROM consumo_historico
-            WHERE codigo = %s
-              AND almacen = %s
-              AND DATE(fecha_consumo) >= CURRENT_DATE - INTERVAL '90 days'
-            ORDER BY fecha_consumo
-        """, (material_codigo, almacen) if is_using_postgresql()
-             else (material_codigo, almacen, (datetime.now().date() - datetime.timedelta(days=90)).isoformat()))
+        ph = "%s" if is_using_postgresql() else "?"
+        cur.execute(f"""
+            SELECT cantidad, fecha
+            FROM sap_consumo_historico
+            WHERE material = {ph}
+              AND centro = {ph}
+            ORDER BY fecha
+        """, (material_codigo, centro))
 
         consumos = [float(row[0]) for row in cur.fetchall()]
 
         if len(consumos) < 10:
-            # No hay suficientes datos
             return {
                 'safety_stock': 0,
                 'reorder_point': 0,
@@ -369,48 +336,62 @@ def calcular_niveles_servicio(material_codigo: str, almacen: str) -> dict:
                 'error': 'Datos insuficientes'
             }
 
-        # Calcular estadísticas
         promedio = sum(consumos) / len(consumos)
         varianza = sum((x - promedio) ** 2 for x in consumos) / len(consumos)
         desviacion = math.sqrt(varianza)
 
-        # Parámetros por defecto
-        service_level = 95  # 95% service level
+        service_level = 95
         z_score = 1.65  # Para 95% service level
-        lead_time_days = 7  # Asumimos 7 días de lead time
+        lead_time_days = 7
 
-        # Calcular safety stock
         safety_stock = z_score * desviacion * math.sqrt(lead_time_days)
-
-        # Reorder point = demanda promedio durante lead time + safety stock
         reorder_point = (promedio * lead_time_days) + safety_stock
 
-        # Upsert nivel_servicio_objetivo using actual schema columns
-        cur.execute("""
-            INSERT INTO nivel_servicio_objetivo
-                (material_codigo, almacen, nivel_servicio,
-                 stock_seguridad_calculado, punto_reorden_calculado,
-                 ultimo_calculo, updated_at)
-            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
-            ON CONFLICT (material_codigo, almacen)
-            DO UPDATE SET
-                nivel_servicio = EXCLUDED.nivel_servicio,
-                stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
-                punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
-                ultimo_calculo = NOW(),
-                updated_at = NOW()
-        """, (material_codigo, almacen, service_level, safety_stock, reorder_point))
+        # Clasificación ABC basada en volumen de consumo
+        total_consumo = sum(consumos)
+        if total_consumo > 5000:
+            clasificacion = 'A'
+        elif total_consumo > 1000:
+            clasificacion = 'B'
+        else:
+            clasificacion = 'C'
+
+        if is_using_postgresql():
+            cur.execute("""
+                INSERT INTO nivel_servicio_objetivo
+                    (material_codigo, almacen, nivel_servicio,
+                     stock_seguridad_calculado, punto_reorden_calculado,
+                     clasificacion_abc, ultimo_calculo, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                ON CONFLICT (material_codigo, almacen)
+                DO UPDATE SET
+                    nivel_servicio = EXCLUDED.nivel_servicio,
+                    stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
+                    punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
+                    clasificacion_abc = EXCLUDED.clasificacion_abc,
+                    ultimo_calculo = NOW(),
+                    updated_at = NOW()
+            """, (material_codigo, centro, service_level, safety_stock, reorder_point, clasificacion))
+        else:
+            cur.execute("""
+                INSERT OR REPLACE INTO nivel_servicio_objetivo
+                    (material_codigo, almacen, nivel_servicio,
+                     stock_seguridad_calculado, punto_reorden_calculado,
+                     clasificacion_abc, ultimo_calculo, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            """, (material_codigo, centro, service_level, safety_stock, reorder_point, clasificacion))
 
         conn.commit()
 
         return {
             'material_codigo': material_codigo,
-            'almacen': almacen,
+            'almacen': centro,
             'safety_stock': round(safety_stock, 2),
             'reorder_point': round(reorder_point, 2),
             'service_level': service_level,
             'demanda_promedio': round(promedio, 2),
-            'desviacion_estandar': round(desviacion, 2)
+            'desviacion_estandar': round(desviacion, 2),
+            'clasificacion_abc': clasificacion
         }
     except Exception as e:
         conn.rollback()
@@ -437,16 +418,17 @@ def obtener_niveles_servicio(filtros: dict) -> dict:
         page = filtros.get('page', 1)
         per_page = min(filtros.get('per_page', 20), 100)
         offset = (page - 1) * per_page
+        ph = "%s" if is_using_postgresql() else "?"
 
         where_clauses = []
         params = []
 
         if filtros.get('material_codigo'):
-            where_clauses.append("material_codigo = ?" if not is_using_postgresql() else "material_codigo = %s")
+            where_clauses.append(f"material_codigo = {ph}")
             params.append(filtros['material_codigo'])
 
         if filtros.get('almacen'):
-            where_clauses.append("almacen = ?" if not is_using_postgresql() else "almacen = %s")
+            where_clauses.append(f"almacen = {ph}")
             params.append(filtros['almacen'])
 
         where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
@@ -461,14 +443,13 @@ def obtener_niveles_servicio(filtros: dict) -> dict:
             SELECT * FROM nivel_servicio_objetivo
             {where_sql}
             ORDER BY updated_at DESC
-            LIMIT {"?" if not is_using_postgresql() else "%s"}
-            OFFSET {"?" if not is_using_postgresql() else "%s"}
+            LIMIT {ph} OFFSET {ph}
         """, params_with_limit)
 
         rows = cur.fetchall()
         items = [dict(row) for row in rows]
 
-        pages = (total + per_page - 1) // per_page
+        pages = max(1, (total + per_page - 1) // per_page)
 
         return {
             'items': items,
@@ -484,7 +465,7 @@ def obtener_niveles_servicio(filtros: dict) -> dict:
 
 def recalcular_todos_niveles() -> dict:
     """
-    Recalcula niveles de servicio para todos los materiales/almacenes.
+    Recalcula niveles de servicio para los materiales con mayor consumo histórico.
 
     Returns:
         Dict con {recalculados: N}
@@ -493,32 +474,37 @@ def recalcular_todos_niveles() -> dict:
     cur = conn.cursor()
 
     try:
-        # Obtener todas las combinaciones material-almacén del histórico
+        # Obtener combinaciones material-centro con suficientes datos (>=10 registros)
         cur.execute("""
-            SELECT DISTINCT codigo, almacen
-            FROM consumo_historico
-            WHERE DATE(fecha_consumo) >= CURRENT_DATE - INTERVAL '90 days'
-        """ if is_using_postgresql() else """
-            SELECT DISTINCT codigo, almacen
-            FROM consumo_historico
-            WHERE DATE(fecha_consumo) >= DATE('now', '-90 days')
+            SELECT material, centro, COUNT(*) as cnt
+            FROM sap_consumo_historico
+            GROUP BY material, centro
+            HAVING COUNT(*) >= 10
+            ORDER BY cnt DESC
+            LIMIT 200
         """)
 
         combinaciones = cur.fetchall()
+        cur.close()
+        conn.close()
+
         recalculados = 0
 
-        for material_codigo, almacen in combinaciones:
+        for row in combinaciones:
+            material_codigo = row[0]
+            centro = row[1]
             try:
-                calcular_niveles_servicio(material_codigo, almacen)
-                recalculados += 1
+                result = calcular_niveles_servicio(material_codigo, centro)
+                if result.get('safety_stock', 0) > 0:
+                    recalculados += 1
             except Exception:
-                # Continuar con el siguiente si falla uno
                 continue
 
         return {'recalculados': recalculados}
-    finally:
+    except Exception:
         cur.close()
         conn.close()
+        raise
 
 
 def obtener_kpis_optimizacion() -> dict:
@@ -527,7 +513,8 @@ def obtener_kpis_optimizacion() -> dict:
 
     Returns:
         Dict con {transferencias_pendientes, transferencias_completadas,
-                 desbalances_detectados, nivel_servicio_promedio}
+                 desbalances_detectados, nivel_servicio_promedio,
+                 materiales_monitoreados, clasificacion_abc}
     """
     conn = get_db_connection()
     cur = conn.cursor()
@@ -540,21 +527,19 @@ def obtener_kpis_optimizacion() -> dict:
         """)
         transferencias_pendientes = cur.fetchone()[0] or 0
 
-        # Transferencias completadas (últimos 30 días)
+        # Transferencias completadas
         cur.execute("""
             SELECT COUNT(*) FROM transferencia_inventario
             WHERE estado = 'received'
-              AND DATE(fecha_recepcion) >= CURRENT_DATE - INTERVAL '30 days'
-        """ if is_using_postgresql() else """
-            SELECT COUNT(*) FROM transferencia_inventario
-            WHERE estado = 'received'
-              AND DATE(fecha_recepcion) >= DATE('now', '-30 days')
         """)
         transferencias_completadas = cur.fetchone()[0] or 0
 
         # Desbalances detectados
-        desbalances = detectar_desbalances()
-        desbalances_detectados = len(desbalances)
+        try:
+            desbalances = detectar_desbalances()
+            desbalances_detectados = len(desbalances)
+        except Exception:
+            desbalances_detectados = 0
 
         # Nivel de servicio promedio
         cur.execute("""
@@ -562,11 +547,18 @@ def obtener_kpis_optimizacion() -> dict:
         """)
         nivel_servicio_promedio = cur.fetchone()[0] or 0
 
+        # Materiales monitoreados
+        cur.execute("""
+            SELECT COUNT(*) FROM nivel_servicio_objetivo
+        """)
+        materiales_monitoreados = cur.fetchone()[0] or 0
+
         return {
             'transferencias_pendientes': transferencias_pendientes,
             'transferencias_completadas': transferencias_completadas,
             'desbalances_detectados': desbalances_detectados,
-            'nivel_servicio_promedio': round(nivel_servicio_promedio, 2)
+            'nivel_servicio_promedio': round(float(nivel_servicio_promedio), 2),
+            'materiales_monitoreados': materiales_monitoreados
         }
     finally:
         cur.close()

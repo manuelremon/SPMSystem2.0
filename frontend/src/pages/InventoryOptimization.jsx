@@ -28,6 +28,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import LinkIcon from '@mui/icons-material/Link';
+import InventoryIcon from '@mui/icons-material/Inventory';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import ImbalanceHeatmap from '../components/ImbalanceHeatmap';
 
@@ -264,6 +265,11 @@ export default function InventoryOptimization() {
             label={t('inventory_kpi_service', 'Nivel Servicio Promedio')}
             value={kpis.nivel_servicio_promedio != null ? `${Number(kpis.nivel_servicio_promedio).toFixed(1)}%` : null}
             color="success.main"
+          />
+          <KpiCard
+            icon={<InventoryIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
+            label={t('inventory_kpi_monitored', 'Materiales Monitoreados')}
+            value={kpis.materiales_monitoreados}
           />
         </Stack>
       )}

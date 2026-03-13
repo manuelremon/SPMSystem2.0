@@ -25,9 +25,106 @@ from backend.core.fsm import (
 from backend.core.roles import require_auth
 from backend.routes.planner import bp
 from backend.routes.planner.helpers import _enviar_notificacion_finalizacion, _log_evento
-from backend.routes.planner_helpers import _require_solicitud_access
+from backend.routes.planner_helpers import (
+    _current_user,
+    _require_planner_role,
+    _require_solicitud_access,
+)
 
 logger = logging.getLogger(__name__)
+
+ESTADOS_TOMABLES = {"approved", "in_planning", "in_treatment"}
+
+
+@bp.route("/solicitudes/<int:solicitud_id>/tomar", methods=["POST"])
+@require_auth
+def tomar_solicitud(solicitud_id):
+    """Admin o Planificador toma una solicitud asignada a otro planificador."""
+    user = _current_user()
+    if isinstance(user, tuple):
+        return user
+
+    guard, _is_admin = _require_planner_role(user)
+    if guard:
+        return guard
+
+    actor_id = str(user.get("id_spm") or user.get("usuario") or user.get("id") or "planner")
+    actor_nombre = f"{user.get('nombre', '')} {user.get('apellido', '')}".strip() or actor_id
+
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, status, planner_id FROM solicitud WHERE id = %s",
+            (solicitud_id,),
+        )
+        sol = cur.fetchone()
+
+    if not sol:
+        return error_not_found("Solicitud", solicitud_id)
+
+    estado_actual = normalizar_estado(sol["status"])
+    if estado_actual not in ESTADOS_TOMABLES:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "estado_invalido",
+                    "message": f"No se puede tomar una solicitud en estado '{estado_actual}'",
+                },
+            }),
+            400,
+        )
+
+    planner_anterior = (sol["planner_id"] or "").strip()
+    if planner_anterior == actor_id:
+        return (
+            jsonify({
+                "ok": False,
+                "error": {
+                    "code": "ya_asignada",
+                    "message": "Esta solicitud ya está asignada a ti",
+                },
+            }),
+            400,
+        )
+
+    # Reasignar planner_id
+    with get_db_transaction() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE solicitud SET planner_id = %s WHERE id = %s",
+            (actor_id, solicitud_id),
+        )
+
+    # Registrar evento en historial
+    _log_evento(
+        solicitud_id,
+        None,
+        "planificador_toma",
+        estado_actual,
+        {"planner_anterior": planner_anterior, "planner_nuevo": actor_id},
+        actor=actor_id,
+    )
+
+    # Notificar al planificador anterior (si existía)
+    if planner_anterior:
+        try:
+            from backend.services.notification_service import NotificationService
+
+            NotificationService.create_notification(
+                destinatario_id=planner_anterior,
+                mensaje=f"Solicitud #{solicitud_id} reasignada a {actor_nombre}",
+                tipo="info",
+                solicitud_id=solicitud_id,
+            )
+        except Exception as e:
+            logger.warning(f"Error notificando reasignacion solicitud {solicitud_id}: {e}")
+
+    return jsonify({
+        "ok": True,
+        "planner_id": actor_id,
+        "planner_nombre": actor_nombre,
+    }), 200
 
 
 @bp.route("/solicitudes/<int:solicitud_id>/aceptar", methods=["POST"])

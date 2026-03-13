@@ -96,12 +96,8 @@ export function usePlanner({ t, filterMode }) {
       } else if (filterMode === "no-asignadas") {
         // Solo solicitudes sin asignar
         params.sin_asignar = true;
-      } else {
-        // Todas las solicitudes (admin ve todas, otros solo las asignadas a ellos)
-        if (user?.rol?.toLowerCase() !== "admin" && user?.rol?.toLowerCase() !== "administrador") {
-          params.planner_id = user?.id_spm || user?.id;
-        }
       }
+      // Sin filterMode: admin y planificador ven todas (para poder "tomar" de otros)
 
       const res = await planner.listar(params);
       setItems(Array.isArray(res.data) ? res.data : []);
@@ -229,6 +225,20 @@ export function usePlanner({ t, filterMode }) {
 
     setSelectedParaTratar(row);
   }, []);
+
+  // Take over a solicitud from another planner
+  const handleTomar = useCallback(async (row) => {
+    setSuccess("");
+    setError("");
+    try {
+      await planner.tomar(row.id);
+      setSuccess(t("planner_msg_tomar", "Solicitud tomada correctamente"));
+      setTimeout(() => setSuccess(""), 3000);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.message);
+    }
+  }, [load, t]);
 
   // Finalize a solicitud
   const finalizar = useCallback(async (id) => {
@@ -447,6 +457,7 @@ export function usePlanner({ t, filterMode }) {
     // Actions
     load,
     handleTratar,
+    handleTomar,
     finalizar,
     rechazar,
     handleExport,

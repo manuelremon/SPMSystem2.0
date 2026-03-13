@@ -200,7 +200,7 @@ export default function PutawayTasks() {
         <Stack direction="row" alignItems="center" gap={1}>
           <PlaylistAddCheckIcon sx={{ color: 'primary.main' }} />
           <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-            {t('putaway_title', 'Tareas de Ubicacion (Putaway)')}
+            {t('putaway_title', 'Tareas de Ubicación')}
           </Typography>
         </Stack>
         <Button variant="contained" startIcon={<AutoFixHighIcon />} onClick={() => setGenerateOpen(true)}>
@@ -228,7 +228,7 @@ export default function PutawayTasks() {
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('putaway_title', 'Tareas de Ubicacion')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('putaway_title', 'Tareas de Ubicación')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={tasks}
@@ -245,7 +245,7 @@ export default function PutawayTasks() {
 
       {/* Generate Dialog */}
       <Dialog open={generateOpen} onClose={() => setGenerateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('putaway_generate', 'Generar Tareas de Ubicacion')}</DialogTitle>
+        <DialogTitle>{t('putaway_generate', 'Generar Tareas de Ubicación')}</DialogTitle>
         <DialogContent>
           <TextField
             label={t('putaway_recepcion_id', 'ID de Recepcion')}

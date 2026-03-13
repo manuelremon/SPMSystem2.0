@@ -42,6 +42,7 @@ export const planner = {
   aceptar: (id) => api.post(`/planificador/solicitudes/${id}/aceptar`),
   finalizar: (id) => api.post(`/planificador/solicitudes/${id}/finalizar`),
   guardarItems: (id, payload) => api.patch(`/planificador/solicitudes/${id}/items`, payload),
+  tomar: (id) => api.post(`/planificador/solicitudes/${id}/tomar`),
 }
 
 export const admin = {

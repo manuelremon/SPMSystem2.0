@@ -179,7 +179,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
         header: { key: 'nav_header_almacen', fallback: 'ALMACEN' },
         items: [
           { to: '/operations/warehouse', labelKey: 'nav_warehouse', labelFallback: 'Recepcion' },
-          { to: '/operations/putaway', labelKey: 'nav_putaway', labelFallback: 'Putaway' },
+          { to: '/operations/putaway', labelKey: 'nav_putaway', labelFallback: 'Ubicaciones' },
           { to: '/operations/cycle-count', labelKey: 'nav_cycle_count', labelFallback: 'Conteo Ciclico' },
         ],
       },
@@ -199,7 +199,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
           { to: '/operations/consignment', labelKey: 'nav_consignment', labelFallback: 'Consignacion' },
           { to: '/operations/lots', labelKey: 'nav_lots', labelFallback: 'Lotes & Trazabilidad' },
           { to: '/operations/recalls', labelKey: 'nav_recalls', labelFallback: 'Recalls' },
-          { to: '/operations/inventory-optimization', labelKey: 'nav_inv_optimization', labelFallback: 'Optimizacion Inv.' },
+          { to: '/operations/inventory-optimization', labelKey: 'nav_inv_optimization', labelFallback: 'Optimización Inventario' },
         ],
       },
     ],

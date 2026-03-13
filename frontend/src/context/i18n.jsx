@@ -1771,12 +1771,12 @@ const translations = {
   // Sprint 66: Warehouse
   nav_operations: { es: "Operaciones", en: "Operations" },
   nav_warehouse: { es: "Recepción", en: "Receiving" },
-  nav_putaway: { es: "Putaway", en: "Putaway" },
+  nav_putaway: { es: "Ubicaciones", en: "Putaway" },
   warehouse_title: { es: "Recepción en Almacén", en: "Warehouse Receiving" },
   warehouse_docks: { es: "Docks", en: "Docks" },
   warehouse_new_dock: { es: "Nuevo Dock", en: "New Dock" },
   warehouse_assign: { es: "Asignar", en: "Assign" },
-  warehouse_putaway: { es: "Tareas Putaway", en: "Putaway Tasks" },
+  warehouse_putaway: { es: "Tareas de Ubicación", en: "Putaway Tasks" },
   warehouse_complete: { es: "Completar", en: "Complete" },
   warehouse_generate: { es: "Generar Tareas", en: "Generate Tasks" },
   warehouse_error_docks: { es: "Error al cargar docks", en: "Error loading docks" },
@@ -1820,8 +1820,8 @@ const translations = {
   rebate_calculate: { es: "Calcular", en: "Calculate" },
   rebate_claim: { es: "Reclamar", en: "Claim" },
 
-  // Sprint 68: Inventory Optimization
-  nav_inv_optimization: { es: "Optimización Inv.", en: "Inv. Optimization" },
+  // Sprint 68: Optimización de Inventario
+  nav_inv_optimization: { es: "Optimización Inventario", en: "Inv. Optimization" },
   nav_service_levels: { es: "Niveles Servicio", en: "Service Levels" },
   inv_opt_title: { es: "Optimización de Inventario", en: "Inventory Optimization" },
   inv_opt_imbalances: { es: "Desbalances", en: "Imbalances" },
