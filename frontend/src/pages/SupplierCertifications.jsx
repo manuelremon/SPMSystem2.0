@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -29,7 +30,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
+import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import CertExpiryBadge from '../components/CertExpiryBadge';
@@ -78,6 +81,7 @@ const INITIAL_FORM = {
 export default function SupplierCertifications() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [certifications, setCertifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -207,13 +211,31 @@ export default function SupplierCertifications() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <VerifiedUserIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('cert_title', 'Certificaciones de Proveedores')}
           </Typography>
-        </Stack>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -222,7 +244,7 @@ export default function SupplierCertifications() {
         >
           {t('cert_new', 'Registrar Certificacion')}
         </Button>
-      </Stack>
+      </Box>
 
       {/* Expiring alert banner */}
       {expiringCount > 0 && (

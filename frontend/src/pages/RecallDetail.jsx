@@ -23,8 +23,8 @@ import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import RestoreIcon from '@mui/icons-material/Restore';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -219,18 +219,31 @@ export default function RecallDetail() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Back */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/recalls')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
-        {t('common_volver', 'Volver')}
-      </Button>
-
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <ReportProblemIcon sx={{ color: 'error.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {recall.numero_recall || `RECALL-${recall.id}`}
               </Typography>
               <Chip

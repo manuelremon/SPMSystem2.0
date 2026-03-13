@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -18,7 +19,8 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import TuneIcon from '@mui/icons-material/Tune';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
@@ -31,6 +33,7 @@ const ABC_COLORS = {
 export default function ServiceLevels() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
   const toastRef = useRef(toast);
   const tRef = useRef(t);
   toastRef.current = toast;
@@ -142,12 +145,23 @@ export default function ServiceLevels() {
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Stack direction="row" alignItems="center" gap={1}>
-          <TuneIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('service_title', 'Niveles de Servicio')}
           </Typography>
-        </Stack>
+        </Box>
         <Button
           variant="contained"
           startIcon={recalculating ? <CircularProgress size={16} /> : <RefreshIcon />}

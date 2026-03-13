@@ -263,13 +263,13 @@ const ForecastIndividual = () => {
           </IconButton>
           <Box>
             <Typography
-              variant="h6"
+              variant="h5"
               component="h1"
               sx={{
                 fontWeight: 700,
                 color: 'var(--fg-strong)',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px',
+                letterSpacing: '0.05em',
                 fontSize: FONT_SIZES.h4,
                 lineHeight: 1.2,
               }}

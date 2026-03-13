@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { shareService } from '../services/dashboard';
 import { useI18n } from '../context/i18n';
 
@@ -18,10 +18,11 @@ import {
   Button,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
 
 import LockIcon from '@mui/icons-material/Lock';
-import TableChartIcon from '@mui/icons-material/TableChart';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 // Spreadsheet component
 import { DashboardSpreadsheet } from '../components/spreadsheet';
@@ -29,6 +30,7 @@ import { DashboardSpreadsheet } from '../components/spreadsheet';
 export default function DashboardShared() {
   const { token } = useParams();
   const { t } = useI18n();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -212,9 +214,29 @@ export default function DashboardShared() {
           gap: 2,
         }}
       >
-        <TableChartIcon sx={{ color: dashboard.color || 'primary.main' }} />
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h6">{dashboard.nombre}</Typography>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
+            {dashboard.nombre}
+          </Typography>
           {dashboard.descripcion && (
             <Typography variant="body2" color="text.secondary">
               {dashboard.descripcion}

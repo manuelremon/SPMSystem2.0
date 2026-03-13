@@ -30,7 +30,9 @@ import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BlockIcon from '@mui/icons-material/Block';
 import RecyclingIcon from '@mui/icons-material/Recycling';
@@ -288,13 +290,31 @@ export default function Recalls() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <ReportProblemIcon sx={{ color: 'error.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('recall_title', 'Retiros de Mercado')}
           </Typography>
-        </Stack>
+        </Box>
         <Button
           variant="contained"
           color="error"
@@ -304,7 +324,7 @@ export default function Recalls() {
         >
           {t('recall_new', 'Crear Retiro')}
         </Button>
-      </Stack>
+      </Box>
 
       {/* KPI Cards */}
       {kpis && (

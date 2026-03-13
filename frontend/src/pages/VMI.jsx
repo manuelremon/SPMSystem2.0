@@ -31,7 +31,9 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -318,13 +320,31 @@ export default function VMI() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <StorefrontIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('vmi_title', 'Inventario Gestionado por Proveedor (VMI)')}
           </Typography>
-        </Stack>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -333,7 +353,7 @@ export default function VMI() {
         >
           {t('vmi_new', 'Nuevo Programa VMI')}
         </Button>
-      </Stack>
+      </Box>
 
       {/* KPI Cards */}
       {kpis && (

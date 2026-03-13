@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -16,7 +17,9 @@ import {
   Tabs,
   Tab,
   Alert,
+  IconButton,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import api from '../services/api';
 import { useI18n } from '../context/i18n';
@@ -26,6 +29,7 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 export default function SupplierFinance() {
   const { t } = useI18n();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0);
   const [kpis, setKpis] = useState(null);
@@ -383,9 +387,30 @@ export default function SupplierFinance() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.primary', mb: 3 }}>
-        {t('finance_title')}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography
+          variant="h5"
+          component="h1"
+          fontWeight={700}
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="text.primary"
+        >
+          {t('finance_title')}
+        </Typography>
+      </Box>
 
       {/* KPIs */}
       {kpis && (

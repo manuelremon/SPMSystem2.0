@@ -724,7 +724,7 @@ export default function MRPTableroAlertas() {
               <ArrowBackIcon />
             </IconButton>
             <Typography
-              variant="h6"
+              variant="h5"
               sx={{
                 fontWeight: 700,
                 color: "text.primary",

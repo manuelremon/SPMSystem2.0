@@ -18,7 +18,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import BuildIcon from '@mui/icons-material/Build';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
@@ -202,12 +203,23 @@ export default function CAPAList() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" gap={1}>
-        <BuildIcon sx={{ color: 'primary.main' }} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('capa_list_title', 'Acciones Correctivas y Preventivas (CAPA)')}
         </Typography>
-      </Stack>
+      </Box>
 
       {/* Filters */}
       <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>

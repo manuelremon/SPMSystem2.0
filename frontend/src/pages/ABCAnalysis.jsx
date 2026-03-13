@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,6 +13,8 @@ import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
@@ -43,6 +46,7 @@ ChartJS.register(
 const ABCAnalysis = () => {
   const { t } = useI18n();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
@@ -258,9 +262,30 @@ const ABCAnalysis = () => {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-          {t('abc_title', 'Análisis ABC de Materiales')}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
+            {t('abc_title', 'Análisis ABC de Materiales')}
+          </Typography>
+        </Box>
         <p className="text-gray-600">
           {t('abc_subtitle', 'Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)')}
         </p>

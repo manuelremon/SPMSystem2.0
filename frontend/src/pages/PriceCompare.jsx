@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -32,14 +33,16 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 export default function PriceCompare() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [materialCodigo, setMaterialCodigo] = useState('');
   const [cantidad, setCantidad] = useState(1);
@@ -88,12 +91,23 @@ export default function PriceCompare() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" gap={1}>
-        <CompareArrowsIcon sx={{ color: 'primary.main' }} />
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('price_compare_title', 'Comparar Precios')}
         </Typography>
-      </Stack>
+      </Box>
 
       {/* Search Section */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>

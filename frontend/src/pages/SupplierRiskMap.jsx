@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import { useUser } from '../store/authStore';
@@ -29,7 +30,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import LinearProgress from '@mui/material/LinearProgress';
 
-import ShieldIcon from '@mui/icons-material/Shield';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -89,6 +91,7 @@ function ScoreBar({ value }) {
 export default function SupplierRiskMap() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
   const user = useUser();
 
   const [suppliers, setSuppliers] = useState([]);
@@ -248,13 +251,31 @@ export default function SupplierRiskMap() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <ShieldIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('risk_title', 'Mapa de Riesgo de Proveedores')}
           </Typography>
-        </Stack>
+        </Box>
         {isAdmin && (
           <Button
             variant="outlined"
@@ -266,7 +287,7 @@ export default function SupplierRiskMap() {
             {t('risk_recalculate', 'Recalcular Todo')}
           </Button>
         )}
-      </Stack>
+      </Box>
 
       {/* Row 1: KPI Cards + Score Promedio */}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>

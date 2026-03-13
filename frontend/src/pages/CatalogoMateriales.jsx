@@ -667,7 +667,7 @@ export default function CatalogoMateriales() {
             <ArrowBackIcon />
           </IconButton>
           <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t("catalogo_materiales_titulo", "Catálogo de Materiales")}
             </Typography>
             <Typography variant="body2" color="text.secondary">

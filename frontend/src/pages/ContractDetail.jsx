@@ -27,9 +27,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Skeleton from '@mui/material/Skeleton';
+import IconButton from '@mui/material/IconButton';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DescriptionIcon from '@mui/icons-material/Description';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import TimelineIcon from '@mui/icons-material/Timeline';
 
@@ -147,11 +147,6 @@ export default function ContractDetail() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Back button */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/procurement/contracts')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
-        {t('common_volver', 'Volver')}
-      </Button>
-
       {/* Alert for expiring contracts */}
       {contract.alerta_vencimiento === 1 && (
         <Alert severity="warning" icon={<WarningAmberIcon />}>
@@ -164,8 +159,26 @@ export default function ContractDetail() {
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <DescriptionIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {contract.numero_contrato}
               </Typography>
               <Chip size="small" label={ESTADO_LABELS[estado] || estado} color={ESTADO_COLORS[estado] || 'default'} />

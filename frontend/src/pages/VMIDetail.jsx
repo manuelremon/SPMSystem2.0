@@ -29,8 +29,8 @@ import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import StorefrontIcon from '@mui/icons-material/Storefront';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -302,18 +302,31 @@ export default function VMIDetail() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Back */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/vmi')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
-        {t('common_volver', 'Volver')}
-      </Button>
-
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <StorefrontIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {t('vmi_programa', 'Programa VMI')} #{programa.id}
               </Typography>
               <Chip size="small" label={ESTADO_LABELS[estado] || estado} color={ESTADO_COLORS[estado] || 'default'} />

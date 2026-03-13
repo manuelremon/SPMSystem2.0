@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -26,7 +27,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
-import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
@@ -64,6 +66,7 @@ const PRIORIDAD_COLORS = {
 export default function PutawayTasks() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
   const toastRef = useRef(toast);
   const tRef = useRef(t);
   toastRef.current = toast;
@@ -197,12 +200,23 @@ export default function PutawayTasks() {
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Stack direction="row" alignItems="center" gap={1}>
-          <PlaylistAddCheckIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-            {t('putaway_title', 'Tareas de Ubicación')}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+            {t('putaway_title', 'Tareas de Ubicacion')}
           </Typography>
-        </Stack>
+        </Box>
         <Button variant="contained" startIcon={<AutoFixHighIcon />} onClick={() => setGenerateOpen(true)}>
           {t('putaway_generate', 'Generar Tareas')}
         </Button>

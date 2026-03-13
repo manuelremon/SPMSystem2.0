@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -21,8 +22,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
-import WarehouseIcon from '@mui/icons-material/Warehouse';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -32,6 +34,7 @@ import DockBoard from '../components/DockBoard';
 export default function WarehouseReceiving() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
   const toastRef = useRef(toast);
   const tRef = useRef(t);
   toastRef.current = toast;
@@ -170,17 +173,35 @@ export default function WarehouseReceiving() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Stack direction="row" alignItems="center" gap={1}>
-          <WarehouseIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('warehouse_title', 'Recepcion en Almacen')}
           </Typography>
-        </Stack>
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setNewDockOpen(true)}>
           {t('warehouse_new_dock', 'Nuevo Dock')}
         </Button>
-      </Stack>
+      </Box>
 
       {/* KPI Cards */}
       {kpis && (

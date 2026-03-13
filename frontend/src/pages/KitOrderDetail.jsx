@@ -23,8 +23,8 @@ import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import BuildIcon from '@mui/icons-material/Build';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
@@ -230,23 +230,31 @@ export default function KitOrderDetail() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Back */}
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/operations/kitting/orders')}
-        color="inherit"
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        {t('common_volver', 'Volver')}
-      </Button>
-
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <BuildIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {order.numero_orden}
               </Typography>
               <Chip

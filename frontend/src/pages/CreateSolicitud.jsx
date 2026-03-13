@@ -289,7 +289,7 @@ export default function CreateSolicitud() {
             <ArrowBackIcon />
           </IconButton>
           <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t('create_title', 'Crear nueva solicitud')}
             </Typography>
             <Typography variant="body2" color="text.secondary">

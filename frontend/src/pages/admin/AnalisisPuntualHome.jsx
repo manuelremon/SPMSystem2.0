@@ -44,11 +44,27 @@ export default function AnalisisPuntualHome() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
+      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+        <Typography
+          variant="h5"
+          component="h1"
+          fontWeight={700}
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="text.primary"
+        >
           {t("admin_ap_titulo", "ANÁLISIS PUNTUAL")}
         </Typography>
       </Box>

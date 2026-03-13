@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -33,6 +34,8 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Divider from '@mui/material/Divider';
 import AddIcon from '@mui/icons-material/Add';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -58,6 +61,7 @@ const CURRENCY_OPTIONS = ['USD', 'EUR', 'BRL', 'ARS', 'CLP', 'UYU', 'GBP', 'CNY'
 export default function CurrencyManagement() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [tabValue, setTabValue] = useState(0);
   const [dashboard, setDashboard] = useState(null);
@@ -244,12 +248,23 @@ export default function CurrencyManagement() {
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <CurrencyExchangeIcon sx={{ color: 'primary.main' }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
           <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('currency_title', 'Gestion de Monedas')}
           </Typography>
-        </Stack>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}

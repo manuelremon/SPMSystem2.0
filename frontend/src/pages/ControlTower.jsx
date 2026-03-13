@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -26,7 +27,8 @@ import MenuItem from '@mui/material/MenuItem';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import DashboardIcon from '@mui/icons-material/Dashboard';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -124,6 +126,7 @@ const ALERTA_ESTADO_LABELS = {
 export default function ControlTower() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
   const toastRef = useRef(toast);
   toastRef.current = toast;
 
@@ -460,12 +463,23 @@ export default function ControlTower() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" gap={1}>
-        <DashboardIcon sx={{ color: 'primary.main' }} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('ct_title', 'Torre de Control')}
         </Typography>
-      </Stack>
+      </Box>
 
       {/* KPI Cards - Row 1 */}
       {kpis && (

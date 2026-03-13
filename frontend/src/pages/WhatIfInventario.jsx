@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -17,10 +18,11 @@ import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SavingsIcon from '@mui/icons-material/Savings';
-import InventoryIcon from '@mui/icons-material/Inventory';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import { SPMBar } from '../components/ui/SPMChartJS';
@@ -35,6 +37,7 @@ const RISK_COLORS = {
 export default function WhatIfInventario() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [material, setMaterial] = useState('');
   const [ropDelta, setRopDelta] = useState(0);
@@ -100,17 +103,35 @@ export default function WhatIfInventario() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Stack direction="row" alignItems="center" gap={1}>
-        <InventoryIcon sx={{ color: 'primary.main', fontSize: 32 }} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <div>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t('whatif_title', 'What-If de Inventario')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {t('whatif_subtitle', 'Simula ajustes en parámetros MRP y observa el impacto en capital y riesgo')}
           </Typography>
         </div>
-      </Stack>
+      </Box>
 
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Grid container spacing={3}>

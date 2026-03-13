@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import { useI18n } from '../context/i18n';
 import { procurementService } from '../services/procurement';
@@ -12,11 +13,13 @@ import {
   Paper,
   Typography,
   Button,
+  IconButton,
   Stack,
   Grid,
   CircularProgress,
   Alert
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -333,6 +336,7 @@ const CentrosChart = ({ data }) => {
 // Componente principal
 export default function ProcurementAnalytics() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
@@ -381,12 +385,21 @@ export default function ProcurementAnalytics() {
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h5" fontWeight="bold" color="text.primary">
-              {t('procurement_analytics', 'Analítica de Compras SAP')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Impacto del módulo de compras en producción
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton
+              onClick={() => navigate(-1)}
+              sx={{
+                color: "text.disabled",
+                "&:hover": {
+                  color: "text.secondary",
+                  bgcolor: "background.paper",
+                },
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+              {t('procurement_analytics', 'Analitica de Compras SAP')}
             </Typography>
           </Box>
           <Stack direction="row" alignItems="center" spacing={2}>

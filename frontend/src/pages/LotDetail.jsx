@@ -34,8 +34,8 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
 import InfoIcon from '@mui/icons-material/Info';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -301,18 +301,31 @@ export default function LotDetail() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Back */}
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/lots')} color="inherit" sx={{ alignSelf: 'flex-start' }}>
-        {t('common_volver', 'Volver')}
-      </Button>
-
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <QrCode2Icon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {lote.numero_lote}
               </Typography>
               <Chip size="small" label={ESTADO_LABELS[estado] || estado} color={ESTADO_COLORS[estado] || 'default'} />

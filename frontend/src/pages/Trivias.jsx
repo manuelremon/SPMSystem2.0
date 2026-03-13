@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -7,8 +8,10 @@ import {
   Stack,
   Chip,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
 import {
+  ArrowBack as ArrowBackIcon,
   EmojiEvents as TrophyIcon,
   Star as StarIcon,
   Bolt as ZapIcon,
@@ -172,6 +175,7 @@ const guessMaterials = [
 export default function Trivias() {
   const { t } = useI18n();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   // Estados del juego
   const [activeGame, setActiveGame] = useState(null);
@@ -874,9 +878,27 @@ export default function Trivias() {
         <Stack spacing={3}>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
-                <TrophyIcon sx={{ color: 'warning.main' }} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {t("trivias_titulo", "Trivias SPM")}
               </Typography>
             </Box>

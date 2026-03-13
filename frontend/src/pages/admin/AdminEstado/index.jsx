@@ -103,10 +103,10 @@ function LoadingState({ t, navigate }) {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
         <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "text.disabled" }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {t("admin_estado", "ESTADO DEL SISTEMA")}
           </Typography>
         </Box>
@@ -179,11 +179,11 @@ export default function AdminEstado() {
       {/* Header con ultimo update */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
+          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "text.disabled" }}>
             <ArrowBackIcon />
           </IconButton>
           <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t("admin_estado", "ESTADO DEL SISTEMA")}
             </Typography>
             <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>

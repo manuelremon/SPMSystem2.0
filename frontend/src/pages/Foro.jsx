@@ -3,6 +3,7 @@
  * Full MUI Migration
  */
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import api from "../services/api";
@@ -22,6 +23,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Divider from "@mui/material/Divider";
 
 // MUI Icons
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ForumIcon from "@mui/icons-material/Forum";
 import SendIcon from "@mui/icons-material/Send";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
@@ -40,6 +42,7 @@ import CloseIcon from "@mui/icons-material/Close";
 export default function Foro() {
   const { t } = useI18n();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -176,19 +179,27 @@ export default function Foro() {
         justifyContent: "space-between",
         gap: 2
       }}>
-        <Box>
-          <Typography
-            variant="h5"
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
             sx={{
-              fontWeight: 700,
-              color: "text.primary",
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              textTransform: "uppercase"
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
             }}
           >
-            <ForumIcon sx={{ color: "secondary.main" }} />
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
             {t("foro_titulo", "Foro SPM")}
           </Typography>
         </Box>

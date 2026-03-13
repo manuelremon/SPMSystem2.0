@@ -21,7 +21,7 @@ import Avatar from "@mui/material/Avatar";
 import Alert from "@mui/material/Alert";
 
 // MUI Icons
-import MailIcon from "@mui/icons-material/Mail";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
 import InboxIcon from "@mui/icons-material/Inbox";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -31,7 +31,7 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CircleIcon from "@mui/icons-material/Circle";
 
-import { PageHeader } from "../components/ui/PageHeader";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
@@ -41,6 +41,7 @@ export default function Mensajes() {
   const { user } = useAuthStore();
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0); // 0 = inbox, 1 = outbox
   const [inboxMessages, setInboxMessages] = useState([]);
@@ -142,11 +143,31 @@ export default function Mensajes() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <PageHeader
-        title={t("mensajes_title", "Mensajes")}
-        description={t("mensajes_desc", "Gestiona tus mensajes de entrada y salida")}
-        icon={MailIcon}
-      >
+      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
+            {t("mensajes_title", "Mensajes")}
+          </Typography>
+        </Box>
         {unreadCount > 0 && (
           <Chip
             icon={<CircleIcon sx={{ fontSize: 8, animation: "pulse 2s infinite" }} />}
@@ -164,7 +185,7 @@ export default function Mensajes() {
             }}
           />
         )}
-      </PageHeader>
+      </Stack>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>

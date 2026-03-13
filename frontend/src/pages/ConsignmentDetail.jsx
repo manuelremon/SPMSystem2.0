@@ -28,11 +28,11 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import InventoryIcon from '@mui/icons-material/Inventory';
 
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
@@ -413,15 +413,30 @@ export default function ConsignmentDetail() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Stack direction="row" alignItems="center" gap={2}>
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/consignment')}>
-            {t('common_volver', 'Volver')}
-          </Button>
-          <Stack>
-            <Stack direction="row" alignItems="center" gap={1}>
-              <InventoryIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
+      <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>
+          <Box>
+            <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                sx={{
+                  color: "text.disabled",
+                  "&:hover": {
+                    color: "text.secondary",
+                    bgcolor: "background.paper",
+                  },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight={700}
+                textTransform="uppercase"
+                letterSpacing="0.05em"
+                color="text.primary"
+              >
                 {programa.nombre}
               </Typography>
               <Chip label={t(`consign_estado_${programa.estado}`, programa.estado)} color={programa.estado === 'active' ? 'success' : 'default'} />
@@ -429,9 +444,9 @@ export default function ConsignmentDetail() {
             <Typography variant="body2" color="text.secondary">
               {t('consign_proveedor', 'Proveedor')}: {programa.proveedor_nombre} ({programa.proveedor_cuit})
             </Typography>
-          </Stack>
+          </Box>
         </Stack>
-      </Stack>
+      </Paper>
 
       {/* Tabs */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>

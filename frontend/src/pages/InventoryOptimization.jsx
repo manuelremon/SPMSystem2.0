@@ -20,8 +20,8 @@ import Chip from '@mui/material/Chip';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import CircularProgress from '@mui/material/CircularProgress';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import BalanceIcon from '@mui/icons-material/Balance';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -29,6 +29,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import LinkIcon from '@mui/icons-material/Link';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import IconButton from '@mui/material/IconButton';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import ImbalanceHeatmap from '../components/ImbalanceHeatmap';
 
@@ -229,12 +230,23 @@ export default function InventoryOptimization() {
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Stack direction="row" alignItems="center" gap={1}>
-          <BalanceIcon sx={{ color: 'primary.main' }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: "text.disabled",
+              "&:hover": {
+                color: "text.secondary",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
           <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
             {t('inventory_title', 'Optimizacion de Inventario')}
           </Typography>
-        </Stack>
+        </Box>
         <Stack direction="row" gap={1}>
           <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => navigate('/operations/niveles-de-servicio')}>
             {t('inventory_service_levels', 'Niveles de Servicio')}

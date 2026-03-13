@@ -903,13 +903,10 @@ export default function CatalogoEquivalencias() {
             <IconButton
               onClick={() => navigate(-1)}
               sx={{
-                color: "grey.400",
-                border: 1,
-                borderColor: "transparent",
+                color: "text.disabled",
                 "&:hover": {
-                  color: "grey.600",
+                  color: "text.secondary",
                   bgcolor: "background.paper",
-                  borderColor: "grey.200",
                 },
               }}
             >
@@ -917,7 +914,7 @@ export default function CatalogoEquivalencias() {
             </IconButton>
             <Box>
               <Typography
-                variant="h6"
+                variant="h5"
                 sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}
               >
                 {t("equivalencias_titulo", "Catalogo de Materiales Alternativos")}

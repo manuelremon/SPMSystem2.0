@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -17,7 +18,8 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import KraljicMatrix from '../components/KraljicMatrix';
@@ -30,6 +32,7 @@ const CATEGORY_COLORS = [
 export default function SpendAnalytics() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [categoryData, setCategoryData] = useState([]);
@@ -131,12 +134,30 @@ export default function SpendAnalytics() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" gap={1}>
-        <AnalyticsIcon sx={{ color: 'primary.main' }} />
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography
+          variant="h5"
+          component="h1"
+          fontWeight={700}
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="text.primary"
+        >
           {t('spend_title', 'Analisis de Gasto')}
         </Typography>
-      </Stack>
+      </Box>
 
       {/* KPI Cards */}
       <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>

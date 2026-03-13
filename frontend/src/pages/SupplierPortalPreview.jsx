@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
@@ -21,7 +22,8 @@ import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import IconButton from '@mui/material/IconButton';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -47,6 +49,7 @@ const ASN_ESTADO_COLORS = {
 export default function SupplierPortalPreview() {
   const { t } = useI18n();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [cuitInput, setCuitInput] = useState('');
   const [selectedCuit, setSelectedCuit] = useState('');
@@ -198,12 +201,30 @@ export default function SupplierPortalPreview() {
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" gap={1}>
-        <VisibilityIcon sx={{ color: 'primary.main' }} />
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography
+          variant="h5"
+          component="h1"
+          fontWeight={700}
+          textTransform="uppercase"
+          letterSpacing="0.05em"
+          color="text.primary"
+        >
           {t('portal_preview_title', 'Vista Previa Portal Proveedor')}
         </Typography>
-      </Stack>
+      </Box>
 
       {/* Proveedor Selector */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>

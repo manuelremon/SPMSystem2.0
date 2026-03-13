@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -15,8 +16,10 @@ import {
   Tabs,
   Tab,
   Grid,
+  IconButton,
 } from "@mui/material";
 import {
+  ArrowBack as ArrowBackIcon,
   Send as SendIcon,
   MenuBook as BookIcon,
   Warning as AlertTriangleIcon,
@@ -40,6 +43,7 @@ import api from "../services/api";
 export default function Ayuda() {
   const { user } = useAuthStore();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [formData, setFormData] = useState({
     asunto: "",
@@ -160,13 +164,34 @@ ${formData.mensaje}
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
       <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box>
-        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-          {t("ayuda_centro_title", "Centro de Ayuda")}
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-          {t("ayuda_centro_desc", "Obten asistencia, aprende a usar el sistema o contacta al administrador")}
-        </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            color: "text.disabled",
+            "&:hover": {
+              color: "text.secondary",
+              bgcolor: "background.paper",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Box>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing="0.05em"
+            color="text.primary"
+          >
+            {t("ayuda_centro_title", "Centro de Ayuda")}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+            {t("ayuda_centro_desc", "Obten asistencia, aprende a usar el sistema o contacta al administrador")}
+          </Typography>
+        </Box>
       </Box>
 
       <Paper sx={{ width: 'fit-content' }}>

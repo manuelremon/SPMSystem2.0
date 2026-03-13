@@ -354,7 +354,7 @@ const ForecastMasivo = () => {
         <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('forecast_masivo_titulo', 'FORECAST MASIVO')}
         </Typography>
       </Box>
