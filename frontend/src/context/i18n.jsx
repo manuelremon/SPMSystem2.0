@@ -36,12 +36,12 @@ const translations = {
   nav_compras: { es: "Compras", en: "Procurement" },
   nav_inventario: { es: "Inventario", en: "Inventory" },
   nav_logistica: { es: "Logística", en: "Logistics" },
-  nav_analytics: { es: "Analytics", en: "Analytics" },
+  nav_analytics: { es: "Analítica", en: "Analytics" },
 
   // Nav - sub-headers
   nav_header_gestiones: { es: "GESTIONES", en: "REQUESTS" },
   nav_header_aprobacion: { es: "APROBACIÓN", en: "APPROVAL" },
-  nav_header_sourcing: { es: "SOURCING", en: "SOURCING" },
+  nav_header_sourcing: { es: "ABASTECIMIENTO", en: "SOURCING" },
   nav_header_proveedores: { es: "PROVEEDORES", en: "SUPPLIERS" },
   nav_header_facturas: { es: "FACTURAS", en: "INVOICES" },
   nav_header_panel: { es: "PANEL", en: "PANEL" },
@@ -55,7 +55,7 @@ const translations = {
   nav_header_flete_flota: { es: "FLETE & FLOTA", en: "FREIGHT & FLEET" },
   nav_header_inspeccion: { es: "INSPECCIÓN", en: "INSPECTION" },
   nav_header_ingenieria: { es: "INGENIERÍA", en: "ENGINEERING" },
-  nav_header_dashboards: { es: "DASHBOARDS", en: "DASHBOARDS" },
+  nav_header_dashboards: { es: "TABLEROS", en: "DASHBOARDS" },
   nav_header_analisis: { es: "ANÁLISIS", en: "ANALYSIS" },
   nav_header_inteligencia: { es: "INTELIGENCIA", en: "INTELLIGENCE" },
   nav_header_usuarios: { es: "USUARIOS", en: "USERS" },
@@ -65,11 +65,11 @@ const translations = {
 
   // Nav - menu items
   nav_procurement_dashboard: { es: "Compras SAP", en: "SAP Procurement" },
-  nav_scorecard: { es: "Scorecard", en: "Scorecard" },
+  nav_scorecard: { es: "Evaluación Proveedores", en: "Scorecard" },
   nav_prices: { es: "Precios", en: "Prices" },
   nav_stock: { es: "Stock", en: "Stock" },
-  nav_forecast_individual: { es: "Forecast Individual", en: "Individual Forecast" },
-  nav_forecast_masivo: { es: "Forecast Masivo", en: "Bulk Forecast" },
+  nav_forecast_individual: { es: "Pronóstico Individual", en: "Individual Forecast" },
+  nav_forecast_masivo: { es: "Pronóstico Masivo", en: "Bulk Forecast" },
   nav_shipments: { es: "Envíos", en: "Shipments" },
   nav_consolidation: { es: "Consolidación LTL", en: "LTL Consolidation" },
   nav_vehicles: { es: "Vehículos", en: "Vehicles" },
@@ -79,7 +79,7 @@ const translations = {
   nav_executive: { es: "Dashboard Ejecutivo", en: "Executive Dashboard" },
   nav_ai: { es: "IA Analytics", en: "AI Analytics" },
   nav_production: { es: "Producción (MPS)", en: "Production (MPS)" },
-  nav_packaging: { es: "Packaging", en: "Packaging" },
+  nav_packaging: { es: "Empaque y Etiquetas", en: "Packaging" },
   nav_customs: { es: "Aduanas", en: "Customs" },
   nav_kanban: { es: "Kanban", en: "Kanban" },
 
@@ -1285,7 +1285,7 @@ const translations = {
   mrp_param_exito_guardado: { es: "materiales guardados correctamente", en: "materials saved successfully" },
 
   // Forecast
-  nav_forecast: { es: "Forecast", en: "Forecast" },
+  nav_forecast: { es: "Pronóstico", en: "Forecast" },
 
   // TMS (Transport Management)
   nav_transporte: { es: "Transporte", en: "Transport" },
@@ -1459,7 +1459,7 @@ const translations = {
   whatif_adjusted: { es: "Ajustado", en: "Adjusted" },
   whatif_avg_stock: { es: "Stock Promedio", en: "Average Stock" },
   whatif_vs_current: { es: "vs. actual", en: "vs. current" },
-  nav_whatif: { es: "What-If Inventario", en: "Inventory What-If" },
+  nav_whatif: { es: "Simulación de Inventario", en: "Inventory What-If" },
   auto_approval_criticidad_critica: { es: "Crítica", en: "Critical" },
 
   // Webhooks
@@ -1526,7 +1526,7 @@ const translations = {
   forecast_ensemble_total: { es: "Ensemble Total", en: "Ensemble Total" },
 
   // ABC Analysis (Sprint 45)
-  nav_abc_analysis: { es: "ABC Analysis", en: "ABC Analysis" },
+  nav_abc_analysis: { es: "Análisis ABC", en: "ABC Analysis" },
   abc_title: { es: "Análisis ABC de Materiales", en: "ABC Analysis of Materials" },
   abc_subtitle: { es: "Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)", en: "Material classification by consumption value (A: 80%, B: 15%, C: 5%)" },
   abc_clase_a: { es: "Clase A", en: "Class A" },
@@ -1605,7 +1605,7 @@ const translations = {
   audit_view_changes: { es: "Ver cambios", en: "View changes" },
 
   // Cost Savings (Sprint 52)
-  nav_savings: { es: "Cost Savings", en: "Cost Savings" },
+  nav_savings: { es: "Ahorros de Costos", en: "Cost Savings" },
   savings_title: { es: "Seguimiento de Ahorros", en: "Cost Savings Tracker" },
   savings_ytd: { es: "YTD Total", en: "YTD Total" },
   savings_mtd: { es: "MTD Total", en: "MTD Total" },
@@ -1619,7 +1619,7 @@ const translations = {
   savings_progress: { es: "Progreso", en: "Progress" },
 
   // SLOB / Inventory Aging (Sprint 53)
-  nav_slob: { es: "Aging & SLOB", en: "Aging & SLOB" },
+  nav_slob: { es: "Antigüedad e Inmovilizado", en: "Aging & SLOB" },
   slob_title: { es: "Análisis de Antigüedad de Inventario", en: "Inventory Aging Analysis" },
   slob_aging_tab: { es: "Análisis de Antigüedad", en: "Aging Analysis" },
   slob_disposition_tab: { es: "Disposiciones SLOB", en: "SLOB Dispositions" },
@@ -1716,7 +1716,7 @@ const translations = {
   matching_difference: { es: "Diferencia", en: "Difference" },
 
   // Sprint 62: Spend Analytics
-  nav_spend_analytics: { es: "Spend Analytics", en: "Spend Analytics" },
+  nav_spend_analytics: { es: "Análisis de Gastos", en: "Spend Analytics" },
   spend_title: { es: "Análisis de Gasto", en: "Spend Analytics" },
   spend_by_category: { es: "Gasto por Categoría", en: "Spend by Category" },
   spend_maverick: { es: "Gasto Maverick", en: "Maverick Spend" },
@@ -1809,8 +1809,8 @@ const translations = {
   warehouse_click_times: { es: "Clic para registrar tiempos", en: "Click to register times" },
 
   // Sprint 67: Compliance & Rebates
-  nav_compliance: { es: "Compliance", en: "Compliance" },
-  nav_rebates: { es: "Rebates", en: "Rebates" },
+  nav_compliance: { es: "Cumplimiento", en: "Compliance" },
+  nav_rebates: { es: "Bonificaciones", en: "Rebates" },
   compliance_title: { es: "Compliance Contractual", en: "Contract Compliance" },
   compliance_rate: { es: "Tasa Compliance", en: "Compliance Rate" },
   compliance_check: { es: "Verificar OC", en: "Check PO" },
@@ -1860,7 +1860,7 @@ const translations = {
   freight_total_approved: { es: "Total Aprobado", en: "Total Approved" },
 
   // Sprint 71: Control Tower
-  nav_control_tower: { es: "Control Tower", en: "Control Tower" },
+  nav_control_tower: { es: "Torre de Control", en: "Control Tower" },
   ct_title: { es: "Supply Chain Control Tower", en: "Supply Chain Control Tower" },
   ct_events: { es: "Timeline Eventos", en: "Event Timeline" },
   ct_alerts: { es: "Alertas", en: "Alerts" },
@@ -1917,7 +1917,7 @@ const translations = {
 
   // Sprint 74: Lot Traceability & Recalls
   nav_lots: { es: "Lotes", en: "Lots" },
-  nav_recalls: { es: "Recalls", en: "Recalls" },
+  nav_recalls: { es: "Retiros de Mercado", en: "Recalls" },
   lot_title: { es: "Trazabilidad de Lotes", en: "Lot Traceability" },
   lot_active: { es: "Lotes Activos", en: "Active Lots" },
   lot_blocked: { es: "Bloqueados", en: "Blocked" },
@@ -2310,7 +2310,7 @@ const translations = {
   finance_state_terminated: { es: "Terminado", en: "Terminated" },
 
   // Sprint 88: Advanced Packaging & Shipping Labels
-  nav_packing_lists: { es: "Packing Lists", en: "Packing Lists" },
+  nav_packing_lists: { es: "Listas de Empaque", en: "Packing Lists" },
   pack_title: { es: "Packing Lists", en: "Packing Lists" },
   pack_create: { es: "Crear Packing List", en: "Create Packing List" },
   pack_numero: { es: "Número", en: "Number" },

@@ -99,7 +99,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
     minWidth: 200,
     sections: [
       {
-        header: { key: 'nav_header_sourcing', fallback: 'SOURCING' },
+        header: { key: 'nav_header_sourcing', fallback: 'ABASTECIMIENTO' },
         items: [
           { to: '/procurement', labelKey: 'nav_procurement_dashboard', labelFallback: 'Compras SAP' },
           { to: '/procurement/rfq', labelKey: 'nav_rfq', labelFallback: 'Licitaciones (RFQ)' },
@@ -110,7 +110,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
       {
         header: { key: 'nav_header_proveedores', fallback: 'PROVEEDORES' },
         items: [
-          { to: '/procurement/scorecard', labelKey: 'nav_scorecard', labelFallback: 'Scorecard' },
+          { to: '/procurement/scorecard', labelKey: 'nav_scorecard', labelFallback: 'Evaluación Proveedores' },
           { to: '/procurement/supplier-risk', labelKey: 'nav_supplier_risk', labelFallback: 'Riesgo Proveedores' },
           { to: '/procurement/certifications', labelKey: 'nav_certifications', labelFallback: 'Certificaciones' },
           { to: '/procurement/audits', labelKey: 'nav_supplier_audits', labelFallback: 'Auditorias Prov.' },
@@ -120,8 +120,8 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
         header: { key: 'nav_header_facturas', fallback: 'FACTURAS' },
         items: [
           { to: '/procurement/invoices', labelKey: 'nav_invoices', labelFallback: 'Facturas (3-Way)' },
-          { to: '/procurement/compliance', labelKey: 'nav_compliance', labelFallback: 'Compliance' },
-          { to: '/procurement/rebates', labelKey: 'nav_rebates', labelFallback: 'Rebates' },
+          { to: '/procurement/compliance', labelKey: 'nav_compliance', labelFallback: 'Cumplimiento' },
+          { to: '/procurement/rebates', labelKey: 'nav_rebates', labelFallback: 'Bonificaciones' },
           { to: '/finance/supplier-finance', labelKey: 'nav_supplier_finance', labelFallback: 'Financiamiento' },
         ],
       },
@@ -157,8 +157,8 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
       {
         header: { key: 'nav_header_demanda', fallback: 'DEMANDA' },
         items: [
-          { to: '/forecast/individual', labelKey: 'nav_forecast_individual', labelFallback: 'Forecast Individual' },
-          { to: '/forecast/masivo', labelKey: 'nav_forecast_masivo', labelFallback: 'Forecast Masivo' },
+          { to: '/forecast/individual', labelKey: 'nav_forecast_individual', labelFallback: 'Pronóstico Individual' },
+          { to: '/forecast/masivo', labelKey: 'nav_forecast_masivo', labelFallback: 'Pronóstico Masivo' },
           { to: '/planning/demand', labelKey: 'nav_demand_planning', labelFallback: 'Demanda (S&OP)' },
           { to: '/operations/production', labelKey: 'nav_production', labelFallback: 'Produccion (MPS)' },
           { to: '/operations/kanban', labelKey: 'nav_kanban', labelFallback: 'Kanban' },
@@ -189,7 +189,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
           { to: '/materiales/catalogo', labelKey: 'nav_catalogo_materiales', labelFallback: 'Catalogo' },
           { to: '/materiales/equivalencias', labelKey: 'nav_equivalencias', labelFallback: 'Alternativos' },
           { to: '/materiales/stock', labelKey: 'nav_stock', labelFallback: 'Stock' },
-          { to: '/operations/slob', labelKey: 'nav_slob', labelFallback: 'Aging & SLOB' },
+          { to: '/operations/slob', labelKey: 'nav_slob', labelFallback: 'Antigüedad e Inmovilizado' },
         ],
       },
       {
@@ -198,7 +198,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
           { to: '/operations/vmi', labelKey: 'nav_vmi', labelFallback: 'VMI' },
           { to: '/operations/consignment', labelKey: 'nav_consignment', labelFallback: 'Consignacion' },
           { to: '/operations/lots', labelKey: 'nav_lots', labelFallback: 'Lotes & Trazabilidad' },
-          { to: '/operations/recalls', labelKey: 'nav_recalls', labelFallback: 'Recalls' },
+          { to: '/operations/recalls', labelKey: 'nav_recalls', labelFallback: 'Retiros de Mercado' },
           { to: '/operations/inventory-optimization', labelKey: 'nav_inv_optimization', labelFallback: 'Optimización Inventario' },
         ],
       },
@@ -226,7 +226,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
         header: { key: 'nav_header_comercio', fallback: 'COMERCIO' },
         items: [
           { to: '/operations/customs', labelKey: 'nav_customs', labelFallback: 'Aduanas' },
-          { to: '/operations/packaging', labelKey: 'nav_packaging', labelFallback: 'Packaging' },
+          { to: '/operations/packaging', labelKey: 'nav_packaging', labelFallback: 'Empaque y Etiquetas' },
           { to: '/operations/returns', labelKey: 'nav_returns', labelFallback: 'Devoluciones (RMA)' },
           { to: '/operations/warranty', labelKey: 'nav_warranty', labelFallback: 'Garantias' },
         ],
@@ -273,15 +273,15 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
   {
     id: 'analytics',
     labelKey: 'nav_analytics',
-    labelFallback: 'Analytics',
+    labelFallback: 'Analítica',
     visible: canSeePlanner,
     activePrefixes: ['/analytics', '/ai/copilot', '/planificador/ai', '/reportes/programados'],
     minWidth: 200,
     sections: [
       {
-        header: { key: 'nav_header_dashboards', fallback: 'DASHBOARDS' },
+        header: { key: 'nav_header_dashboards', fallback: 'TABLEROS' },
         items: [
-          { to: '/analytics/control-tower', labelKey: 'nav_control_tower', labelFallback: 'Control Tower' },
+          { to: '/analytics/control-tower', labelKey: 'nav_control_tower', labelFallback: 'Torre de Control' },
           { to: '/analytics/executive', labelKey: 'nav_executive', labelFallback: 'Dashboard Ejecutivo' },
           { to: '/analytics/sustainability', labelKey: 'nav_sustainability', labelFallback: 'Sostenibilidad (ESG)' },
         ],
@@ -289,10 +289,10 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
       {
         header: { key: 'nav_header_analisis', fallback: 'ANALISIS' },
         items: [
-          { to: '/analytics/spend', labelKey: 'nav_spend_analytics', labelFallback: 'Spend Analytics' },
-          { to: '/analytics/abc', labelKey: 'nav_abc_analysis', labelFallback: 'ABC Analysis' },
-          { to: '/analytics/what-if', labelKey: 'nav_whatif', labelFallback: 'What-If Inventario' },
-          { to: '/procurement/savings', labelKey: 'nav_savings', labelFallback: 'Cost Savings' },
+          { to: '/analytics/spend', labelKey: 'nav_spend_analytics', labelFallback: 'Análisis de Gastos' },
+          { to: '/analytics/abc', labelKey: 'nav_abc_analysis', labelFallback: 'Análisis ABC' },
+          { to: '/analytics/what-if', labelKey: 'nav_whatif', labelFallback: 'Simulación de Inventario' },
+          { to: '/procurement/savings', labelKey: 'nav_savings', labelFallback: 'Ahorros de Costos' },
         ],
       },
       {
@@ -349,7 +349,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
           { to: '/admin/auto-aprobacion', labelKey: 'admin_auto_aprobacion', labelFallback: 'Auto-Aprobacion' },
           { to: '/admin/escalacion', labelKey: 'admin_escalacion', labelFallback: 'Escalado Aprobaciones' },
           { to: '/admin/webhooks', labelKey: 'admin_webhooks', labelFallback: 'Webhooks' },
-          { to: '/admin/audit-log', labelKey: 'admin_audit_log', labelFallback: 'Audit Log' },
+          { to: '/admin/audit-log', labelKey: 'admin_audit_log', labelFallback: 'Registro de Auditoría' },
           { to: '/admin/analisis-puntual', labelKey: 'admin_ap_importar', labelFallback: 'Analisis Puntual' },
           { to: '/admin/supplier-portal', labelKey: 'nav_supplier_portal', labelFallback: 'Portal Proveedores' },
           { to: '/admin/supplier-onboarding', labelKey: 'nav_supplier_onboarding', labelFallback: 'Onboarding Proveedores' },
