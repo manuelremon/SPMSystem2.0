@@ -27,6 +27,13 @@ import {
   Grid,
   Divider,
 } from "@mui/material";
+import Avatar from "@mui/material/Avatar";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import MessageIcon from "@mui/icons-material/Message";
@@ -37,6 +44,10 @@ import LockIcon from "@mui/icons-material/Lock";
 import TuneIcon from "@mui/icons-material/Tune";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import HistoryIcon from "@mui/icons-material/History";
+import EmailIcon from "@mui/icons-material/Email";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import BadgeIcon from "@mui/icons-material/Badge";
+import GroupIcon from "@mui/icons-material/Group";
 import { PushNotificationBanner } from "../components/ui/PushNotificationToggle";
 
 const initialPending = {
@@ -48,8 +59,23 @@ const initialPending = {
   gerente2_nuevo: "",
 };
 
+const getInitials = (name) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0][0]?.toUpperCase() || "?";
+};
+
+const getAvatarColor = (name) => {
+  const colors = ['#0070f3', '#16a34a', '#d97706', '#dc2626', '#8b5cf6', '#0d9488', '#ec4899', '#f97316'];
+  if (!name) return colors[0];
+  const hash = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
+  return colors[hash % colors.length];
+};
+
 export default function MiCuenta() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [profile, setProfile] = useState({});
   const [catalogos, setCatalogos] = useState({ sectores: [], centros: [], almacenes: [], usuarios: [] });
   const [pendingChanges, setPendingChanges] = useState(initialPending);
@@ -75,6 +101,8 @@ export default function MiCuenta() {
   const [messageToAdmin, setMessageToAdmin] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [cancelingRequest, setCancelingRequest] = useState(null);
+
+  const [activeTab, setActiveTab] = useState(0);
 
   const [notifPrefs, setNotifPrefs] = useState({
     pushEnabled: true,
@@ -286,6 +314,7 @@ export default function MiCuenta() {
       setSendingMessage(false);
     }
   };
+
   const getStatusColor = (estado) => {
     switch (estado) {
       case "aprobada":
@@ -301,31 +330,38 @@ export default function MiCuenta() {
     }
   };
 
-
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
-        </Box>
-        <Grid container spacing={2}>
-          {[...Array(6)].map((_, i) => (
-            <Grid item xs={12} md={6} key={i}>
-              <Paper variant="outlined" sx={{ p: 2.5 }}>
-                <Skeleton width="40%" height={28} sx={{ mb: 1 }} />
-                <Stack spacing={1.5}>
-                  <Skeleton variant="rectangular" height={40} sx={{}} />
-                  <Skeleton variant="rectangular" height={40} sx={{}} />
-                  <Skeleton variant="rectangular" height={40} sx={{}} />
-                </Stack>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+        <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
+          </Box>
+          {/* Hero skeleton */}
+          <Paper variant="outlined" sx={{ p: 3, display: "flex", alignItems: "center", gap: 3 }}>
+            <Skeleton variant="circular" width={72} height={72} />
+            <Box sx={{ flex: 1 }}>
+              <Skeleton width="30%" height={32} />
+              <Skeleton width="50%" height={20} sx={{ mt: 0.5 }} />
+              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                <Skeleton variant="rounded" width={80} height={24} />
+                <Skeleton variant="rounded" width={80} height={24} />
+              </Box>
+            </Box>
+          </Paper>
+          {/* Tabs skeleton */}
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
+            <Skeleton width="60%" height={40} sx={{ mb: 2 }} />
+            <Stack spacing={1.5}>
+              <Skeleton variant="rectangular" height={40} />
+              <Skeleton variant="rectangular" height={40} />
+              <Skeleton variant="rectangular" height={40} />
+              <Skeleton variant="rectangular" height={40} />
+            </Stack>
+          </Paper>
         </Box>
       </Box>
     );
@@ -333,264 +369,438 @@ export default function MiCuenta() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
-      </Box>
+      <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mi Cuenta</Typography>
+        </Box>
 
-      {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
-      <PushNotificationBanner />
+        {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
+        <PushNotificationBanner />
 
-      {/* Datos de Identidad + Contacto */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-            <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-              <PersonIcon fontSize="small" sx={{ color: "primary.main" }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Datos de Identidad</Typography>
+        {/* Profile Hero Card */}
+        <Paper
+          variant="outlined"
+          sx={{
+            p: { xs: 2.5, md: 3.5 },
+            background: 'linear-gradient(135deg, var(--card, #fff) 0%, var(--bg-soft, #f8fafc) 100%)',
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "center", sm: "flex-start" },
+            gap: { xs: 2, sm: 3 },
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 72,
+              height: 72,
+              bgcolor: getAvatarColor(profile.nombre_apellido),
+              fontSize: '1.75rem',
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            {getInitials(profile.nombre_apellido)}
+          </Avatar>
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' }, minWidth: 0, flex: 1 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              {profile.nombre_apellido || "-"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              {[profile.puesto, profile.sector_actual].filter(Boolean).join(" · ") || "-"}
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1.5, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+              <Chip
+                label={profile.rol_spm || "-"}
+                size="small"
+                color="primary"
+                sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+              />
+              <Chip
+                icon={<BadgeIcon sx={{ fontSize: 16 }} />}
+                label={profile.id_usuario_spm || "-"}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.75rem' }}
+              />
+              <Chip
+                icon={<EmailIcon sx={{ fontSize: 16 }} />}
+                label={profile.mail || "-"}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.75rem' }}
+              />
             </Box>
-            <Box sx={{ p: 2.5 }}>
+          </Box>
+        </Paper>
+
+        {/* Tabs Card */}
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              bgcolor: "grey.50",
+              '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 48 },
+            }}
+          >
+            <Tab icon={<PersonIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={t('account_tab_general', 'General')} />
+            <Tab icon={<LockIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={t('account_tab_security', 'Seguridad')} />
+            <Tab icon={<NotificationsIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={t('account_tab_notifications', 'Notificaciones')} />
+            <Tab icon={<TuneIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={t('account_tab_requests', 'Solicitudes')} />
+          </Tabs>
+
+          {/* ===== Tab 0 - General ===== */}
+          <Box sx={{ display: activeTab === 0 ? 'block' : 'none' }}>
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                {/* Left: Información Personal */}
+                <Grid item xs={12} md={7}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    {t('account_identity', 'Información Personal')}
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12}>
+                      <ReadOnlyField label="Nombre y Apellido" value={profile.nombre_apellido || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="ID Usuario SPM" value={profile.id_usuario_spm || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="Rol" value={profile.rol_spm || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="Puesto" value={profile.puesto || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="Sector" value={profile.sector_actual || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="Centros" value={(profile.centros_actuales || []).join(", ") || "-"} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <ReadOnlyField label="Almacenes" value={(profile.almacenes_actuales || []).join(", ") || "-"} />
+                    </Grid>
+                  </Grid>
+
+                  <Divider sx={{ my: 2.5 }} />
+
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <GroupIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    {t('account_chain', 'Cadena de Reporte')}
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={12} sm={4}>
+                      <ReadOnlyField label="Jefe" value={profile.jefe_actual || "-"} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <ReadOnlyField label="Gerente 1" value={profile.gerente1_actual || "-"} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <ReadOnlyField label="Gerente 2" value={profile.gerente2_actual || "-"} />
+                    </Grid>
+                  </Grid>
+                </Grid>
+
+                {/* Right: Datos de Contacto */}
+                <Grid item xs={12} md={5}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PhoneIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    {t('account_contact', 'Datos de Contacto')}
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    <ReadOnlyField label="Mail" value={profile.mail || "-"} />
+                    <TextField fullWidth size="small" label="Telefono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+34 600 000 000" />
+                    {phoneMessage && <Alert severity={phoneMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{phoneMessage}</Alert>}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button variant="contained" size="small" disabled={savingPhone} onClick={submitPhone} sx={{ textTransform: "none" }}>
+                        {savingPhone ? "Guardando..." : "Guardar contacto"}
+                      </Button>
+                    </Box>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </Box>
+          </Box>
+
+          {/* ===== Tab 1 - Seguridad ===== */}
+          <Box sx={{ display: activeTab === 1 ? 'block' : 'none' }}>
+            <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 560, mx: 'auto' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LockIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                {t('account_password', 'Cambiar Contraseña')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                {t('account_password_desc', 'Ingresa y confirma tu nueva contraseña para actualizarla.')}
+              </Typography>
               <Stack spacing={1.5}>
-                <ReadOnlyField label="Nombre y Apellido" value={profile.nombre_apellido || "-"} />
-                <ReadOnlyField label="ID Usuario SPM" value={profile.id_usuario_spm || "-"} />
-                <ReadOnlyField label="Rol" value={profile.rol_spm || "-"} />
-                <ReadOnlyField label="Puesto" value={profile.puesto || "-"} />
-                <ReadOnlyField label="Sector" value={profile.sector_actual || "-"} />
-                <ReadOnlyField label="Centros" value={(profile.centros_actuales || []).join(", ") || "-"} />
-                <ReadOnlyField label="Almacenes" value={(profile.almacenes_actuales || []).join(", ") || "-"} />
-                <ReadOnlyField label="Jefe" value={profile.jefe_actual || "-"} />
-                <ReadOnlyField label="Gerente 1" value={profile.gerente1_actual || "-"} />
-                <ReadOnlyField label="Gerente 2" value={profile.gerente2_actual || "-"} />
+                <TextField fullWidth size="small" type="password" label="Nueva Contrasena" value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder="Min 8 caracteres" />
+                <TextField fullWidth size="small" type="password" label="Repetir Nueva Contrasena" value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder="Repite la contrasena" />
+                <TextField fullWidth size="small" type="email" label="Mail de Respaldo" value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder="ejemplo@respaldo.com" />
+                {passwordMessage && <Alert severity={passwordMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{passwordMessage}</Alert>}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button variant="contained" size="small" disabled={savingPassword} onClick={submitSecurity} sx={{ textTransform: "none" }}>
+                    {savingPassword ? "Guardando..." : "Guardar seguridad"}
+                  </Button>
+                </Box>
               </Stack>
             </Box>
-          </Paper>
-        </Grid>
+          </Box>
 
-        <Grid item xs={12} md={6}>
-          <Stack spacing={2}>
-            {/* Contacto */}
-            <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-              <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-                <PhoneIcon fontSize="small" sx={{ color: "primary.main" }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Datos de Contacto</Typography>
-              </Box>
-              <Box sx={{ p: 2.5 }}>
-                <Stack spacing={1.5}>
-                  <ReadOnlyField label="Mail" value={profile.mail || "-"} />
-                  <TextField fullWidth size="small" label="Telefono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+34 600 000 000" />
-                  {phoneMessage && <Alert severity={phoneMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{phoneMessage}</Alert>}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button variant="contained" size="small" disabled={savingPhone} onClick={submitPhone} sx={{ textTransform: "none" }}>
-                      {savingPhone ? "Guardando..." : "Guardar contacto"}
-                    </Button>
-                  </Box>
-                </Stack>
-              </Box>
-            </Paper>
+          {/* ===== Tab 2 - Notificaciones ===== */}
+          <Box sx={{ display: activeTab === 2 ? 'block' : 'none' }}>
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              <Grid container spacing={2.5}>
+                {/* Configuración General */}
+                <Grid item xs={12} md={4}>
+                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                    <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_general', 'Configuración General')}</Typography>
+                    </Box>
+                    <List dense disablePadding>
+                      <ListItem sx={{ px: 2 }}>
+                        <ListItemIcon sx={{ minWidth: 36 }}><NotificationsIcon fontSize="small" color="primary" /></ListItemIcon>
+                        <ListItemText
+                          primary={t('account_push_notifications', 'Notificaciones Push')}
+                          secondary={t('account_push_desc', 'Recibir notificaciones del navegador')}
+                          primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                          secondaryTypographyProps={{ variant: 'caption' }}
+                        />
+                        <Switch checked={!!notifPrefs.pushEnabled} onChange={() => handleNotifPrefChange("pushEnabled")} size="small" />
+                      </ListItem>
+                      <Divider component="li" />
+                      <ListItem sx={{ px: 2 }}>
+                        <ListItemIcon sx={{ minWidth: 36 }}><VolumeUpIcon fontSize="small" color="primary" /></ListItemIcon>
+                        <ListItemText
+                          primary={t('account_sound', 'Sonido')}
+                          secondary={t('account_sound_desc', 'Reproducir sonido con cada notificación')}
+                          primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                          secondaryTypographyProps={{ variant: 'caption' }}
+                        />
+                        <Switch checked={!!notifPrefs.soundEnabled} onChange={() => handleNotifPrefChange("soundEnabled")} size="small" />
+                      </ListItem>
+                    </List>
+                  </Paper>
+                </Grid>
 
-            {/* Seguridad */}
-            <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-              <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-                <LockIcon fontSize="small" sx={{ color: "primary.main" }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Seguridad</Typography>
-              </Box>
-              <Box sx={{ p: 2.5 }}>
-                <Stack spacing={1.5}>
-                  <TextField fullWidth size="small" type="password" label="Nueva Contrasena" value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder="Min 8 caracteres" />
-                  <TextField fullWidth size="small" type="password" label="Repetir Nueva Contrasena" value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder="Repite la contrasena" />
-                  <TextField fullWidth size="small" type="email" label="Mail de Respaldo" value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder="ejemplo@respaldo.com" />
-                  {passwordMessage && <Alert severity={passwordMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{passwordMessage}</Alert>}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button variant="contained" size="small" disabled={savingPassword} onClick={submitSecurity} sx={{ textTransform: "none" }}>
-                      {savingPassword ? "Guardando..." : "Guardar seguridad"}
-                    </Button>
-                  </Box>
-                </Stack>
-              </Box>
-            </Paper>
-          </Stack>
-        </Grid>
-      </Grid>
+                {/* Flujo de Trabajo */}
+                <Grid item xs={12} md={4}>
+                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                    <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_workflow', 'Flujo de Trabajo')}</Typography>
+                    </Box>
+                    <List dense disablePadding>
+                      {[
+                        { key: "notifSolicitudes", label: "Solicitudes" },
+                        { key: "notifAprobaciones", label: "Aprobaciones" },
+                        { key: "notifMensajes", label: "Mensajes" },
+                        { key: "notifPresupuestos", label: "Presupuestos" },
+                      ].map(({ key, label }, idx) => (
+                        <Box key={key}>
+                          {idx > 0 && <Divider component="li" />}
+                          <ListItem sx={{ px: 2 }}>
+                            <ListItemText
+                              primary={label}
+                              primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                            />
+                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" />
+                          </ListItem>
+                        </Box>
+                      ))}
+                    </List>
+                  </Paper>
+                </Grid>
 
-      {/* Preferencias de Notificacion */}
-      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-        <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-          <NotificationsIcon fontSize="small" sx={{ color: "primary.main" }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Preferencias de Notificacion</Typography>
-        </Box>
-        <Box sx={{ p: 2.5 }}>
-          <Grid container spacing={1}>
-            {[
-              { key: "pushEnabled", label: "Push Notifications" },
-              { key: "soundEnabled", label: "Sonido" },
-              { key: "notifSolicitudes", label: "Solicitudes" },
-              { key: "notifAprobaciones", label: "Aprobaciones" },
-              { key: "notifMensajes", label: "Mensajes" },
-              { key: "notifPresupuestos", label: "Presupuestos" },
-              { key: "notifMrp", label: "Alertas MRP" },
-              { key: "notifSla", label: "Alertas SLA" },
-            ].map(({ key, label }) => (
-              <Grid item xs={6} sm={4} md={3} key={key}>
-                <FormControlLabel
-                  control={<Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" />}
-                  label={<Typography variant="body2">{label}</Typography>}
-                />
+                {/* Alertas del Sistema */}
+                <Grid item xs={12} md={4}>
+                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                    <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_system', 'Alertas del Sistema')}</Typography>
+                    </Box>
+                    <List dense disablePadding>
+                      {[
+                        { key: "notifMrp", label: "Alertas MRP" },
+                        { key: "notifSla", label: "Alertas SLA" },
+                      ].map(({ key, label }, idx) => (
+                        <Box key={key}>
+                          {idx > 0 && <Divider component="li" />}
+                          <ListItem sx={{ px: 2 }}>
+                            <ListItemText
+                              primary={label}
+                              primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                            />
+                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" />
+                          </ListItem>
+                        </Box>
+                      ))}
+                    </List>
+                  </Paper>
+                </Grid>
               </Grid>
-            ))}
-          </Grid>
-          {notifPrefsMessage && <Alert severity="success" sx={{ mt: 1.5, py: 0 }}>{notifPrefsMessage}</Alert>}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-            <Button variant="contained" size="small" disabled={savingNotifPrefs} onClick={saveNotifPrefs} sx={{ textTransform: "none" }}>
-              {savingNotifPrefs ? "Guardando..." : "Guardar preferencias"}
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
 
-      {/* Configuracion sujeta a aprobacion */}
-      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-        <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-          <TuneIcon fontSize="small" sx={{ color: "primary.main" }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Configuracion sujeta a aprobacion</Typography>
-        </Box>
-        <Box sx={{ p: 2.5 }}>
-          <Typography variant="body2" color="text.secondary" mb={2}>Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Sector</InputLabel>
-                <Select value={pendingChanges.sector_nuevo} label="Sector" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
-                  <MenuItem value="">Sin cambio</MenuItem>
-                  {catalogos.sectores.map((s) => (
-                    <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>{s.nombre || s}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Centros</InputLabel>
-                <Select multiple value={pendingChanges.centros_nuevos} label="Centros" onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
-                  {catalogos.centros.map((c) => (
-                    <MenuItem key={c.id || c.nombre || c} value={c.nombre || c.id || c}>{c.nombre || c}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Almacenes</InputLabel>
-                <Select multiple value={pendingChanges.almacenes_nuevos} label="Almacenes" onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
-                  {catalogos.almacenes.map((a) => (
-                    <MenuItem key={a.id || a.nombre || a} value={a.nombre || a.id || a}>{a.nombre || a}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Jefe</InputLabel>
-                <Select value={pendingChanges.jefe_nuevo} label="Jefe" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
-                  <MenuItem value="">Sin cambio</MenuItem>
-                  {catalogos.usuarios.map((u) => (
-                    <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Gerente 1</InputLabel>
-                <Select value={pendingChanges.gerente1_nuevo} label="Gerente 1" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
-                  <MenuItem value="">Sin cambio</MenuItem>
-                  {catalogos.usuarios.map((u) => (
-                    <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Gerente 2</InputLabel>
-                <Select value={pendingChanges.gerente2_nuevo} label="Gerente 2" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
-                  <MenuItem value="">Sin cambio</MenuItem>
-                  {catalogos.usuarios.map((u) => (
-                    <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-          {requestMessage && <Alert severity={requestMessage.includes("enviada") ? "success" : "warning"} sx={{ mt: 2, py: 0 }}>{requestMessage}</Alert>}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-            <Button variant="contained" size="small" disabled={savingRequest} onClick={submitProfileRequest} sx={{ textTransform: "none" }}>
-              {savingRequest ? "Enviando..." : "Solicitar actualizacion"}
-            </Button>
+              {notifPrefsMessage && <Alert severity="success" sx={{ mt: 2, py: 0 }}>{notifPrefsMessage}</Alert>}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2.5 }}>
+                <Button variant="contained" size="small" disabled={savingNotifPrefs} onClick={saveNotifPrefs} sx={{ textTransform: "none" }}>
+                  {savingNotifPrefs ? "Guardando..." : "Guardar preferencias"}
+                </Button>
+              </Box>
+            </Box>
           </Box>
-        </Box>
-      </Paper>
 
-      {/* Historial de solicitudes */}
-      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-        <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon fontSize="small" sx={{ color: "primary.main" }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Solicitudes de actualizacion de perfil</Typography>
-        </Box>
-        <Box sx={{ p: solicitudes.length === 0 ? 2.5 : 0 }}>
-          {solicitudes.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">Sin solicitudes pendientes.</Typography>
-          ) : (
-            <SolicitudesTable
-              data={solicitudes}
-              onMessage={(solicitud) => {
-                setSelectedSolicitud(solicitud);
-                setMessageModalOpen(true);
-              }}
-              onCancel={(solicitud) => handleCancelRequest(solicitud)}
+          {/* ===== Tab 3 - Solicitudes ===== */}
+          <Box sx={{ display: activeTab === 3 ? 'block' : 'none' }}>
+            <Box sx={{ p: { xs: 2, md: 3 } }}>
+              {/* Request changes form */}
+              <Paper variant="outlined" sx={{ overflow: "hidden", mb: 3 }}>
+                <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
+                  <TuneIcon fontSize="small" sx={{ color: "primary.main" }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Configuracion sujeta a aprobacion</Typography>
+                </Box>
+                <Box sx={{ p: 2.5 }}>
+                  <Typography variant="body2" color="text.secondary" mb={2}>Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Sector</InputLabel>
+                        <Select value={pendingChanges.sector_nuevo} label="Sector" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
+                          <MenuItem value="">Sin cambio</MenuItem>
+                          {catalogos.sectores.map((s) => (
+                            <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>{s.nombre || s}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Centros</InputLabel>
+                        <Select multiple value={pendingChanges.centros_nuevos} label="Centros" onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                          {catalogos.centros.map((c) => (
+                            <MenuItem key={c.id || c.nombre || c} value={c.nombre || c.id || c}>{c.nombre || c}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Almacenes</InputLabel>
+                        <Select multiple value={pendingChanges.almacenes_nuevos} label="Almacenes" onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                          {catalogos.almacenes.map((a) => (
+                            <MenuItem key={a.id || a.nombre || a} value={a.nombre || a.id || a}>{a.nombre || a}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Jefe</InputLabel>
+                        <Select value={pendingChanges.jefe_nuevo} label="Jefe" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
+                          <MenuItem value="">Sin cambio</MenuItem>
+                          {catalogos.usuarios.map((u) => (
+                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Gerente 1</InputLabel>
+                        <Select value={pendingChanges.gerente1_nuevo} label="Gerente 1" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
+                          <MenuItem value="">Sin cambio</MenuItem>
+                          {catalogos.usuarios.map((u) => (
+                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Gerente 2</InputLabel>
+                        <Select value={pendingChanges.gerente2_nuevo} label="Gerente 2" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
+                          <MenuItem value="">Sin cambio</MenuItem>
+                          {catalogos.usuarios.map((u) => (
+                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                  {requestMessage && <Alert severity={requestMessage.includes("enviada") ? "success" : "warning"} sx={{ mt: 2, py: 0 }}>{requestMessage}</Alert>}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button variant="contained" size="small" disabled={savingRequest} onClick={submitProfileRequest} sx={{ textTransform: "none" }}>
+                      {savingRequest ? "Enviando..." : "Solicitar actualizacion"}
+                    </Button>
+                  </Box>
+                </Box>
+              </Paper>
+
+              {/* Historial de solicitudes */}
+              <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+                <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
+                  <HistoryIcon fontSize="small" sx={{ color: "primary.main" }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Solicitudes de actualizacion de perfil</Typography>
+                </Box>
+                <Box sx={{ p: solicitudes.length === 0 ? 2.5 : 0 }}>
+                  {solicitudes.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">Sin solicitudes pendientes.</Typography>
+                  ) : (
+                    <SolicitudesTable
+                      data={solicitudes}
+                      onMessage={(solicitud) => {
+                        setSelectedSolicitud(solicitud);
+                        setMessageModalOpen(true);
+                      }}
+                      onCancel={(solicitud) => handleCancelRequest(solicitud)}
+                    />
+                  )}
+                </Box>
+              </Paper>
+            </Box>
+          </Box>
+        </Paper>
+
+        {/* Modal de mensaje */}
+        <Dialog open={messageModalOpen} onClose={() => setMessageModalOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+            Mensaje al administrador
+            <IconButton size="small" onClick={() => setMessageModalOpen(false)}><CloseIcon /></IconButton>
+          </DialogTitle>
+          <Divider />
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Solicitud #{selectedSolicitud?.id}
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Mensaje"
+              value={messageToAdmin}
+              onChange={(e) => setMessageToAdmin(e.target.value)}
+              placeholder="Escribe tu consulta al administrador..."
             />
-          )}
-        </Box>
-      </Paper>
-
-      {/* Modal de mensaje */}
-      <Dialog open={messageModalOpen} onClose={() => setMessageModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
-          Mensaje al administrador
-          <IconButton size="small" onClick={() => setMessageModalOpen(false)}><CloseIcon /></IconButton>
-        </DialogTitle>
-        <Divider />
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Solicitud #{selectedSolicitud?.id}
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="Mensaje"
-            value={messageToAdmin}
-            onChange={(e) => setMessageToAdmin(e.target.value)}
-            placeholder="Escribe tu consulta al administrador..."
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setMessageModalOpen(false)} sx={{ textTransform: "none" }}>Cancelar</Button>
-          <Button
-            variant="contained"
-            size="small"
-            disabled={sendingMessage || !messageToAdmin.trim()}
-            onClick={handleSendMessage}
-            startIcon={<SendIcon />}
-            sx={{ textTransform: "none" }}
-          >
-            {sendingMessage ? "Enviando..." : "Enviar"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setMessageModalOpen(false)} sx={{ textTransform: "none" }}>Cancelar</Button>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={sendingMessage || !messageToAdmin.trim()}
+              onClick={handleSendMessage}
+              startIcon={<SendIcon />}
+              sx={{ textTransform: "none" }}
+            >
+              {sendingMessage ? "Enviando..." : "Enviar"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );
@@ -731,9 +941,21 @@ function ReadOnlyField({ label, value }) {
       size="small"
       label={label}
       value={value}
-      InputProps={{ readOnly: true }}
-      variant="filled"
-      sx={{ '& .MuiInputBase-input': { bgcolor: 'action.hover' } }}
+      InputProps={{ readOnly: true, disableUnderline: true }}
+      variant="standard"
+      sx={{
+        '& .MuiInputLabel-root': {
+          fontSize: '0.7rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: 'text.secondary',
+        },
+        '& .MuiInputBase-input': {
+          fontWeight: 500,
+          cursor: 'default',
+          py: 0.5,
+        },
+      }}
     />
   );
 }

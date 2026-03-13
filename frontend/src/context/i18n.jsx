@@ -2663,6 +2663,34 @@ const translations = {
   trivias_cat_desc: { es: "Arrastra cada material a su grupo correcto", en: "Drag each material to its correct group" },
   trivias_ranking: { es: "Ranking de Jugadores", en: "Player Ranking" },
   trivias_sin_ranking: { es: "Aun no hay puntuaciones. Se el primero en jugar!", en: "No scores yet. Be the first to play!" },
+
+  // =====================================================================
+  // MI CUENTA
+  // =====================================================================
+
+  // Tab labels
+  account_tab_general: { es: "General", en: "General" },
+  account_tab_security: { es: "Seguridad", en: "Security" },
+  account_tab_notifications: { es: "Notificaciones", en: "Notifications" },
+  account_tab_requests: { es: "Solicitudes", en: "Requests" },
+
+  // Section headers
+  account_identity: { es: "Información Personal", en: "Personal Information" },
+  account_contact: { es: "Datos de Contacto", en: "Contact Information" },
+  account_chain: { es: "Cadena de Reporte", en: "Reporting Chain" },
+  account_password: { es: "Cambiar Contraseña", en: "Change Password" },
+  account_password_desc: { es: "Ingresa y confirma tu nueva contraseña para actualizarla.", en: "Enter and confirm your new password to update it." },
+  account_request_changes: { es: "Solicitar Cambios", en: "Request Changes" },
+  account_history: { es: "Historial de Solicitudes", en: "Request History" },
+
+  // Notification groups
+  account_notif_general: { es: "Configuración General", en: "General Settings" },
+  account_notif_workflow: { es: "Flujo de Trabajo", en: "Workflow" },
+  account_notif_system: { es: "Alertas del Sistema", en: "System Alerts" },
+  account_push_notifications: { es: "Notificaciones Push", en: "Push Notifications" },
+  account_push_desc: { es: "Recibir notificaciones del navegador", en: "Receive browser notifications" },
+  account_sound: { es: "Sonido", en: "Sound" },
+  account_sound_desc: { es: "Reproducir sonido con cada notificación", en: "Play sound with each notification" },
 };
 
 export function I18nProvider({ children }) {
