@@ -333,7 +333,7 @@ export default function MiCuenta() {
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
               <ArrowBackIcon />
@@ -369,7 +369,7 @@ export default function MiCuenta() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+      <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 4 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Header */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <IconButton onClick={() => navigate(-1)} sx={{ color: "text.disabled", "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" } }}>
@@ -386,7 +386,7 @@ export default function MiCuenta() {
           variant="outlined"
           sx={{
             p: { xs: 2.5, md: 3.5 },
-            background: 'linear-gradient(135deg, var(--card, #fff) 0%, var(--bg-soft, #f8fafc) 100%)',
+            background: 'linear-gradient(135deg, #ffffff 0%, var(--primary-muted, #e6f0ff) 100%)',
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
             alignItems: { xs: "center", sm: "flex-start" },
@@ -462,31 +462,31 @@ export default function MiCuenta() {
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Grid container spacing={3}>
                 {/* Left: Información Personal */}
-                <Grid item xs={12} md={7}>
+                <Grid size={{ xs: 12, md: 7 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PersonIcon fontSize="small" sx={{ color: 'primary.main' }} />
                     {t('account_identity', 'Información Personal')}
                   </Typography>
                   <Grid container spacing={1.5}>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <ReadOnlyField label="Nombre y Apellido" value={profile.nombre_apellido || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="ID Usuario SPM" value={profile.id_usuario_spm || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="Rol" value={profile.rol_spm || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="Puesto" value={profile.puesto || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="Sector" value={profile.sector_actual || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="Centros" value={(profile.centros_actuales || []).join(", ") || "-"} />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <ReadOnlyField label="Almacenes" value={(profile.almacenes_actuales || []).join(", ") || "-"} />
                     </Grid>
                   </Grid>
@@ -498,20 +498,20 @@ export default function MiCuenta() {
                     {t('account_chain', 'Cadena de Reporte')}
                   </Typography>
                   <Grid container spacing={1.5}>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <ReadOnlyField label="Jefe" value={profile.jefe_actual || "-"} />
                     </Grid>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <ReadOnlyField label="Gerente 1" value={profile.gerente1_actual || "-"} />
                     </Grid>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <ReadOnlyField label="Gerente 2" value={profile.gerente2_actual || "-"} />
                     </Grid>
                   </Grid>
                 </Grid>
 
                 {/* Right: Datos de Contacto */}
-                <Grid item xs={12} md={5}>
+                <Grid size={{ xs: 12, md: 5 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <PhoneIcon fontSize="small" sx={{ color: 'primary.main' }} />
                     {t('account_contact', 'Datos de Contacto')}
@@ -560,8 +560,8 @@ export default function MiCuenta() {
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               <Grid container spacing={2.5}>
                 {/* Configuración General */}
-                <Grid item xs={12} md={4}>
-                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', height: '100%' }}>
                     <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_general', 'Configuración General')}</Typography>
                     </Box>
@@ -574,7 +574,7 @@ export default function MiCuenta() {
                           primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                           secondaryTypographyProps={{ variant: 'caption' }}
                         />
-                        <Switch checked={!!notifPrefs.pushEnabled} onChange={() => handleNotifPrefChange("pushEnabled")} size="small" />
+                        <Switch checked={!!notifPrefs.pushEnabled} onChange={() => handleNotifPrefChange("pushEnabled")} size="small" inputProps={{ 'aria-label': 'Notificaciones Push' }} />
                       </ListItem>
                       <Divider component="li" />
                       <ListItem sx={{ px: 2 }}>
@@ -585,15 +585,15 @@ export default function MiCuenta() {
                           primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                           secondaryTypographyProps={{ variant: 'caption' }}
                         />
-                        <Switch checked={!!notifPrefs.soundEnabled} onChange={() => handleNotifPrefChange("soundEnabled")} size="small" />
+                        <Switch checked={!!notifPrefs.soundEnabled} onChange={() => handleNotifPrefChange("soundEnabled")} size="small" inputProps={{ 'aria-label': 'Sonido' }} />
                       </ListItem>
                     </List>
-                  </Paper>
+                  </Box>
                 </Grid>
 
                 {/* Flujo de Trabajo */}
-                <Grid item xs={12} md={4}>
-                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', height: '100%' }}>
                     <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_workflow', 'Flujo de Trabajo')}</Typography>
                     </Box>
@@ -611,17 +611,17 @@ export default function MiCuenta() {
                               primary={label}
                               primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                             />
-                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" />
+                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" inputProps={{ 'aria-label': label }} />
                           </ListItem>
                         </Box>
                       ))}
                     </List>
-                  </Paper>
+                  </Box>
                 </Grid>
 
                 {/* Alertas del Sistema */}
-                <Grid item xs={12} md={4}>
-                  <Paper variant="outlined" sx={{ overflow: 'hidden', height: '100%' }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden', height: '100%' }}>
                     <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('account_notif_system', 'Alertas del Sistema')}</Typography>
                     </Box>
@@ -637,12 +637,12 @@ export default function MiCuenta() {
                               primary={label}
                               primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
                             />
-                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" />
+                            <Switch checked={!!notifPrefs[key]} onChange={() => handleNotifPrefChange(key)} size="small" inputProps={{ 'aria-label': label }} />
                           </ListItem>
                         </Box>
                       ))}
                     </List>
-                  </Paper>
+                  </Box>
                 </Grid>
               </Grid>
 
@@ -659,109 +659,107 @@ export default function MiCuenta() {
           <Box sx={{ display: activeTab === 3 ? 'block' : 'none' }}>
             <Box sx={{ p: { xs: 2, md: 3 } }}>
               {/* Request changes form */}
-              <Paper variant="outlined" sx={{ overflow: "hidden", mb: 3 }}>
-                <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <TuneIcon fontSize="small" sx={{ color: "primary.main" }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Configuracion sujeta a aprobacion</Typography>
                 </Box>
-                <Box sx={{ p: 2.5 }}>
-                  <Typography variant="body2" color="text.secondary" mb={2}>Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.</Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Sector</InputLabel>
-                        <Select value={pendingChanges.sector_nuevo} label="Sector" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
-                          <MenuItem value="">Sin cambio</MenuItem>
-                          {catalogos.sectores.map((s) => (
-                            <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>{s.nombre || s}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Centros</InputLabel>
-                        <Select multiple value={pendingChanges.centros_nuevos} label="Centros" onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
-                          {catalogos.centros.map((c) => (
-                            <MenuItem key={c.id || c.nombre || c} value={c.nombre || c.id || c}>{c.nombre || c}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Almacenes</InputLabel>
-                        <Select multiple value={pendingChanges.almacenes_nuevos} label="Almacenes" onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
-                          {catalogos.almacenes.map((a) => (
-                            <MenuItem key={a.id || a.nombre || a} value={a.nombre || a.id || a}>{a.nombre || a}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Jefe</InputLabel>
-                        <Select value={pendingChanges.jefe_nuevo} label="Jefe" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
-                          <MenuItem value="">Sin cambio</MenuItem>
-                          {catalogos.usuarios.map((u) => (
-                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Gerente 1</InputLabel>
-                        <Select value={pendingChanges.gerente1_nuevo} label="Gerente 1" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
-                          <MenuItem value="">Sin cambio</MenuItem>
-                          {catalogos.usuarios.map((u) => (
-                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Gerente 2</InputLabel>
-                        <Select value={pendingChanges.gerente2_nuevo} label="Gerente 2" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
-                          <MenuItem value="">Sin cambio</MenuItem>
-                          {catalogos.usuarios.map((u) => (
-                            <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
+                <Typography variant="body2" color="text.secondary" mb={2}>Solicita cambios de sector, centros y responsables. Los cambios seran revisados por un administrador.</Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Sector</InputLabel>
+                      <Select value={pendingChanges.sector_nuevo} label="Sector" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, sector_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">Sin cambio</MenuItem>
+                        {catalogos.sectores.map((s) => (
+                          <MenuItem key={s.id || s.nombre || s} value={s.nombre || s}>{s.nombre || s}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   </Grid>
-                  {requestMessage && <Alert severity={requestMessage.includes("enviada") ? "success" : "warning"} sx={{ mt: 2, py: 0 }}>{requestMessage}</Alert>}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    <Button variant="contained" size="small" disabled={savingRequest} onClick={submitProfileRequest} sx={{ textTransform: "none" }}>
-                      {savingRequest ? "Enviando..." : "Solicitar actualizacion"}
-                    </Button>
-                  </Box>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Centros</InputLabel>
+                      <Select multiple value={pendingChanges.centros_nuevos} label="Centros" onChange={(e) => onMultiSelect(e, "centros_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                        {catalogos.centros.map((c) => (
+                          <MenuItem key={c.id || c.nombre || c} value={c.nombre || c.id || c}>{c.nombre || c}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Almacenes</InputLabel>
+                      <Select multiple value={pendingChanges.almacenes_nuevos} label="Almacenes" onChange={(e) => onMultiSelect(e, "almacenes_nuevos")} renderValue={(selected) => selected.join(", ")}>
+                        {catalogos.almacenes.map((a) => (
+                          <MenuItem key={a.id || a.nombre || a} value={a.nombre || a.id || a}>{a.nombre || a}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Jefe</InputLabel>
+                      <Select value={pendingChanges.jefe_nuevo} label="Jefe" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, jefe_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">Sin cambio</MenuItem>
+                        {catalogos.usuarios.map((u) => (
+                          <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Gerente 1</InputLabel>
+                      <Select value={pendingChanges.gerente1_nuevo} label="Gerente 1" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente1_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">Sin cambio</MenuItem>
+                        {catalogos.usuarios.map((u) => (
+                          <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Gerente 2</InputLabel>
+                      <Select value={pendingChanges.gerente2_nuevo} label="Gerente 2" onChange={(e) => { setPendingChanges((prev) => ({ ...prev, gerente2_nuevo: e.target.value })); setRequestMessage(""); }}>
+                        <MenuItem value="">Sin cambio</MenuItem>
+                        {catalogos.usuarios.map((u) => (
+                          <MenuItem key={u.id_spm || u.id} value={u.id_spm || u.id}>{u.nombre} {u.apellido}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+                {requestMessage && <Alert severity={requestMessage.includes("enviada") ? "success" : "warning"} sx={{ mt: 2, py: 0 }}>{requestMessage}</Alert>}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                  <Button variant="contained" size="small" disabled={savingRequest} onClick={submitProfileRequest} sx={{ textTransform: "none" }}>
+                    {savingRequest ? "Enviando..." : "Solicitar actualizacion"}
+                  </Button>
                 </Box>
-              </Paper>
+              </Box>
+
+              <Divider sx={{ mb: 3 }} />
 
               {/* Historial de solicitudes */}
-              <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-                <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", display: "flex", alignItems: "center", gap: 1 }}>
+              <Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                   <HistoryIcon fontSize="small" sx={{ color: "primary.main" }} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Solicitudes de actualizacion de perfil</Typography>
                 </Box>
-                <Box sx={{ p: solicitudes.length === 0 ? 2.5 : 0 }}>
-                  {solicitudes.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">Sin solicitudes pendientes.</Typography>
-                  ) : (
-                    <SolicitudesTable
-                      data={solicitudes}
-                      onMessage={(solicitud) => {
-                        setSelectedSolicitud(solicitud);
-                        setMessageModalOpen(true);
-                      }}
-                      onCancel={(solicitud) => handleCancelRequest(solicitud)}
-                    />
-                  )}
-                </Box>
-              </Paper>
+                {solicitudes.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">Sin solicitudes pendientes.</Typography>
+                ) : (
+                  <SolicitudesTable
+                    data={solicitudes}
+                    onMessage={(solicitud) => {
+                      setSelectedSolicitud(solicitud);
+                      setMessageModalOpen(true);
+                    }}
+                    onCancel={(solicitud) => handleCancelRequest(solicitud)}
+                  />
+                )}
+              </Box>
             </Box>
           </Box>
         </Paper>
@@ -842,9 +840,9 @@ function SolicitudesTable({ data, onMessage, onCancel }) {
       cellRenderer: (params) => {
         const estado = params.data?.estado?.toLowerCase() || 'pendiente';
         const statusConfig = {
-          'aprobado': { bg: 'var(--success-soft)', color: 'var(--success)' },
-          'rechazado': { bg: 'var(--danger-soft)', color: 'var(--danger)' },
-          'pendiente': { bg: 'var(--warning-soft)', color: 'var(--warning)' },
+          'aprobado': { bg: 'var(--success-bg-light)', color: 'var(--success)' },
+          'rechazado': { bg: 'var(--danger-bg-light)', color: 'var(--danger)' },
+          'pendiente': { bg: 'var(--warning-bg-light)', color: 'var(--warning)' },
         };
         const config = statusConfig[estado] || statusConfig.pendiente;
         return (
@@ -941,11 +939,11 @@ function ReadOnlyField({ label, value }) {
       size="small"
       label={label}
       value={value}
-      InputProps={{ readOnly: true, disableUnderline: true }}
-      variant="standard"
+      InputProps={{ readOnly: true }}
+      variant="filled"
       sx={{
         '& .MuiInputLabel-root': {
-          fontSize: '0.7rem',
+          fontSize: '0.75rem',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           color: 'text.secondary',
@@ -953,7 +951,11 @@ function ReadOnlyField({ label, value }) {
         '& .MuiInputBase-input': {
           fontWeight: 500,
           cursor: 'default',
-          py: 0.5,
+        },
+        '& .MuiFilledInput-root': {
+          bgcolor: 'grey.50',
+          '&:hover': { bgcolor: 'grey.100' },
+          '&.Mui-focused': { bgcolor: 'grey.50' },
         },
       }}
     />
