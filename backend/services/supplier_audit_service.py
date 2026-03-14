@@ -204,7 +204,7 @@ def alertas_vencimiento(dias: int = 30) -> list:
         if is_using_postgresql():
             cur.execute("""
                 SELECT id, proveedor_cuit, tipo, nombre, fecha_vencimiento,
-                       fecha_vencimiento - CURRENT_DATE as dias_restantes
+                       EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))::integer as dias_restantes
                 FROM proveedor_certificacion
                 WHERE estado = 'active'
                   AND fecha_vencimiento IS NOT NULL
