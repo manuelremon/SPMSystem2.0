@@ -45,8 +45,8 @@ const ESTADO_COLORS = {
 
 const ESTADO_LABELS = {
   pending: 'Pendiente',
-  matched: 'Matched',
-  disputed: 'Disputed',
+  matched: 'Conciliada',
+  disputed: 'En Disputa',
   approved: 'Aprobada',
   paid: 'Pagada',
 };
@@ -56,6 +56,13 @@ const MATCH_RESULT_COLORS = {
   mismatch: 'error',
   tolerance: 'warning',
   pending: 'default',
+};
+
+const MATCH_RESULT_LABELS = {
+  ok: 'Correcto',
+  mismatch: 'Discrepancia',
+  tolerance: 'En Tolerancia',
+  pending: 'Pendiente',
 };
 
 export default function InvoiceDetail() {
@@ -311,7 +318,7 @@ export default function InvoiceDetail() {
                             </Typography>
                             <Chip
                               size="small"
-                              label={result.estado || 'pending'}
+                              label={MATCH_RESULT_LABELS[result.estado] || result.estado || 'Pendiente'}
                               color={MATCH_RESULT_COLORS[result.estado] || 'default'}
                             />
                           </Stack>

@@ -33,11 +33,19 @@ import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: 'pending', label: 'Pendiente' },
-  { value: 'matched', label: 'Matched' },
-  { value: 'disputed', label: 'Disputed' },
+  { value: 'matched', label: 'Conciliada' },
+  { value: 'disputed', label: 'En Disputa' },
   { value: 'approved', label: 'Aprobada' },
   { value: 'paid', label: 'Pagada' },
 ];
+
+const ESTADO_LABELS = {
+  pending: 'Pendiente',
+  matched: 'Conciliada',
+  disputed: 'En Disputa',
+  approved: 'Aprobada',
+  paid: 'Pagada',
+};
 
 const ESTADO_COLORS = {
   pending: 'default',
@@ -120,7 +128,7 @@ export default function InvoiceList() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={t(`invoice_estado_${p.value}`, p.value)}
+          label={ESTADO_LABELS[p.value] || p.value}
           color={ESTADO_COLORS[p.value] || 'default'}
         />
       ),
@@ -135,12 +143,12 @@ export default function InvoiceList() {
       color: 'primary.main',
     },
     {
-      label: t('invoice_kpi_matched', '% Matched'),
+      label: t('invoice_kpi_matched', '% Conciliadas'),
       value: kpis?.matched_pct != null ? `${Number(kpis.matched_pct).toFixed(1)}%` : '-',
       color: 'success.main',
     },
     {
-      label: t('invoice_kpi_disputed', '% Disputed'),
+      label: t('invoice_kpi_disputed', '% En Disputa'),
       value: kpis?.disputed_pct != null ? `${Number(kpis.disputed_pct).toFixed(1)}%` : '-',
       color: 'error.main',
     },
