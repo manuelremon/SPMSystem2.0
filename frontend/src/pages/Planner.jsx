@@ -356,15 +356,18 @@ export default function Planner({ filterMode }) {
       {
         field: "id",
         headerName: "ID",
-        flex: 0.3,
-        minWidth: 60,
+        width: 70,
+        flex: 0,
+        pinned: "left",
       },
       {
         field: "acciones",
         headerName: "Acción",
-        flex: 0.8,
-        minWidth: 160,
+        width: 180,
+        flex: 0,
+        pinned: "left",
         sortable: false,
+        filter: false,
         cellRenderer: (params) => {
           const row = params.data;
           const estado = normalizeEstado(row.status || row.estado || "");
@@ -376,7 +379,7 @@ export default function Planner({ filterMode }) {
           const canTratar = isMine && !isFinished;
 
           return (
-            <Stack direction="row" spacing={0.5}>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", height: "100%" }}>
               <Button
                 size="small"
                 variant="outlined"
@@ -389,10 +392,11 @@ export default function Planner({ filterMode }) {
                 sx={{
                   minWidth: "auto",
                   px: 1,
-                  py: 0.5,
-                  fontSize: "var(--text-2xs)",
+                  py: 0.25,
+                  fontSize: "0.7rem",
                   fontWeight: 700,
                   textTransform: "uppercase",
+                  lineHeight: 1.2,
                 }}
               >
                 {t("planner_ver", "Ver")}
@@ -400,7 +404,7 @@ export default function Planner({ filterMode }) {
               {canTratar && (
                 <Button
                   size="small"
-                  variant="outlined"
+                  variant="contained"
                   color="success"
                   aria-label={`${t("planner_tratar", "Tratar")} ${t("common_solicitud", "solicitud")} #${row.id}`}
                   onClick={(e) => {
@@ -410,10 +414,11 @@ export default function Planner({ filterMode }) {
                   sx={{
                     minWidth: "auto",
                     px: 1,
-                    py: 0.5,
-                    fontSize: "var(--text-2xs)",
+                    py: 0.25,
+                    fontSize: "0.7rem",
                     fontWeight: 700,
                     textTransform: "uppercase",
+                    lineHeight: 1.2,
                   }}
                 >
                   {t("planner_tratar", "Tratar")}
@@ -432,10 +437,11 @@ export default function Planner({ filterMode }) {
                   sx={{
                     minWidth: "auto",
                     px: 1,
-                    py: 0.5,
-                    fontSize: "var(--text-2xs)",
+                    py: 0.25,
+                    fontSize: "0.7rem",
                     fontWeight: 700,
                     textTransform: "uppercase",
+                    lineHeight: 1.2,
                   }}
                 >
                   {t("planner_tomar", "Tomar")}
@@ -446,144 +452,10 @@ export default function Planner({ filterMode }) {
         },
       },
       {
-        field: "items_count",
-        headerName: "Items",
-        flex: 0.3,
-        minWidth: 60,
-        valueGetter: (params) => (params.data.items || []).length,
-        cellRenderer: (params) => (
-          <Chip
-            label={params.value}
-            size="small"
-            variant="outlined"
-            sx={{
-              minWidth: 28,
-              height: 22,
-              fontSize: "0.75rem",
-              fontWeight: 600,
-            }}
-          />
-        ),
-      },
-      {
-        field: "created_at",
-        headerName: "F. Creación",
-        flex: 0.5,
-        minWidth: 90,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
-      },
-      {
-        field: "centro",
-        headerName: "Centro",
-        flex: 0.4,
-        minWidth: 70,
-      },
-      {
-        field: "almacen",
-        headerName: "Almacén",
-        flex: 0.4,
-        minWidth: 70,
-        valueGetter: (params) => params.data.almacen || params.data.almacen_codigo || "-",
-      },
-      {
-        field: "sector",
-        headerName: "Sector",
-        flex: 0.6,
-        minWidth: 100,
-        valueGetter: (params) => getSectorNombre(params.data.sector),
-      },
-      {
-        field: "solicitante",
-        headerName: "Solicitante",
-        flex: 0.7,
-        minWidth: 120,
-        valueGetter: (params) => renderSolicitante(params.data),
-      },
-      {
-        field: "criticidad",
-        headerName: "Criticidad",
-        flex: 0.5,
-        minWidth: 80,
-        cellRenderer: (params) => {
-          const criticidad = params.value || "Normal";
-          const config = getCriticidadConfig(criticidad);
-          return (
-            <Typography variant="body2" fontWeight={600} sx={{ color: config.color }}>
-              {config.label}
-            </Typography>
-          );
-        },
-      },
-      {
-        field: "ai_priority",
-        headerName: "IA",
-        flex: 0.4,
-        minWidth: 60,
-        cellRenderer: (params) => {
-          const priority = params.value;
-          const score = params.data?.ai_score;
-          if (!priority) return null;
-          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
-          return (
-            <Typography variant="body2" fontWeight={700} title={`Score: ${score ? (score * 100).toFixed(0) + '%' : '-'}`}
-              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
-              {priority}
-            </Typography>
-          );
-        },
-      },
-      {
-        field: "justificacion",
-        headerName: "Asunto",
-        flex: 1,
-        minWidth: 120,
-        cellRenderer: (params) => {
-          const texto = params.value || "-";
-          const truncado = texto.length > 25;
-          return (
-            <Typography
-              variant="body2"
-              noWrap
-              title={truncado ? texto : undefined}
-            >
-              {truncado ? texto.slice(0, 25) + "..." : texto}
-            </Typography>
-          );
-        },
-      },
-      {
-        field: "total_monto",
-        headerName: "Monto",
-        flex: 0.6,
-        minWidth: 100,
-        type: "numericColumn",
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
-      },
-      {
-        field: "fecha_necesidad",
-        headerName: "F. Necesidad",
-        flex: 0.5,
-        minWidth: 90,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
-      },
-      {
         field: "estado",
         headerName: "Estado",
         flex: 0.7,
-        minWidth: 100,
+        minWidth: 110,
         valueGetter: (params) => params.data.status || params.data.estado || "pendiente",
         valueFormatter: (params) => {
           const map = {
@@ -608,6 +480,140 @@ export default function Planner({ filterMode }) {
           );
         },
       },
+      {
+        field: "created_at",
+        headerName: "F. Creación",
+        flex: 0.5,
+        minWidth: 95,
+        cellRenderer: (params) => (
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {formatDate(params.value)}
+          </Typography>
+        ),
+      },
+      {
+        field: "solicitante",
+        headerName: "Solicitante",
+        flex: 0.8,
+        minWidth: 130,
+        valueGetter: (params) => renderSolicitante(params.data),
+      },
+      {
+        field: "justificacion",
+        headerName: "Asunto",
+        flex: 1.2,
+        minWidth: 150,
+        cellRenderer: (params) => {
+          const texto = params.value || "-";
+          return (
+            <Typography
+              variant="body2"
+              noWrap
+              title={texto}
+              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {texto}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "items_count",
+        headerName: "Items",
+        width: 70,
+        flex: 0,
+        valueGetter: (params) => (params.data.items || []).length,
+        cellRenderer: (params) => (
+          <Chip
+            label={params.value}
+            size="small"
+            variant="outlined"
+            sx={{
+              minWidth: 28,
+              height: 22,
+              fontSize: "0.75rem",
+              fontWeight: 600,
+            }}
+          />
+        ),
+      },
+      {
+        field: "centro",
+        headerName: "Centro",
+        flex: 0.4,
+        minWidth: 75,
+      },
+      {
+        field: "almacen",
+        headerName: "Almacén",
+        flex: 0.4,
+        minWidth: 75,
+        valueGetter: (params) => params.data.almacen || params.data.almacen_codigo || "-",
+      },
+      {
+        field: "sector",
+        headerName: "Sector",
+        flex: 0.5,
+        minWidth: 90,
+        valueGetter: (params) => getSectorNombre(params.data.sector),
+      },
+      {
+        field: "criticidad",
+        headerName: "Criticidad",
+        flex: 0.5,
+        minWidth: 85,
+        cellRenderer: (params) => {
+          const criticidad = params.value || "Normal";
+          const config = getCriticidadConfig(criticidad);
+          return (
+            <Typography variant="body2" fontWeight={600} sx={{ color: config.color }}>
+              {config.label}
+            </Typography>
+          );
+        },
+      },
+      {
+        field: "total_monto",
+        headerName: "Monto",
+        flex: 0.5,
+        minWidth: 100,
+        type: "numericColumn",
+        cellStyle: { textAlign: 'right', paddingRight: '12px' },
+        cellRenderer: (params) => (
+          <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+            {formatCurrency(params.value || 0)}
+          </Typography>
+        ),
+      },
+      {
+        field: "fecha_necesidad",
+        headerName: "F. Necesidad",
+        flex: 0.5,
+        minWidth: 95,
+        cellRenderer: (params) => (
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {formatDate(params.value)}
+          </Typography>
+        ),
+      },
+      {
+        field: "ai_priority",
+        headerName: "IA",
+        width: 65,
+        flex: 0,
+        cellRenderer: (params) => {
+          const priority = params.value;
+          const score = params.data?.ai_score;
+          if (!priority) return null;
+          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
+          return (
+            <Typography variant="body2" fontWeight={700} title={`Score: ${score ? (score * 100).toFixed(0) + '%' : '-'}`}
+              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
+              {priority}
+            </Typography>
+          );
+        },
+      },
     ],
     [handleTratar, handleTomar, user, t]
   );
@@ -629,12 +635,13 @@ export default function Planner({ filterMode }) {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+    <Box sx={{ bgcolor: "grey.100", mx: { xs: -1.5, sm: -2, lg: -3 }, mt: { xs: -1.5, sm: -2, lg: -3 }, mb: { xs: -1.5, sm: -2, lg: -3 }, px: { xs: 1.5, sm: 2, lg: 3 }, pt: { xs: 1.5, sm: 2, lg: 3 }, minHeight: "calc(100vh - 43px)" }}>
+      <Box sx={{ maxWidth: 1800, mx: "auto" }}>
         {/* Header */}
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <IconButton
             onClick={() => navigate(-1)}
+            size="small"
             aria-label={t('common_volver', 'Volver')}
             sx={{
               color: "text.secondary",
@@ -644,10 +651,10 @@ export default function Planner({ filterMode }) {
               },
             }}
           >
-            <ArrowBackIcon />
+            <ArrowBackIcon fontSize="small" />
           </IconButton>
           <Typography
-            variant="h5"
+            variant="h6"
             component="h1"
             fontWeight={700}
             textTransform="uppercase"
@@ -688,8 +695,9 @@ export default function Planner({ filterMode }) {
           sx={{
             border: 1,
             borderColor: "divider",
-            p: 2.5,
-            mb: 3,
+            p: 2,
+            mb: 2,
+            borderRadius: "8px",
           }}
         >
           {/* Row 1: Search + Date Range + Clear */}
@@ -811,8 +819,8 @@ export default function Planner({ filterMode }) {
           </Stack>
 
           {/* Row 2: Multi-select filters */}
-          <Divider sx={{ mb: 2 }} />
-          <Stack direction="row" flexWrap="wrap" spacing={2} alignItems="flex-end">
+          <Divider sx={{ mb: 1.5 }} />
+          <Stack direction="row" flexWrap="wrap" spacing={1.5} alignItems="flex-end" useFlexGap>
             <MultiSelect
               label={t("planner_filtro_centro", "Centro")}
               options={catalogos.centros || []}
@@ -866,7 +874,7 @@ export default function Planner({ filterMode }) {
           sx={{
             border: 1,
             borderColor: "divider",
-            borderRadius: "var(--radius-md)",
+            borderRadius: "8px",
             overflow: "hidden",
           }}
         >
@@ -877,13 +885,14 @@ export default function Planner({ filterMode }) {
               bgcolor: "background.paper",
               borderBottom: 1,
               borderColor: "divider",
+              minHeight: 42,
               "& .MuiTab-root": {
                 fontWeight: 600,
-                fontSize: "0.875rem",
+                fontSize: "0.8rem",
                 textTransform: "none",
-                py: 1.5,
-                px: 3,
-                minHeight: 48,
+                py: 1,
+                px: 2.5,
+                minHeight: 42,
               },
               "& .MuiTabs-indicator": {
                 height: 3,
@@ -895,7 +904,7 @@ export default function Planner({ filterMode }) {
                 key={tab}
                 value={tab}
                 label={
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <Stack direction="row" alignItems="center" spacing={0.75}>
                     <span>
                       {tab === "pendientes"
                         ? t("planner_tab_pendientes", "Pendientes")
@@ -909,9 +918,9 @@ export default function Planner({ filterMode }) {
                       color={activeTab === tab ? "primary" : "default"}
                       sx={{
                         height: 20,
-                        fontSize: "var(--text-2xs)",
+                        fontSize: "0.7rem",
                         fontWeight: 700,
-                        "& .MuiChip-label": { px: 1 },
+                        "& .MuiChip-label": { px: 0.75 },
                       }}
                     />
                   </Stack>
@@ -923,7 +932,7 @@ export default function Planner({ filterMode }) {
             rowData={rows}
             columnDefs={columnDefs}
             loading={loading}
-            height={600}
+            height="calc(100vh - 340px)"
             pagination={true}
             paginationPageSize={25}
             paginationPageSizeSelector={[10, 25, 50, 100]}
