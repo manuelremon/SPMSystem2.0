@@ -102,7 +102,8 @@ export default function ProcurementCopilot() {
     } finally {
       setConvsLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch messages for active conversation
   const fetchMessages = useCallback(async (convId) => {
@@ -118,7 +119,8 @@ export default function ProcurementCopilot() {
     } finally {
       setMsgsLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch suggestions
   const fetchSuggestions = useCallback(async () => {

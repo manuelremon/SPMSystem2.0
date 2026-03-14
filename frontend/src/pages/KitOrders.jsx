@@ -127,7 +127,8 @@ export default function KitOrders() {
     } finally {
       setLoading(false);
     }
-  }, [filters, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const fetchKPIs = useCallback(async () => {
     try {

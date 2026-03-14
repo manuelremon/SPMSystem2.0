@@ -84,7 +84,8 @@ export default function InvoiceDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const fetchComparison = useCallback(async () => {
     try {

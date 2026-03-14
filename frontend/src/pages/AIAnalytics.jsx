@@ -191,7 +191,8 @@ export default function AIAnalytics() {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [centro, periodoDias, tipoFiltroSLA, t])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centro, periodoDias, tipoFiltroSLA])
 
   useEffect(() => {
     fetchData()

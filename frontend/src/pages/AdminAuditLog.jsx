@@ -78,7 +78,8 @@ export default function AdminAuditLog() {
     } finally {
       setLoading(false);
     }
-  }, [page, perPage, filters, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, filters]);
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);

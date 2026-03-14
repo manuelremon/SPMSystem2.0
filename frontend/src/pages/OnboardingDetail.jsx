@@ -157,7 +157,8 @@ export default function OnboardingDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id, t, toast, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchDetail();

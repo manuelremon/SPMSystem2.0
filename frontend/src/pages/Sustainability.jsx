@@ -172,7 +172,8 @@ export default function Sustainability() {
     } finally {
       setLoadingEmisiones(false);
     }
-  }, [emisionFilters, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emisionFilters]);
 
   const fetchEsgProveedores = useCallback(async () => {
     setLoadingEsg(true);
@@ -186,7 +187,8 @@ export default function Sustainability() {
     } finally {
       setLoadingEsg(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchMetas = useCallback(async () => {
     setLoadingMetas(true);
@@ -200,7 +202,8 @@ export default function Sustainability() {
     } finally {
       setLoadingMetas(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchHuella = useCallback(async () => {
     setLoadingHuella(true);
@@ -214,7 +217,8 @@ export default function Sustainability() {
     } finally {
       setLoadingHuella(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { fetchKPIs(); }, [fetchKPIs]);
 

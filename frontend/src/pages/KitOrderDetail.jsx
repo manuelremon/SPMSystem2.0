@@ -103,7 +103,8 @@ export default function KitOrderDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => { fetchOrder(); }, [fetchOrder]);
 

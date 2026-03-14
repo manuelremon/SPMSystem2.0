@@ -67,7 +67,8 @@ export default function SpendAnalytics() {
     } finally {
       setLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

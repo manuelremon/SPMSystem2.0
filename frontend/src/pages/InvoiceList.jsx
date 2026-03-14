@@ -80,7 +80,8 @@ export default function InvoiceList() {
     } finally {
       setLoading(false);
     }
-  }, [filters, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const fetchKpis = useCallback(async () => {
     try {

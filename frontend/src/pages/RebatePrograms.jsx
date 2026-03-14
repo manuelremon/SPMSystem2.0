@@ -97,7 +97,8 @@ export default function RebatePrograms() {
     } finally {
       setLoadingPrograms(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchClaims = useCallback(async () => {
     try {
@@ -111,7 +112,8 @@ export default function RebatePrograms() {
     } finally {
       setLoadingClaims(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { fetchPrograms(); }, [fetchPrograms]);
   useEffect(() => { fetchClaims(); }, [fetchClaims]);

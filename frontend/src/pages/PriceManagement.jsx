@@ -112,7 +112,8 @@ export default function PriceManagement() {
     } finally {
       setListasLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchNegociaciones = useCallback(async () => {
     setNegosLoading(true);
@@ -126,7 +127,8 @@ export default function PriceManagement() {
     } finally {
       setNegosLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (tab === 0) fetchListas();

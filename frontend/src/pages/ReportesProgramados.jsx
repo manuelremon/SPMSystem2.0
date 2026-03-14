@@ -95,7 +95,8 @@ export default function ReportesProgramados() {
     } finally {
       setLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchReportes();

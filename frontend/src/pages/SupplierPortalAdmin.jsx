@@ -128,7 +128,8 @@ export default function SupplierPortalAdmin() {
     } finally {
       setUsersLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch proveedores for forecast sharing
   const fetchProveedores = useCallback(async () => {
@@ -156,7 +157,8 @@ export default function SupplierPortalAdmin() {
     } finally {
       setActivityLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (tabValue === 0) fetchUsers();

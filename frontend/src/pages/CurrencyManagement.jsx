@@ -105,7 +105,8 @@ export default function CurrencyManagement() {
     } finally {
       setRatesLoading(false);
     }
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchExposure = useCallback(async () => {
     setExposureLoading(true);

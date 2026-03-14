@@ -91,7 +91,8 @@ export default function SupplierPortalPreview() {
     } finally {
       setPosLoading(false);
     }
-  }, [selectedCuit, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCuit]);
 
   const fetchASNs = useCallback(async () => {
     if (!selectedCuit) return;
@@ -106,7 +107,8 @@ export default function SupplierPortalPreview() {
     } finally {
       setAsnsLoading(false);
     }
-  }, [selectedCuit, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCuit]);
 
   const fetchForecasts = useCallback(async () => {
     if (!selectedCuit) return;
@@ -121,7 +123,8 @@ export default function SupplierPortalPreview() {
     } finally {
       setForecastsLoading(false);
     }
-  }, [selectedCuit, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCuit]);
 
   useEffect(() => {
     if (selectedCuit) {

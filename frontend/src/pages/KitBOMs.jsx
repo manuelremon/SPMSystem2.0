@@ -86,7 +86,8 @@ export default function KitBOMs() {
     } finally {
       setLoading(false);
     }
-  }, [filters, t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   useEffect(() => { fetchBOMs(); }, [fetchBOMs]);
 
