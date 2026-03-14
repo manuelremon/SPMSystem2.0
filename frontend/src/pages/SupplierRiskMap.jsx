@@ -131,7 +131,8 @@ export default function SupplierRiskMap() {
     } finally {
       setLoading(false);
     }
-  }, [filters.nivel, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.nivel]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

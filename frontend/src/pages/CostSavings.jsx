@@ -102,7 +102,8 @@ export default function CostSavings() {
     } finally {
       setLoading(false);
     }
-  }, [page, perPage, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage]);
 
   const fetchGoals = useCallback(async () => {
     try {

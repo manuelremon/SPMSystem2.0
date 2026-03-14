@@ -99,7 +99,8 @@ export default function ContractDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => { fetchContract(); }, [fetchContract]);
 
@@ -117,7 +118,8 @@ export default function ContractDetail() {
       setChangingStatus(false);
       setStatusDialog({ open: false, target: '', label: '' });
     }
-  }, [id, statusDialog.target, fetchContract, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, statusDialog.target, fetchContract]);
 
   if (loading) {
     return (

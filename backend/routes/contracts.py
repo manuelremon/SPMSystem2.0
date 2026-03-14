@@ -106,6 +106,7 @@ def crear_contrato():
         contrato_id = contract_service.crear_contrato(data, user_id)
 
         return jsonify({
+            'ok': True,
             'id': contrato_id,
             'mensaje': 'Contrato creado exitosamente'
         }), 201
@@ -130,6 +131,10 @@ def obtener_detalle_contrato(contrato_id):
     """
     try:
         detalle = contract_service.obtener_detalle_contrato(contrato_id)
+        detalle['ok'] = True
+        # Frontend expects res.data.contract
+        if 'contrato' in detalle and 'contract' not in detalle:
+            detalle['contract'] = detalle['contrato']
         return jsonify(detalle), 200
 
     except NotFoundError as e:
@@ -158,7 +163,7 @@ def actualizar_contrato(contrato_id):
 
         contract_service.actualizar_contrato(contrato_id, data, user_id)
 
-        return jsonify({'mensaje': 'Contrato actualizado exitosamente'}), 200
+        return jsonify({'ok': True, 'mensaje': 'Contrato actualizado exitosamente'}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="contracts.actualizar_contrato")
@@ -180,7 +185,7 @@ def eliminar_contrato(contrato_id):
         user_id = _get_user_id()
         contract_service.soft_delete_contrato(contrato_id, user_id)
 
-        return jsonify({'mensaje': 'Contrato eliminado exitosamente'}), 200
+        return jsonify({'ok': True, 'mensaje': 'Contrato eliminado exitosamente'}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="contracts.eliminar_contrato")
@@ -223,7 +228,7 @@ def cambiar_estado_contrato(contrato_id):
             data.get('razon')
         )
 
-        return jsonify({'mensaje': f'Estado cambiado a {data["estado"]}'}), 200
+        return jsonify({'ok': True, 'mensaje': f'Estado cambiado a {data["estado"]}'}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="contracts.cambiar_estado_contrato")
@@ -270,6 +275,7 @@ def agregar_items(contrato_id):
         contract_service.agregar_items_contrato(contrato_id, data['items'])
 
         return jsonify({
+            'ok': True,
             'mensaje': f'{len(data["items"])} items agregados exitosamente'
         }), 201
 
@@ -301,7 +307,7 @@ def listar_items(contrato_id):
     """
     try:
         items = contract_service.obtener_items_contrato(contrato_id)
-        return jsonify(items), 200
+        return jsonify({'ok': True, 'items': items}), 200
 
     except Exception as e:
         return safe_error_response(e, logger, context="contracts")
@@ -323,7 +329,7 @@ def actualizar_item(contrato_id, item_id):
         data = request.get_json()
         contract_service.actualizar_item_contrato(item_id, data)
 
-        return jsonify({'mensaje': 'Item actualizado exitosamente'}), 200
+        return jsonify({'ok': True, 'mensaje': 'Item actualizado exitosamente'}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="contracts.actualizar_item")
@@ -337,7 +343,7 @@ def eliminar_item(contrato_id, item_id):
     """Eliminar un item de contrato"""
     try:
         contract_service.eliminar_item_contrato(item_id)
-        return jsonify({'mensaje': 'Item eliminado exitosamente'}), 200
+        return jsonify({'ok': True, 'mensaje': 'Item eliminado exitosamente'}), 200
 
     except Exception as e:
         return safe_error_response(e, logger, context="contracts")
@@ -421,6 +427,7 @@ def subir_documento(contrato_id):
         doc_id = contract_service.subir_documento(contrato_id, archivo, tipo, user_id)
 
         return jsonify({
+            'ok': True,
             'id': doc_id,
             'mensaje': 'Documento subido exitosamente'
         }), 201
@@ -452,7 +459,7 @@ def listar_documentos(contrato_id):
     """
     try:
         documentos = contract_service.obtener_documentos(contrato_id)
-        return jsonify(documentos), 200
+        return jsonify({'ok': True, 'items': documentos}), 200
 
     except Exception as e:
         return safe_error_response(e, logger, context="contracts")
@@ -503,7 +510,7 @@ def eliminar_documento(contrato_id, doc_id):
         user_id = _get_user_id()
         contract_service.eliminar_documento(doc_id, user_id)
 
-        return jsonify({'mensaje': 'Documento eliminado exitosamente'}), 200
+        return jsonify({'ok': True, 'mensaje': 'Documento eliminado exitosamente'}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="contracts.eliminar_documento")

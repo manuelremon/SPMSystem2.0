@@ -91,7 +91,8 @@ export default function Contracts() {
     } finally {
       setLoading(false);
     }
-  }, [filters, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   useEffect(() => { fetchContracts(); }, [fetchContracts]);
 

@@ -76,6 +76,7 @@ def registrar_ahorro():
         ahorro_id = savings_service.registrar_ahorro(data, user_id)
 
         return jsonify({
+            'ok': True,
             'id': ahorro_id,
             'message': 'Ahorro registrado exitosamente'
         }), 201

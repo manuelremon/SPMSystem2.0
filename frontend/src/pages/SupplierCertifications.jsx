@@ -113,7 +113,8 @@ export default function SupplierCertifications() {
     } finally {
       setLoading(false);
     }
-  }, [filters, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const fetchExpiring = useCallback(async () => {
     try {
