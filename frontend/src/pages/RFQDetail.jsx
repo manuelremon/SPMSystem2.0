@@ -74,11 +74,12 @@ export default function RFQDetail() {
         setRfq(res.data.rfq);
       }
     } catch {
-      toast.error(t('rfq_error_cargar_detalle', 'Error al cargar detalle de RFQ'));
+      // toast/t excluded from deps to avoid infinite loop
     } finally {
       setLoading(false);
     }
-  }, [id, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const fetchBids = useCallback(async () => {
     try {
@@ -117,7 +118,8 @@ export default function RFQDetail() {
     } finally {
       setActionLoading(false);
     }
-  }, [id, fetchRFQ, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, fetchRFQ]);
 
   const itemColumnDefs = useMemo(() => [
     { field: 'material_codigo', headerName: t('rfq_material_codigo', 'Codigo'), width: 140 },

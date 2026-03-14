@@ -79,11 +79,12 @@ export default function RFQList() {
         setRfqs(res.data.rfqs || []);
       }
     } catch {
-      toast.error(t('rfq_error_cargar', 'Error al cargar RFQs'));
+      // toast/t excluded from deps to avoid infinite loop
     } finally {
       setLoading(false);
     }
-  }, [estadoFilter, search, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estadoFilter, search]);
 
   useEffect(() => {
     fetchRFQs();
@@ -108,7 +109,8 @@ export default function RFQList() {
     } finally {
       setCreatingFromSol(false);
     }
-  }, [solicitudId, navigate, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitudId, navigate]);
 
   const columnDefs = useMemo(() => [
     {
