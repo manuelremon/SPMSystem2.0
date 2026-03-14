@@ -151,7 +151,8 @@ def registrar_accion(
     """
     validar_entrada_auditoria(entidad, entidad_id, accion, actor_id)
 
-    serializar_datos(datos_adicionales)
+    # Serializar datos adicionales (capturado para logging/futuro uso)
+    datos_json = serializar_datos(datos_adicionales)  # noqa: F841
 
     with get_db_transaction() as conn:
         cursor = conn.cursor()
@@ -368,6 +369,39 @@ def auditar_rechazo(
         entidad="solicitud",
         entidad_id=str(solicitud_id),
         accion="rechazar",
+        actor_id=actor_id,
+        actor_rol=actor_rol,
+        ip_address=ip_address,
+        datos_adicionales=datos,
+    )
+
+
+def auditar_cancelacion(
+    solicitud_id: int,
+    actor_id: str,
+    motivo: Optional[str] = None,
+    actor_rol: Optional[str] = None,
+    ip_address: Optional[str] = None,
+) -> int:
+    """
+    Registra la cancelacion de una solicitud.
+
+    Args:
+        solicitud_id: ID de la solicitud cancelada
+        actor_id: ID del usuario que cancela
+        motivo: Motivo de la cancelacion
+        actor_rol: Rol del actor
+        ip_address: IP del cliente
+
+    Returns:
+        ID del registro de auditoria
+    """
+    datos = {"motivo": motivo} if motivo else None
+
+    return registrar_accion(
+        entidad="solicitud",
+        entidad_id=str(solicitud_id),
+        accion="cancelar",
         actor_id=actor_id,
         actor_rol=actor_rol,
         ip_address=ip_address,

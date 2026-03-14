@@ -24,14 +24,14 @@ from backend.services.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 
-def _get_uploads_dir(solicitud_id: int) -> Path:
+def _get_uploads_dir(solicitud_id) -> Path:
     """Obtiene el directorio de uploads para una solicitud especifica"""
     base_dir = Path(__file__).parent.parent.parent / "uploads" / "solicitudes" / str(solicitud_id)
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir
 
 
-def _save_uploaded_file(file, solicitud_id: int) -> dict:
+def _save_uploaded_file(file, solicitud_id) -> dict:
     """Guarda un archivo subido y retorna su metadata"""
     if not file or not file.filename:
         return None
@@ -61,10 +61,26 @@ def _save_uploaded_file(file, solicitud_id: int) -> dict:
     }
 
 
+# M6: Whitelist de campos permitidos para UPDATE dinámico (previene SQL injection en nombres de columna)
+_SOLICITUD_UPDATABLE_FIELDS = {
+    "data_json", "total_monto", "aprobador_id", "planner_id", "status",
+    "notificado_at", "ai_score", "ai_priority", "updated_at",
+    "centro", "sector", "justificacion", "centro_costos", "almacen_virtual",
+    "criticidad", "fecha_necesidad",
+}
+
+
 def _update_solicitud(solicitud_id: int, fields: dict):
     if not fields:
         return
     fields["updated_at"] = datetime.utcnow().isoformat()
+    # Validar que todos los campos están en la whitelist
+    invalid_fields = set(fields.keys()) - _SOLICITUD_UPDATABLE_FIELDS
+    if invalid_fields:
+        logger.warning(f"[SQL-SAFETY] Campos no permitidos en _update_solicitud: {invalid_fields}")
+        fields = {k: v for k, v in fields.items() if k in _SOLICITUD_UPDATABLE_FIELDS}
+    if not fields:
+        return
     set_clause = ", ".join([f"{k}=?" for k in fields.keys()])
     params = list(fields.values()) + [solicitud_id]
     with get_db_transaction() as conn:

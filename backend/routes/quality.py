@@ -29,7 +29,7 @@ def listar_inspecciones():
             'fecha_desde': request.args.get('fecha_desde'),
             'fecha_hasta': request.args.get('fecha_hasta'),
             'page': int(request.args.get('page', 1)),
-            'per_page': int(request.args.get('per_page', 20))
+            'per_page': min(int(request.args.get('per_page', 20)), 500)
         }
 
         resultado = quality_service.obtener_inspecciones(filtros)
@@ -125,7 +125,7 @@ def listar_ncrs():
             'severidad': request.args.get('severidad'),
             'proveedor': request.args.get('proveedor'),
             'page': int(request.args.get('page', 1)),
-            'per_page': int(request.args.get('per_page', 20))
+            'per_page': min(int(request.args.get('per_page', 20)), 500)
         }
 
         resultado = quality_service.obtener_ncrs(filtros)
@@ -251,26 +251,24 @@ def obtener_tendencia_calidad_proveedor(proveedor_cuit):
         )
 
         # Obtener tendencia mensual
-        from backend.core.db import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        from backend.core.db import get_db_connection, is_using_postgresql
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
 
-        from backend.core.db import is_using_postgresql
-        ph = "%s" if is_using_postgresql() else "?"
-        cursor.execute(f"""
-            SELECT
-                to_char(created_at, 'YYYY-MM') as mes,
-                severidad,
-                COUNT(*) as count
-            FROM ncr
-            WHERE proveedor_cuit = {ph}
-            AND created_at >= CURRENT_DATE - ({ph} || ' months')::interval
-            GROUP BY to_char(created_at, 'YYYY-MM'), severidad
-            ORDER BY mes
-        """, (proveedor_cuit, str(periodo_meses)))
+            ph = "%s" if is_using_postgresql() else "?"
+            cursor.execute(f"""
+                SELECT
+                    to_char(created_at, 'YYYY-MM') as mes,
+                    severidad,
+                    COUNT(*) as count
+                FROM ncr
+                WHERE proveedor_cuit = {ph}
+                AND created_at >= CURRENT_DATE - (INTERVAL '1 month' * {ph}::int)
+                GROUP BY to_char(created_at, 'YYYY-MM'), severidad
+                ORDER BY mes
+            """, (proveedor_cuit, periodo_meses))
 
-        tendencia_rows = cursor.fetchall()
-        conn.close()
+            tendencia_rows = cursor.fetchall()
 
         # Organizar tendencia por mes
         tendencia = {}
@@ -309,7 +307,7 @@ def listar_capas():
             'estado': request.args.get('estado'),
             'responsable': request.args.get('responsable'),
             'page': int(request.args.get('page', 1)),
-            'per_page': int(request.args.get('per_page', 20))
+            'per_page': min(int(request.args.get('per_page', 20)), 500)
         }
 
         resultado = capa_service.obtener_capas(filtros)

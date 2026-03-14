@@ -91,13 +91,13 @@ class EstadoSolicitud(str, Enum):
 TRANSICIONES_VALIDAS: Dict[EstadoSolicitud, List[EstadoSolicitud]] = {
     EstadoSolicitud.DRAFT: [EstadoSolicitud.SUBMITTED, EstadoSolicitud.CANCELLED],
     EstadoSolicitud.SUBMITTED: [EstadoSolicitud.APPROVED, EstadoSolicitud.REJECTED],
-    EstadoSolicitud.APPROVED: [EstadoSolicitud.IN_PLANNING, EstadoSolicitud.CANCELLED],
-    # NOTA: Removida transición a REJECTED - una solicitud aprobada no puede ser rechazada
-    # por el planificador (el presupuesto ya fue consumido). Solo puede avanzar a IN_TREATMENT.
+    # C2: APPROVED transiciona directamente a IN_TREATMENT (IN_PLANNING eliminado)
+    EstadoSolicitud.APPROVED: [EstadoSolicitud.IN_TREATMENT, EstadoSolicitud.CANCELLED],
+    # IN_PLANNING se mantiene en el enum por backward compatibility con datos historicos,
+    # pero ya no tiene transiciones de entrada
     EstadoSolicitud.IN_PLANNING: [EstadoSolicitud.IN_TREATMENT],
     EstadoSolicitud.IN_TREATMENT: [
         EstadoSolicitud.TREATED,
-        EstadoSolicitud.IN_PLANNING,  # Permite volver atrás (máx 3 veces, validado en cambiar_estado)
     ],
     EstadoSolicitud.TREATED: [EstadoSolicitud.COMPLETED],
     EstadoSolicitud.REJECTED: [EstadoSolicitud.DRAFT],  # Permite reenviar
@@ -199,7 +199,7 @@ def normalizar_estado(estado: str) -> str:
         "en aprobacion": "submitted",
         "aprobada": "approved",
         "rechazada": "rejected",
-        "en progreso": "processing",
+        "en progreso": "in_planning",
         "en tratamiento": "in_treatment",
         "tratado": "treated",
         "tratada": "treated",
@@ -378,24 +378,7 @@ def cambiar_estado(
         if not validar_transicion(estado_actual, nuevo_estado_str):
             raise TransicionInvalidaError(estado_actual, nuevo_estado_str)
 
-        # 2.5 Validar límite de retrocesos IN_TREATMENT -> IN_PLANNING (máx 3)
-        if estado_actual == "in_treatment" and nuevo_estado_str == "in_planning":
-            cursor.execute(
-                """
-                SELECT COUNT(*) as retrocesos FROM solicitud_historial_estado
-                WHERE solicitud_id = ? AND estado_anterior = 'in_treatment' AND estado_nuevo = 'in_planning'
-                """,
-                (solicitud_id,),
-            )
-            row = cursor.fetchone()
-            retrocesos = row["retrocesos"] if row else 0
-            if retrocesos >= 3:
-                raise TransicionInvalidaError(
-                    estado_actual,
-                    nuevo_estado_str + " (límite de 3 retrocesos alcanzado)",
-                )
-
-        # 2.6 Validar límite de reenvíos REJECTED -> DRAFT (máx 2)
+        # 2.5 Validar límite de reenvíos REJECTED -> DRAFT (máx 2)
         # Evita ciclos infinitos de rechazo-reenvío
         if estado_actual == "rejected" and nuevo_estado_str == "draft":
             cursor.execute(
@@ -714,6 +697,13 @@ def _disparar_notificaciones(
         mensaje = f"Solicitud #{solicitud_id} completada exitosamente"
         tipo = "solicitud_dispatched"
 
+    elif estado_nuevo == "cancelled":
+        # M14: Notificar al solicitante que fue cancelada
+        destinatario = solicitud_data.get("id_usuario")
+        motivo = f": {razon}" if razon else ""
+        mensaje = f"Solicitud #{solicitud_id} cancelada{motivo}"
+        tipo = "solicitud_cancelled"
+
     # Crear notificacion si hay destinatario
     if destinatario and mensaje:
         crear_notificacion(cursor, destinatario, solicitud_id, mensaje, tipo)
@@ -761,6 +751,7 @@ TIPO_TO_PREFERENCE = {
     "solicitud_rejected": "notif_aprobaciones",
     "solicitud_planned": "notif_solicitudes",
     "solicitud_dispatched": "notif_solicitudes",
+    "solicitud_cancelled": "notif_solicitudes",
 }
 
 

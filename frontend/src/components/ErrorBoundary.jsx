@@ -6,13 +6,13 @@ import {
   Refresh as RefreshCwIcon,
   Home as HomeIcon,
 } from "@mui/icons-material";
+import { useI18n } from "../context/i18n";
 
 /**
- * ErrorBoundary - Catches JavaScript errors in child components
- * Prevents the entire app from crashing and shows a fallback UI
- * Integrates with Sentry for production error tracking
+ * ErrorBoundaryInner - Class component that catches JS errors
+ * Receives `t` function via props from the functional wrapper
  */
-class ErrorBoundary extends React.Component {
+class ErrorBoundaryInner extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -28,8 +28,16 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo,
     });
 
-    // Log error to console in development
-    if (import.meta.env.DEV) {
+    // Auto-reload on chunk load errors (stale deploy cache)
+    if (this.isChunkLoadError(error)) {
+      const lastReload = sessionStorage.getItem('chunk_error_reload');
+      const now = Date.now();
+      // Only auto-reload once per 30 seconds to prevent loops
+      if (!lastReload || now - Number(lastReload) > 30000) {
+        sessionStorage.setItem('chunk_error_reload', String(now));
+        window.location.reload();
+        return;
+      }
     }
 
     // Send to Sentry in production
@@ -38,6 +46,16 @@ class ErrorBoundary extends React.Component {
         componentStack: errorInfo?.componentStack,
       },
     });
+  }
+
+  isChunkLoadError(error) {
+    const msg = error?.message || '';
+    return (
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('ChunkLoadError') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('Loading CSS chunk')
+    );
   }
 
   handleReload = () => {
@@ -54,6 +72,8 @@ class ErrorBoundary extends React.Component {
   };
 
   render() {
+    const { t } = this.props;
+
     if (this.state.hasError) {
       // Custom fallback UI if provided
       if (this.props.fallback) {
@@ -104,10 +124,10 @@ class ErrorBoundary extends React.Component {
             {/* Title */}
             <Stack spacing={1} sx={{ mb: 3 }}>
               <Typography variant="h5" fontWeight="bold">
-                Algo salió mal
+                {t('error_boundary_title', 'Algo salió mal')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Ha ocurrido un error inesperado. Por favor intenta recargar la página.
+                {t('error_boundary_description', 'Ha ocurrido un error inesperado. Por favor intenta recargar la página.')}
               </Typography>
             </Stack>
 
@@ -166,14 +186,14 @@ class ErrorBoundary extends React.Component {
                 onClick={this.handleGoHome}
                 startIcon={<HomeIcon />}
               >
-                Ir al inicio
+                {t('error_boundary_go_home', 'Ir al inicio')}
               </Button>
               <Button
                 variant="contained"
                 onClick={this.handleReload}
                 startIcon={<RefreshCwIcon />}
               >
-                Recargar página
+                {t('error_boundary_reload', 'Recargar página')}
               </Button>
             </Stack>
 
@@ -184,7 +204,7 @@ class ErrorBoundary extends React.Component {
               onClick={this.handleRetry}
               sx={{ color: "primary.main" }}
             >
-              Intentar de nuevo sin recargar
+              {t('error_boundary_retry', 'Intentar de nuevo sin recargar')}
             </Button>
           </Paper>
         </Box>
@@ -193,6 +213,19 @@ class ErrorBoundary extends React.Component {
 
     return this.props.children;
   }
+}
+
+/**
+ * ErrorBoundary - Functional wrapper that injects i18n `t` function
+ * into the class-based ErrorBoundaryInner
+ */
+function ErrorBoundary({ children, fallback }) {
+  const { t } = useI18n();
+  return (
+    <ErrorBoundaryInner t={t} fallback={fallback}>
+      {children}
+    </ErrorBoundaryInner>
+  );
 }
 
 export default ErrorBoundary;

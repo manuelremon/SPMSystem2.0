@@ -40,6 +40,7 @@ from backend.routes.solicitudes.helpers import (
 from backend.services.approval_service import puede_aprobar
 from backend.services.audit_service import (
     auditar_aprobacion,
+    auditar_cancelacion,
     auditar_rechazo,
 )
 from backend.services.sla_service import (
@@ -228,6 +229,25 @@ def aprobar_solicitud(solicitud_id):
                 {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
             ),
             404,
+        )
+
+    # C1 SEGURIDAD: Anti self-approval - Segregacion de funciones
+    solicitante_id = str(solicitud.get("id_usuario") or "")
+    if solicitante_id and str(aprobador_id) == solicitante_id:
+        logger.warning(
+            f"[SELF-APPROVAL] Usuario {aprobador_id} intento aprobar su propia solicitud {solicitud_id}"
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "self_approval",
+                        "message": "No puede aprobar su propia solicitud (segregacion de funciones)",
+                    },
+                }
+            ),
+            403,
         )
 
     # FIX 4.2: Validar que el usuario solicitante sigue activo
@@ -755,6 +775,18 @@ def cancelar_solicitud(solicitud_id):
         )
         logger.info(f"[CANCELACION] Solicitud {solicitud_id} cancelada por usuario {actor_id}")
 
+        # M2: Auditar cancelacion
+        try:
+            auditar_cancelacion(
+                solicitud_id=solicitud_id,
+                actor_id=actor_id,
+                motivo=motivo,
+                actor_rol=actor_rol,
+                ip_address=request.remote_addr,
+            )
+        except Exception as e:
+            logger.warning(f"[AUDIT] Error registrando cancelacion en audit_trail: {e}")
+
     except TransicionInvalidaError as e:
         return safe_error_response(e, logger, status_code=400, context="estados.cancelar_solicitud")
 
@@ -855,7 +887,7 @@ def reenviar_solicitud(solicitud_id):
     # 6. Hacer transicion
     cambiar_estado(
         solicitud_id=solicitud_id,
-        estado_nuevo=EstadoSolicitud.SUBMITTED,
+        nuevo_estado=EstadoSolicitud.SUBMITTED,
         actor_id=actor_id,
         razon=razon_reenvio or f"Reenvio #{reenvios + 1}",
     )
