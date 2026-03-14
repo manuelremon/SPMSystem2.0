@@ -42,7 +42,7 @@ bp = Blueprint('contracts', __name__, url_prefix='/api/contracts')
 # CRUD CONTRATOS
 # ============================================================================
 
-@bp.route('/', methods=['GET'])
+@bp.route('', methods=['GET'])
 @require_auth
 def listar_contratos():
     """
@@ -80,7 +80,7 @@ def listar_contratos():
         return safe_error_response(e, logger, context="contracts")
 
 
-@bp.route('/', methods=['POST'])
+@bp.route('', methods=['POST'])
 @require_auth
 def crear_contrato():
     """

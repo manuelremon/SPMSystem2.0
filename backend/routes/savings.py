@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 bp = Blueprint('savings', __name__, url_prefix='/api/savings')
 
 
-@bp.route('/', methods=['POST'])
+@bp.route('', methods=['POST'])
 @require_auth
 def registrar_ahorro():
     """
@@ -85,7 +85,7 @@ def registrar_ahorro():
         return safe_error_response(e, logger, context="savings.registrar_ahorro")
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('', methods=['GET'])
 @require_auth
 def listar_ahorros():
     """
