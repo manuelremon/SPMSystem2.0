@@ -43,6 +43,38 @@ def listar_rfqs():
         return safe_error_response(e, logger, context="listar_rfqs")
 
 
+@rfq_bp.route("/from-solicitud", methods=["POST"])
+@require_auth
+def crear_desde_solicitud_body():
+    """
+    Crea un RFQ pre-poblado desde una solicitud existente (solicitud_id en body)
+    Body: {solicitud_id, proveedores, fecha_cierre_ofertas, descripcion}
+    """
+    try:
+        data = request.get_json()
+        user_id = _get_user_id()
+
+        if not data:
+            return jsonify({"ok": False, "error": "Datos requeridos"}), 400
+
+        solicitud_id = data.get("solicitud_id")
+        if not solicitud_id:
+            return jsonify({"ok": False, "error": "solicitud_id requerido"}), 400
+
+        rfq = rfq_service.crear_rfq_desde_solicitud(int(solicitud_id), data, user_id)
+        rfq["ok"] = True
+        rfq["rfq_id"] = rfq["id"]
+
+        return jsonify(rfq), 201
+
+    except NotFoundError as e:
+        return safe_error_response(e, logger, status_code=404, context="rfq.crear_desde_solicitud")
+    except ValidationError as e:
+        return safe_error_response(e, logger, status_code=400, context="rfq.crear_desde_solicitud")
+    except Exception as e:
+        return safe_error_response(e, logger, context="rfq.crear_desde_solicitud")
+
+
 @rfq_bp.route("", methods=["POST"])
 @require_auth
 def crear_rfq():
@@ -58,6 +90,8 @@ def crear_rfq():
             return jsonify({"ok": False, "error": "Datos requeridos"}), 400
 
         rfq = rfq_service.crear_rfq(data, user_id)
+        rfq["ok"] = True
+        rfq["rfq_id"] = rfq["id"]
 
         return jsonify(rfq), 201
 
@@ -101,7 +135,7 @@ def obtener_detalle(rfq_id):
     """
     try:
         rfq = rfq_service.obtener_detalle_rfq(rfq_id)
-        return jsonify(rfq), 200
+        return jsonify({"ok": True, "rfq": rfq}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="rfq.obtener_detalle")
@@ -135,7 +169,7 @@ def actualizar_rfq(rfq_id):
         return safe_error_response(e, logger, context="rfq.actualizar_rfq")
 
 
-@rfq_bp.route("/<int:rfq_id>/publish", methods=["PUT"])
+@rfq_bp.route("/<int:rfq_id>/publish", methods=["PUT", "POST"])
 @require_auth
 def publicar_rfq(rfq_id):
     """
@@ -144,6 +178,7 @@ def publicar_rfq(rfq_id):
     try:
         user_id = _get_user_id()
         rfq = rfq_service.publicar_rfq(rfq_id, user_id)
+        rfq["ok"] = True
 
         return jsonify(rfq), 200
 
@@ -188,7 +223,7 @@ def listar_ofertas(rfq_id):
     """
     try:
         ofertas = rfq_service.obtener_ofertas(rfq_id)
-        return jsonify({"ofertas": ofertas}), 200
+        return jsonify({"ok": True, "bids": ofertas}), 200
 
     except Exception as e:
         return safe_error_response(e, logger, context="listar_ofertas")
@@ -242,7 +277,7 @@ def evaluar_rfq(rfq_id):
     try:
         evaluaciones = rfq_service.calcular_puntajes(rfq_id)
 
-        return jsonify({"evaluaciones": evaluaciones}), 200
+        return jsonify({"ok": True, "evaluaciones": evaluaciones}), 200
 
     except NotFoundError as e:
         return safe_error_response(e, logger, status_code=404, context="rfq.evaluar_rfq")
@@ -267,6 +302,7 @@ def adjudicar_rfq(rfq_id):
             return jsonify({"ok": False, "error": "Campo 'adjudicaciones' requerido"}), 400
 
         resultado = rfq_service.adjudicar_rfq(rfq_id, data["adjudicaciones"], user_id)
+        resultado["ok"] = True
 
         return jsonify(resultado), 200
 

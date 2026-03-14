@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, insert_returning_id
 from backend.core.errors import NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ def crear_rfq(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         numero_rfq = _generar_numero_rfq(cursor)
 
         # Crear RFQ
-        cursor.execute("""
+        rfq_id = insert_returning_id(cursor, """
             INSERT INTO rfq (
                 numero_rfq, estado, titulo, descripcion,
                 fecha_cierre_ofertas, creado_por
@@ -79,8 +79,6 @@ def crear_rfq(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
             data.get("fecha_cierre_ofertas"),
             user_id
         ))
-
-        rfq_id = cursor.lastrowid
 
         # Insertar items
         for item in data["items"]:
@@ -258,12 +256,17 @@ def obtener_rfqs(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                 "creador_nombre": row[11]
             }
 
+            # Alias para frontend: fecha_creacion = created_at
+            rfq["fecha_creacion"] = rfq["created_at"]
+
             # Contar items y proveedores
             cursor.execute("SELECT COUNT(*) FROM rfq_item WHERE rfq_id = ?", (row[0],))
             rfq["total_items"] = cursor.fetchone()[0]
+            rfq["num_items"] = rfq["total_items"]
 
             cursor.execute("SELECT COUNT(*) FROM rfq_proveedor WHERE rfq_id = ?", (row[0],))
             rfq["total_proveedores"] = cursor.fetchone()[0]
+            rfq["num_proveedores"] = rfq["total_proveedores"]
 
             cursor.execute("""
                 SELECT COUNT(DISTINCT proveedor_cuit)
@@ -271,6 +274,7 @@ def obtener_rfqs(filtros: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                 WHERE rfq_id = ?
             """, (row[0],))
             rfq["total_ofertas"] = cursor.fetchone()[0]
+            rfq["num_ofertas"] = rfq["total_ofertas"]
 
             rfqs.append(rfq)
 
@@ -317,10 +321,11 @@ def obtener_detalle_rfq(rfq_id: int) -> Dict[str, Any]:
             "creado_por": row[8],
             "created_at": row[9],
             "updated_at": row[10],
-            "creador_nombre": row[11]
+            "creador_nombre": row[11],
+            "fecha_creacion": row[9],
         }
 
-        # Items
+        # Items - include aliases for frontend compatibility
         cursor.execute("""
             SELECT
                 id, material_codigo, material_descripcion, cantidad_solicitada,
@@ -335,13 +340,15 @@ def obtener_detalle_rfq(rfq_id: int) -> Dict[str, Any]:
                 "id": row[0],
                 "material_codigo": row[1],
                 "material_descripcion": row[2],
+                "descripcion": row[2],
                 "cantidad_solicitada": row[3],
+                "cantidad": row[3],
                 "unidad": row[4],
                 "especificaciones": row[5],
                 "created_at": row[6]
             })
 
-        # Proveedores
+        # Proveedores - include aliases for frontend compatibility
         cursor.execute("""
             SELECT
                 id, proveedor_cuit, proveedor_nombre, estado_respuesta, created_at
@@ -354,9 +361,13 @@ def obtener_detalle_rfq(rfq_id: int) -> Dict[str, Any]:
             rfq["proveedores"].append({
                 "id": row[0],
                 "proveedor_cuit": row[1],
+                "cuit": row[1],
                 "proveedor_nombre": row[2],
+                "nombre": row[2],
                 "estado_respuesta": row[3],
-                "created_at": row[4]
+                "estado_invitacion": row[3],
+                "created_at": row[4],
+                "fecha_invitacion": row[4],
             })
 
         # Contar ofertas
@@ -574,16 +585,19 @@ def obtener_ofertas(rfq_id: int) -> List[Dict[str, Any]]:
                 "rfq_item_id": row[1],
                 "proveedor_cuit": row[2],
                 "precio_unitario": row[3],
+                "monto_total": row[3],
                 "moneda": row[4],
                 "lead_time_dias": row[5],
                 "terminos_pago": row[6],
                 "notas": row[7],
                 "submitted_at": row[8],
+                "fecha_oferta": row[8],
                 "material_codigo": row[9],
                 "material_descripcion": row[10],
                 "cantidad_solicitada": row[11],
                 "unidad": row[12],
-                "proveedor_nombre": row[13]
+                "proveedor_nombre": row[13],
+                "estado": "recibida",
             })
 
     return ofertas
@@ -936,7 +950,7 @@ def generar_oc_desde_rfq(rfq_id: int, user_id: str) -> List[Dict[str, Any]]:
             total = sum(item["cantidad"] * item["precio_unitario"] for item in data["items"])
 
             # Insertar orden de compra
-            cursor.execute("""
+            oc_id = insert_returning_id(cursor, """
                 INSERT INTO orden_compra (
                     numero_oc, proveedor_cuit, proveedor_nombre, total, estado,
                     observaciones, solicitante_id
@@ -949,8 +963,6 @@ def generar_oc_desde_rfq(rfq_id: int, user_id: str) -> List[Dict[str, Any]]:
                 f"Generada desde {numero_rfq}",
                 user_id
             ))
-
-            oc_id = cursor.lastrowid
 
             # Insertar items de la OC
             for item in data["items"]:

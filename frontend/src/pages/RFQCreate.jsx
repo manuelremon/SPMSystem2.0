@@ -119,16 +119,16 @@ export default function RFQCreate() {
         fecha_cierre_ofertas: form.fecha_cierre_ofertas || null,
         items: validItems.map((it) => ({
           material_codigo: it.material_codigo.trim(),
-          descripcion: it.descripcion.trim(),
-          cantidad: Number(it.cantidad),
+          material_descripcion: it.descripcion.trim(),
+          cantidad_solicitada: Number(it.cantidad),
           unidad: it.unidad.trim() || 'UN',
           especificaciones: it.especificaciones.trim(),
         })),
         proveedores: proveedores
           .filter((p) => p.cuit.trim() || p.nombre.trim())
           .map((p) => ({
-            cuit: p.cuit.trim(),
-            nombre: p.nombre.trim(),
+            proveedor_cuit: p.cuit.trim(),
+            proveedor_nombre: p.nombre.trim(),
           })),
       };
 

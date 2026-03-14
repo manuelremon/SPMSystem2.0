@@ -107,7 +107,7 @@ export default function RFQDetail() {
   const handleAction = useCallback(async (action) => {
     setActionLoading(true);
     try {
-      const res = await api.post(`/rfq/${id}/${action}`);
+      const res = await api.post(`/rfq/${id}/${action}`, {});
       if (res.data?.ok) {
         toast.success(t(`rfq_action_${action}_ok`, `Accion "${action}" ejecutada`));
         fetchRFQ();
