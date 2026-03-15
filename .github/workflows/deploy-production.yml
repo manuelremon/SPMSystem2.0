@@ -62,7 +62,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: https://planifica-materiales.com
+          VITE_API_URL: /api
 
   # ==================== Deploy to Production ====================
   deploy:
@@ -296,8 +296,7 @@ jobs:
                     logger.info(f'Migration {f} applied successfully')
                 except Exception as e:
                     logger.error(f'Migration {f} failed: {e}')
-                    # Don't stop on failure - some migrations may already be partially applied
-                    continue
+                    raise SystemExit(f'CRITICAL: Migration {f} failed - aborting deploy')
 
             logger.info('All migrations processed')
             " || echo "Migration runner completed with warnings"
