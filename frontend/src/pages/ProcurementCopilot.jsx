@@ -169,7 +169,8 @@ export default function ProcurementCopilot() {
         toast.success(t('copilot_conv_created', 'Conversacion creada'));
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('copilot_error_new_conv', 'Error al crear conversacion'));
+      const errMsg = err.response?.data?.error;
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_new_conv', 'Error al crear conversacion'));
     }
   }, [t, toast, fetchConversations]);
 
@@ -203,7 +204,8 @@ export default function ProcurementCopilot() {
         fetchSuggestions();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('copilot_error_send', 'Error al enviar mensaje'));
+      const errMsg = err.response?.data?.error;
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_send', 'Error al enviar mensaje'));
     } finally {
       setSending(false);
     }
@@ -247,7 +249,8 @@ export default function ProcurementCopilot() {
         fetchSuggestions();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('copilot_error_analyze', 'Error al analizar material'));
+      const errMsg = err.response?.data?.error;
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_analyze', 'Error al analizar material'));
     } finally {
       setAnalyzing(false);
     }
@@ -269,7 +272,8 @@ export default function ProcurementCopilot() {
         fetchSuggestions();
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || t('copilot_error_feedback', 'Error al procesar feedback'));
+      const errMsg = err.response?.data?.error;
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_feedback', 'Error al procesar feedback'));
     } finally {
       setProcessingFeedback(null);
     }

@@ -37,8 +37,8 @@ def iniciar_conversacion():
         user_id = _get_user_id()
         titulo = data.get('titulo')
         contexto_tipo = data.get('contexto_tipo', 'procurement')
-        conversacion = copilot_service.iniciar_conversacion(user_id, titulo, contexto_tipo)
-        return jsonify(conversacion), 201
+        conv_id = copilot_service.iniciar_conversacion(user_id, titulo, contexto_tipo)
+        return jsonify({'ok': True, 'conversation': {'id': conv_id, 'titulo': titulo or 'Nueva conversación'}}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -49,7 +49,7 @@ def obtener_mensajes(id):
     """Obtener mensajes de una conversación."""
     try:
         mensajes = copilot_service.obtener_mensajes(id)
-        return jsonify(mensajes), 200
+        return jsonify({'ok': True, 'messages': mensajes}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -63,7 +63,7 @@ def enviar_mensaje(id):
         contenido = data.get('contenido')
         user_id = _get_user_id()
         mensaje = copilot_service.enviar_mensaje(id, contenido, user_id)
-        return jsonify(mensaje), 201
+        return jsonify({'ok': True, 'message': mensaje}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -80,7 +80,7 @@ def obtener_sugerencias():
             'per_page': request.args.get('per_page', 50, type=int)
         }
         sugerencias = copilot_service.obtener_sugerencias(filtros)
-        return jsonify(sugerencias), 200
+        return jsonify({'ok': True, 'suggestions': sugerencias}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -91,7 +91,7 @@ def generar_sugerencia_sourcing(material):
     """Generar sugerencia de sourcing para un material."""
     try:
         sugerencia = copilot_service.generar_sugerencia_sourcing(material)
-        return jsonify(sugerencia), 201
+        return jsonify({'ok': True, **sugerencia}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -102,7 +102,7 @@ def auto_draft_rfq(solicitud_id):
     """Auto-generar borrador de RFQ desde solicitud."""
     try:
         rfq_draft = copilot_service.auto_draft_rfq(solicitud_id)
-        return jsonify(rfq_draft), 201
+        return jsonify({'ok': True, **rfq_draft}), 201
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
@@ -115,8 +115,8 @@ def feedback_sugerencia(id):
         data = request.get_json()
         accion = data.get('accion')
         feedback = data.get('feedback')
-        resultado = copilot_service.feedback_sugerencia(id, accion, feedback)
-        return jsonify(resultado), 200
+        copilot_service.feedback_sugerencia(id, accion, feedback)
+        return jsonify({'ok': True}), 200
     except Exception as e:
         return safe_error_response(e, logger, context="copilot")
 
