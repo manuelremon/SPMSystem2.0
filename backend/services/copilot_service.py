@@ -319,7 +319,7 @@ def generar_sugerencia_sourcing(material_codigo: str) -> dict:
         # 2. Obtener risk scores si existen
         cursor.execute(
             f"""
-            SELECT pr.proveedor_cuit, pr.risk_score_compuesto
+            SELECT pr.proveedor_cuit, pr.score_riesgo
             FROM proveedor_riesgo pr
             WHERE pr.proveedor_cuit IN (
                 SELECT DISTINCT proveedor_cuit FROM orden_compra oc
