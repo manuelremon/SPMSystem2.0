@@ -66,16 +66,12 @@ export default function CreateSolicitud() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const token = useMemo(() => localStorage.getItem('token'), []);
-
   const loadFormCatalogsForNuevaSolicitud = async () => {
     setLoadingCatalogos(true);
     try {
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-
       let catalogosData = {};
       try {
-        const resCatalogos = await api.get('/catalogos', { headers: authHeaders });
+        const resCatalogos = await api.get('/catalogos');
         catalogosData = resCatalogos.data || {};
       } catch (errCombined) {
         if (!errCombined.response) {
@@ -93,7 +89,7 @@ export default function CreateSolicitud() {
         };
       }
 
-      const acceso = await api.get('/auth/mi-acceso', { headers: authHeaders });
+      const acceso = await api.get('/auth/mi-acceso');
       const vista = acceso.data || {};
       const centrosPermitidos = vista.centros_permitidos || [];
       const sectoresPermitidos = vista.sectores_permitidos || [];
@@ -127,8 +123,7 @@ export default function CreateSolicitud() {
 
   const preloadUserDataForNuevaSolicitud = async () => {
     try {
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await api.get('/auth/me', { headers: authHeaders });
+      const res = await api.get('/auth/me');
       const currentUser = res.data?.user || {};
 
       setForm((prev) => {

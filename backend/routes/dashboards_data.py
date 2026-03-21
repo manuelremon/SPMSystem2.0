@@ -20,7 +20,7 @@ from flask import Blueprint, jsonify, request
 logger = logging.getLogger(__name__)
 
 from backend.core.db import get_db_connection, is_using_postgresql, sql_date_relative
-from backend.core.helpers import row_to_dict
+from backend.core.helpers import row_to_dict, safe_error_response
 from backend.core.roles import require_auth
 
 bp = Blueprint("dashboards_data", __name__, url_prefix="/api/dashboard-data")
@@ -207,19 +207,7 @@ def get_solicitudes_paginadas():
         )
 
     except Exception as e:
-        logger.error(f"Error obteniendo solicitudes paginadas: {e}", exc_info=True)
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "solicitudes_error",
-                        "message": "Error al obtener solicitudes",
-                    },
-                }
-            ),
-            500,
-        )
+        return safe_error_response(e, logger, context="dashboards_data.solicitudes_paginadas")
 
 
 @bp.route("/resumen", methods=["GET"])
@@ -362,19 +350,7 @@ def get_resumen_ejecutivo():
         )
 
     except Exception as e:
-        logger.error(f"Error en resumen ejecutivo: {e}", exc_info=True)
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "resumen_error",
-                        "message": "Error al generar resumen ejecutivo",
-                    },
-                }
-            ),
-            500,
-        )
+        return safe_error_response(e, logger, context="dashboards_data.resumen_ejecutivo")
 
 
 # =============================================================================
@@ -464,17 +440,18 @@ def drill_down_metrica(metrica):
             return _drill_compras_evitadas(periodo, centro, sector, page, page_size)
 
     except Exception as e:
-        logger.error(f"Error en drill-down {metrica}: {e}", exc_info=True)
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "drill_error",
-                        "message": f"Error al obtener datos de {metrica}",
-                    },
-                }
-            ),
+        return safe_error_response(e, logger, context=f"dashboards_data.drill_{metrica}")
+
+    return (
+        jsonify(
+            {
+                "ok": False,
+                "error": {
+                    "code": "drill_error",
+                    "message": f"Metrica no reconocida: {metrica}",
+                },
+            }
+        ),
             500,
         )
 
@@ -1010,17 +987,18 @@ def _drill_stock_critico(centro, page, page_size):
         )
 
     except Exception as e:
-        logger.error(f"Error en stock crítico: {e}", exc_info=True)
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "stock_critico_error",
-                        "message": "Error al obtener stock crítico",
-                    },
-                }
-            ),
+        return safe_error_response(e, logger, context="dashboards_data.drill_stock_critico")
+
+    return (
+        jsonify(
+            {
+                "ok": False,
+                "error": {
+                    "code": "stock_critico_error",
+                    "message": "Error al obtener stock critico",
+                },
+            }
+        ),
             500,
         )
 

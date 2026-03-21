@@ -24,6 +24,13 @@ _redis_client = None
 _redis_available = False
 
 
+def _get_redis_client():
+    """Retorna el cliente Redis global si esta disponible, None si no."""
+    if _redis_available and _redis_client:
+        return _redis_client
+    return None
+
+
 class TTLCache:
     """
     Thread-safe in-memory cache with Time-To-Live support.
@@ -59,14 +66,18 @@ class TTLCache:
                 del self._cache[key]
 
         # L2: Redis (outside lock to avoid holding it during I/O)
+        # L1: Usar pipeline para get+ttl atomico (evita race condition)
         if _redis_available and _redis_client:
             try:
-                raw = _redis_client.get(self._redis_key(key))
+                rk = self._redis_key(key)
+                pipe = _redis_client.pipeline()
+                pipe.get(rk)
+                pipe.ttl(rk)
+                raw, ttl_remaining = pipe.execute()
                 if raw is not None:
                     value = json.loads(raw)
                     # Populate L1
-                    ttl_remaining = _redis_client.ttl(self._redis_key(key))
-                    if ttl_remaining > 0:
+                    if ttl_remaining and ttl_remaining > 0:
                         with self._lock:
                             self._cache[key] = (value, time.time() + ttl_remaining)
                             self._hits += 1

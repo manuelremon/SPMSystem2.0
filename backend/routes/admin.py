@@ -943,8 +943,7 @@ def admin_dashboard():
 
         return jsonify({"ok": True, "data": stats}), 200
     except Exception as e:
-        logger.error(f"Error en admin dashboard: {e}")
-        return jsonify({"ok": False, "error": "Error al obtener dashboard"}), 500
+        return safe_error_response(e, logger, context="admin.dashboard")
 
 
 # ==============================================================================
@@ -1507,8 +1506,7 @@ def admin_reglas_aprobacion_mod(regla_id):
                 return jsonify({"ok": False, "error": "Regla no encontrada o sin cambios"}), 404
             return jsonify({"ok": True}), 200
         except Exception as e:
-            logger.error(f"Error actualizando regla: {e}")
-            return jsonify({"ok": False, "error": "Error interno al procesar la solicitud"}), 500
+            return safe_error_response(e, logger, context="admin.update_approval_rule")
 
     else:  # DELETE
         resultado = desactivar_regla(regla_id)
@@ -1647,8 +1645,7 @@ def list_auto_approval_rules():
         return jsonify({"ok": True, "rules": rules})
 
     except Exception as e:
-        logger.error(f"Error listing auto-approval rules: {e}")
-        return jsonify({"error": "Error al listar reglas"}), 500
+        return safe_error_response(e, logger, context="admin.list_auto_approval_rules")
 
 
 @bp.route("/auto-approval-rules", methods=["POST"])
@@ -1673,8 +1670,7 @@ def create_auto_approval_rule():
         return jsonify({"ok": True, "rule": rule}), 201
 
     except Exception as e:
-        logger.error(f"Error creating auto-approval rule: {e}")
-        return jsonify({"error": "Error al crear regla"}), 500
+        return safe_error_response(e, logger, context="admin.create_auto_approval_rule")
 
 
 @bp.route("/auto-approval-rules/<int:rule_id>", methods=["PUT"])
@@ -1699,8 +1695,7 @@ def update_auto_approval_rule(rule_id):
         return jsonify({"ok": True, "rule": rule})
 
     except Exception as e:
-        logger.error(f"Error updating auto-approval rule {rule_id}: {e}")
-        return jsonify({"error": "Error al actualizar regla"}), 500
+        return safe_error_response(e, logger, context="admin.update_auto_approval_rule")
 
 
 @bp.route("/auto-approval-rules/<int:rule_id>", methods=["DELETE"])
@@ -1721,8 +1716,7 @@ def delete_auto_approval_rule(rule_id):
         return jsonify({"ok": True, "message": "Rule deleted successfully"})
 
     except Exception as e:
-        logger.error(f"Error deleting auto-approval rule {rule_id}: {e}")
-        return jsonify({"error": "Error al eliminar regla"}), 500
+        return safe_error_response(e, logger, context="admin.delete_auto_approval_rule")
 
 
 @bp.route("/auto-approval-rules/simulate", methods=["POST"])
@@ -1742,8 +1736,7 @@ def simulate_auto_approval():
         return jsonify({"ok": True, **result})
 
     except Exception as e:
-        logger.error(f"Error simulating auto-approval: {e}")
-        return jsonify({"error": "Error al simular auto-aprobación"}), 500
+        return safe_error_response(e, logger, context="admin.simulate_auto_approval")
 
 
 @bp.route("/auto-approval/historial", methods=["GET"])

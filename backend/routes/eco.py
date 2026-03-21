@@ -28,7 +28,7 @@ def obtener_ecos():
             # Frontend envia 'material', backend lee 'material_codigo'
             'material_codigo': request.args.get('material_codigo') or request.args.get('material'),
             'page': request.args.get('page', 1, type=int),
-            'per_page': request.args.get('per_page', 50, type=int)
+            'per_page': min(request.args.get('per_page', 50, type=int), 500)
         }
         result = eco_service.obtener_ecos(filtros)
         # Frontend espera 'ecos', servicio retorna 'items'

@@ -204,6 +204,12 @@ services:
       - "443:443"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:

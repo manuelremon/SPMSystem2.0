@@ -210,8 +210,8 @@ jobs:
         run: pip install pip-audit
 
       - name: Run pip-audit
-        run: pip-audit -r requirements.txt
-        continue-on-error: true  # Report but don't fail
+        run: pip-audit -r requirements.txt || echo "::warning::pip-audit found vulnerabilities"
+        continue-on-error: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -221,7 +221,7 @@ jobs:
       - name: Run npm audit
         working-directory: frontend
         run: npm audit --audit-level=high
-        continue-on-error: true  # Report but don't fail
+        continue-on-error: false
 
   # ==================== Summary Job ====================
   ci-complete:

@@ -32,32 +32,71 @@ bp = Blueprint("auth", __name__)
 # =============================================================================
 class RateLimiter:
     """
-    Rate limiter simple basado en ventana deslizante.
+    Rate limiter distribuido basado en Redis (fallback a memoria).
     Limita intentos de login por IP para prevenir ataques de fuerza bruta.
+    Con Redis, el rate limiting es global entre todos los workers de gunicorn.
     """
 
     def __init__(self, max_attempts: int = 5, window_seconds: int = 300):
         self.max_attempts = max_attempts
         self.window_seconds = window_seconds
-        self._attempts: Dict[str, list] = defaultdict(list)
+        self._attempts: Dict[str, list] = defaultdict(list)  # Fallback en memoria
+        self._redis = None
+        self._redis_checked = False
 
-    def _cleanup(self, key: str) -> None:
-        """Elimina intentos fuera de la ventana de tiempo"""
-        cutoff = time.time() - self.window_seconds
-        self._attempts[key] = [t for t in self._attempts[key] if t > cutoff]
+    def _get_redis(self):
+        """Obtiene conexion Redis (lazy, con fallback a memoria)"""
+        if not self._redis_checked:
+            self._redis_checked = True
+            try:
+                from backend.core.cache import _get_redis_client
+                self._redis = _get_redis_client()
+            except Exception:
+                self._redis = None
+        return self._redis
+
+    def _redis_key(self, key: str) -> str:
+        return f"rate_limit:login:{key}"
 
     def is_rate_limited(self, key: str) -> bool:
         """Verifica si la clave (IP) está limitada"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                count = redis.get(self._redis_key(key))
+                return count is not None and int(count) >= self.max_attempts
+            except Exception:
+                pass
+        # Fallback en memoria
         self._cleanup(key)
         return len(self._attempts[key]) >= self.max_attempts
 
     def record_attempt(self, key: str) -> None:
         """Registra un intento de login"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                rk = self._redis_key(key)
+                pipe = redis.pipeline()
+                pipe.incr(rk)
+                pipe.expire(rk, self.window_seconds)
+                pipe.execute()
+                return
+            except Exception:
+                pass
+        # Fallback en memoria
         self._cleanup(key)
         self._attempts[key].append(time.time())
 
     def get_remaining_time(self, key: str) -> int:
         """Retorna segundos hasta que se pueda intentar de nuevo"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                ttl = redis.ttl(self._redis_key(key))
+                return max(0, ttl) if ttl and ttl > 0 else 0
+            except Exception:
+                pass
         if not self._attempts[key]:
             return 0
         oldest = min(self._attempts[key])
@@ -65,7 +104,18 @@ class RateLimiter:
 
     def reset(self, key: str) -> None:
         """Resetea intentos para una clave (después de login exitoso)"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                redis.delete(self._redis_key(key))
+            except Exception:
+                pass
         self._attempts.pop(key, None)
+
+    def _cleanup(self, key: str) -> None:
+        """Elimina intentos fuera de la ventana de tiempo (solo fallback memoria)"""
+        cutoff = time.time() - self.window_seconds
+        self._attempts[key] = [t for t in self._attempts[key] if t > cutoff]
 
 
 # =============================================================================
@@ -73,24 +123,53 @@ class RateLimiter:
 # =============================================================================
 class TokenBlacklist:
     """
-    Blacklist de tokens JWT revocados.
-    Almacena tokens revocados con su exp time para limpiar automáticamente.
+    Blacklist de tokens JWT revocados con Redis distribuido (fallback a memoria).
+    Con Redis, tokens revocados se comparten entre workers y sobreviven restarts.
     """
 
     def __init__(self):
-        self._revoked: Dict[str, float] = {}  # {token_jti: exp_timestamp}
+        self._revoked: Dict[str, float] = {}  # Fallback en memoria
+        self._redis = None
+        self._redis_checked = False
+
+    def _get_redis(self):
+        """Obtiene conexion Redis (lazy, con fallback a memoria)"""
+        if not self._redis_checked:
+            self._redis_checked = True
+            try:
+                from backend.core.cache import _get_redis_client
+                self._redis = _get_redis_client()
+            except Exception:
+                self._redis = None
+        return self._redis
 
     def revoke(self, token_jti: str, exp_timestamp: float) -> None:
         """Agrega un token a la blacklist con su tiempo de expiración"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                ttl = max(1, int(exp_timestamp - time.time()))
+                redis.setex(f"token_blacklist:{token_jti}", ttl, "1")
+                return
+            except Exception:
+                pass
+        # Fallback en memoria
         self._revoked[token_jti] = exp_timestamp
 
     def is_revoked(self, token_jti: str) -> bool:
         """Verifica si un token está revocado"""
+        redis = self._get_redis()
+        if redis:
+            try:
+                return redis.exists(f"token_blacklist:{token_jti}") > 0
+            except Exception:
+                pass
+        # Fallback en memoria
         self._cleanup()
         return token_jti in self._revoked
 
     def _cleanup(self) -> None:
-        """Elimina tokens expirados de la blacklist"""
+        """Elimina tokens expirados de la blacklist (solo fallback memoria)"""
         now = time.time()
         self._revoked = {k: v for k, v in self._revoked.items() if v > now}
 

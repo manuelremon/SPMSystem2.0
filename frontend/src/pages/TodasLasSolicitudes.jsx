@@ -413,7 +413,7 @@ export default function TodasLasSolicitudes() {
 
   const initialTab = searchParams.get("tab") || "todas";
   const slaFilter = searchParams.get("sla") === "breach";
-  const tabIndexMap = { todas: 0, pendientes: 1, en_proceso: 2, completadas: 3, rechazadas: 4, cerradas: 5 };
+  const tabIndexMap = { todas: 0, borradores: 1, pendientes: 2, en_proceso: 3, completadas: 4, rechazadas: 5, cerradas: 6 };
 
   const [items, setItems] = useState([]);
   const [sectores, setSectores] = useState([]);
@@ -440,9 +440,20 @@ export default function TodasLasSolicitudes() {
   const fetchSolicitudes = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await solicitudes.listar({ page_size: 500 });
-      const data = res.data.solicitudes || res.data.results || [];
-      setItems(data);
+      const res = await solicitudes.listar({ page_size: 2000 });
+      const list = res.data.solicitudes || res.data.results || [];
+      const serverTotal = res.data.total ?? list.length;
+      // Si el servidor tiene más registros de los que caben en una página,
+      // pedir el resto (poco probable con 2000, pero seguro)
+      if (list.length < serverTotal) {
+        const pages = Math.ceil(serverTotal / 2000);
+        for (let p = 2; p <= pages; p++) {
+          const extra = await solicitudes.listar({ page_size: 2000, page: p });
+          const extraList = extra.data.solicitudes || extra.data.results || [];
+          list.push(...extraList);
+        }
+      }
+      setItems(list);
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message);
     } finally {
@@ -457,6 +468,7 @@ export default function TodasLasSolicitudes() {
   // Mapeo de tabs a estados (cubre valores en ingles y espanol legacy)
   const tabFilters = [
     { label: "Todas", key: "todas", filter: () => true },
+    { label: "Borradores", key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
     { label: "Pendientes", key: "pendientes", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
     { label: "En Proceso", key: "en_proceso", filter: (e) => ["processing", "in_planning", "in_treatment", "en_planificacion", "en_tratamiento", "en progreso", "en_progreso"].includes(e) },
     { label: "Aprobadas", key: "completadas", filter: (e) => ["approved", "aprobada", "treated", "tratado"].includes(e) },

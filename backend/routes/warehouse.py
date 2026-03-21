@@ -77,7 +77,7 @@ def obtener_tareas_putaway():
             'prioridad': request.args.get('prioridad'),
             'asignado_a': request.args.get('asignado_a'),
             'page': request.args.get('page', 1, type=int),
-            'per_page': request.args.get('per_page', 50, type=int)
+            'per_page': min(request.args.get('per_page', 50, type=int), 500)
         }
         tareas = warehouse_service.obtener_tareas_putaway(filtros)
         tareas['ok'] = True

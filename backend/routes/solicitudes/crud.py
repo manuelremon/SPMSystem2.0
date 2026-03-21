@@ -77,6 +77,7 @@ def list_solicitudes():
             SELECT
                 s.id, s.id_usuario, s.centro, s.sector, s.justificacion, s.centro_costos, s.almacen_virtual, s.criticidad,
                 s.fecha_necesidad, s.status, s.total_monto, s.aprobador_id, s.planner_id, s.created_at, s.updated_at, s.data_json,
+                s.ai_priority, s.ai_score,
                 u.nombre AS solicitante_nombre, u.apellido AS solicitante_apellido,
                 a.nombre AS aprobador_nombre, a.apellido AS aprobador_apellido,
                 p.nombre AS planner_nombre, p.apellido AS planner_apellido
@@ -99,7 +100,17 @@ def list_solicitudes():
             extra = json.loads(d.get("data_json") or "{}")
         except Exception:
             extra = {}
-        d["items"] = extra.get("items", [])
+        items = extra.get("items", [])
+        d["items"] = items
+        # Recalcular total_monto si es NULL o 0
+        if not d.get("total_monto") and items:
+            d["total_monto"] = sum(
+                float(it.get("precio_unitario", 0) or it.get("precio", 0) or 0)
+                * float(it.get("cantidad", 0) or 0)
+                for it in items
+            )
+        # No enviar data_json raw al frontend (ya se extrajo items)
+        d.pop("data_json", None)
         solicitudes_list.append(d)
 
     return (
@@ -516,6 +527,22 @@ def guardar_borrador(solicitud_id):
                     "error": {
                         "code": "forbidden",
                         "message": "No tienes permiso para editar esta solicitud",
+                    },
+                }
+            ),
+            403,
+        )
+
+    # M1: Congelar items post-aprobacion - solo borradores pueden editarse
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if estado_actual != "draft":
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "forbidden",
+                        "message": "Solo se pueden editar solicitudes en estado Borrador",
                     },
                 }
             ),

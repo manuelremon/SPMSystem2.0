@@ -363,7 +363,7 @@ export default function Planner({ filterMode }) {
       {
         field: "acciones",
         headerName: "Acción",
-        width: 180,
+        width: 200,
         flex: 0,
         pinned: "left",
         sortable: false,
@@ -875,7 +875,10 @@ export default function Planner({ filterMode }) {
             border: 1,
             borderColor: "divider",
             borderRadius: "8px",
-            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 400,
+            height: "calc(100vh - 340px)",
           }}
         >
           <Tabs
@@ -886,6 +889,7 @@ export default function Planner({ filterMode }) {
               borderBottom: 1,
               borderColor: "divider",
               minHeight: 42,
+              flexShrink: 0,
               "& .MuiTab-root": {
                 fontWeight: 600,
                 fontSize: "0.8rem",
@@ -932,7 +936,7 @@ export default function Planner({ filterMode }) {
             rowData={rows}
             columnDefs={columnDefs}
             loading={loading}
-            height="calc(100vh - 340px)"
+            height="100%"
             pagination={true}
             paginationPageSize={25}
             paginationPageSizeSelector={[10, 25, 50, 100]}

@@ -34,7 +34,7 @@ def ensure_procurement_views():
 def get_solpeds():
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 500)
         centro = request.args.get('centro')
         material = request.args.get('material')
         estado = request.args.get('estado')
@@ -71,7 +71,7 @@ def get_solped_detail(solped_id):
 def get_orders():
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 500)
         proveedor = request.args.get('proveedor')
         material = request.args.get('material')
         fecha_desde = request.args.get('fecha_desde')

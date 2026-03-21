@@ -25,7 +25,7 @@ def obtener_boms():
             'estado': request.args.get('estado'),
             'kit_codigo': request.args.get('kit_codigo'),
             'page': request.args.get('page', 1, type=int),
-            'per_page': request.args.get('per_page', 50, type=int)
+            'per_page': min(request.args.get('per_page', 50, type=int), 500)
         }
         boms = kitting_service.obtener_boms(filtros)
         return jsonify({'ok': True, 'items': boms}), 200
