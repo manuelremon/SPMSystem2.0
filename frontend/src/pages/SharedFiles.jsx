@@ -58,7 +58,7 @@ export default function SharedFiles() {
     setError(null)
     try {
       const params = currentFolder ? { carpeta: currentFolder } : {}
-      const res = await api.get('/api/shared-files', { params })
+      const res = await api.get('/shared-files', { params })
       setFiles(res.data.files || [])
       if (!currentFolder) {
         setCarpetas(res.data.carpetas || [])
@@ -91,7 +91,7 @@ export default function SharedFiles() {
     }
 
     try {
-      const res = await api.post('/api/shared-files/upload', formData, {
+      const res = await api.post('/shared-files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => {
           if (e.total) setUploadProgress(Math.round((e.loaded * 100) / e.total))
@@ -110,7 +110,7 @@ export default function SharedFiles() {
   const handleDelete = async (fileId, fileName) => {
     if (!confirm(`Eliminar "${fileName}"?`)) return
     try {
-      await api.delete(`/api/shared-files/${fileId}`)
+      await api.delete(`/shared-files/${fileId}`)
       setSuccess('Archivo eliminado')
       fetchFiles()
     } catch (err) {
