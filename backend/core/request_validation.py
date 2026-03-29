@@ -521,16 +521,13 @@ def init_request_validation(app, max_content_length: int = 10 * 1024 * 1024) -> 
     @app.before_request
     def validate_content_type():
         # Para requests POST/PUT/PATCH, verificar Content-Type
+        # IMPORTANTE: No acceder a request.data para multipart (fuerza lectura completa del body)
         if request.method in ["POST", "PUT", "PATCH"]:
             content_type = request.content_type or ""
-            if request.data and not any(
-                ct in content_type
-                for ct in [
-                    "application/json",
-                    "application/x-www-form-urlencoded",
-                    "multipart/form-data",
-                ]
-            ):
+            allowed_types = ["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]
+            if any(ct in content_type for ct in allowed_types):
+                return  # Content-Type valido, continuar
+            if request.content_length and request.content_length > 0:
                 logger.warning(f"Content-Type invalido: {content_type}")
 
 
