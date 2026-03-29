@@ -66,7 +66,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
     id: 'solicitudes',
     labelKey: 'nav_solicitudes',
     labelFallback: 'Solicitudes',
-    visible: true,
+    visible: !isCompartidos,
     dataTour: 'nav-solicitudes',
     activePrefixes: ['/solicitudes', '/mis-solicitudes', '/aprobaciones', '/presupuestos'],
     minWidth: 200,

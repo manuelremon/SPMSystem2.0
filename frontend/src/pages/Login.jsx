@@ -274,6 +274,8 @@ export default function Login() {
     if (user) {
       if (user.is_new_user) {
         navigate("/nuevo-usuario");
+      } else if (user.roles?.includes("compartidos")) {
+        navigate("/compartidos");
       } else {
         navigate("/dashboard");
       }
@@ -326,8 +328,9 @@ export default function Login() {
     const password = data.get("password");
 
     try {
-      await login(email, password);
-      navigate("/dashboard");
+      const result = await login(email, password);
+      const roles = result?.user?.roles || [];
+      navigate(roles.includes("compartidos") ? "/compartidos" : "/dashboard");
     } catch (err) {
       setEmailError(true);
       setEmailErrorMessage(error || t("login_error_default", "Error en el login"));

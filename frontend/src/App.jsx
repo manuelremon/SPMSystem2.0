@@ -205,6 +205,14 @@ const WarrantyClaimDetail = lazy(() => import('./pages/WarrantyClaimDetail'))
 const ExecutiveDashboard = lazy(() => import('./pages/ExecutiveDashboard'))
 const BenchmarkAnalysis = lazy(() => import('./pages/BenchmarkAnalysis'))
 
+function DashboardRedirect() {
+  const { user } = useAuthStore()
+  if (user?.roles?.includes('compartidos')) {
+    return <Navigate to="/compartidos" replace />
+  }
+  return <Dashboard />
+}
+
 function App() {
   const { user, isLoading, getCurrentUser } = useAuthStore()
   const [appLoading, setAppLoading] = useState(true)
@@ -236,7 +244,7 @@ function App() {
         createRoutesFromElements(
           <>
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardRedirect /></ProtectedRoute>} />
             <Route path="/nuevo-usuario" element={<ProtectedRoute><NuevoUsuario /></ProtectedRoute>} />
             <Route path="/solicitudes/nueva" element={<ProtectedRoute><CreateSolicitud /></ProtectedRoute>} />
             <Route path="/solicitudes/:id/materiales" element={<ProtectedRoute><Materials /></ProtectedRoute>} />
