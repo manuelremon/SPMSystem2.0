@@ -43,6 +43,8 @@ VALID_ROLES: Set[str] = frozenset(
         # Solo lectura
         "viewer",
         "lector",
+        # Compartidos (acceso a zona de archivos compartidos)
+        "compartidos",
     }
 )
 

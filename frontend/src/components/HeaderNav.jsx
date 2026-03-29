@@ -60,7 +60,7 @@ const subheaderSx = {
  * Each section has: header (optional i18n key), items[]
  * Each item has: to, labelKey, labelFallback, visibility (optional)
  */
-const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => [
+const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCompartidos }) => [
   // 1. SOLICITUDES
   {
     id: 'solicitudes',
@@ -353,6 +353,23 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin }) => 
           { to: '/admin/analisis-puntual', labelKey: 'admin_ap_importar', labelFallback: 'Analisis Puntual' },
           { to: '/admin/supplier-portal', labelKey: 'nav_supplier_portal', labelFallback: 'Portal Proveedores' },
           { to: '/admin/supplier-onboarding', labelKey: 'nav_supplier_onboarding', labelFallback: 'Onboarding Proveedores' },
+          { to: '/compartidos', labelKey: 'nav_compartidos', labelFallback: 'Compartidos' },
+        ],
+      },
+    ],
+  },
+  // 9. COMPARTIDOS (visible for compartidos role when not admin)
+  {
+    id: 'compartidos',
+    labelKey: 'nav_compartidos',
+    labelFallback: 'Compartidos',
+    visible: isCompartidos && !isAdmin,
+    activePrefixes: ['/compartidos'],
+    minWidth: 180,
+    sections: [
+      {
+        items: [
+          { to: '/compartidos', labelKey: 'nav_shared_files', labelFallback: 'Archivos Compartidos' },
         ],
       },
     ],
@@ -398,6 +415,7 @@ function HeaderNav() {
   const isBudgetApprover = hasRole("aprobador presupuestos") || hasRole("aprobador_presupuestos") || hasRole("aprobador de presupuesto");
   const isRequestApprover = hasRole("aprobador solicitudes") || hasRole("aprobador_solicitudes");
   const isGerenteRole = hasRole("gerente");
+  const isCompartidosRole = hasRole("compartidos");
 
   const canSeePlanner = isPlannerRole || isAdminRole;
   const canSeeBudget = isAdminRole || isJefeRole || isCoordinadorRole || isBudgetApprover;
@@ -427,7 +445,7 @@ function HeaderNav() {
     setAnchorEl(null);
   }, []);
 
-  const menuConfig = getMenuConfig({ canApprove, canSeeBudget, canSeePlanner, isAdmin: isAdminRole });
+  const menuConfig = getMenuConfig({ canApprove, canSeeBudget, canSeePlanner, isAdmin: isAdminRole, isCompartidos: isCompartidosRole });
 
   return (
     <nav className="flex items-center h-[43px]" data-tour="main-navigation">

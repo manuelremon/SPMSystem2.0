@@ -81,6 +81,9 @@ const AdminBasesDatos = lazy(() => import('./pages/admin/AdminBasesDatos'))
 const AdminMonitorUsuarios = lazy(() => import('./pages/admin/AdminMonitorUsuarios'))
 const AdminModules = lazy(() => import('./pages/admin/AdminModules'))
 
+// Shared Files (Compartidos)
+const SharedFiles = lazy(() => import('./pages/SharedFiles'))
+
 // Analisis Puntual (admin) - lazy loaded
 const AnalisisPuntualHome = lazy(() => import('./pages/admin/AnalisisPuntualHome'))
 const AnalisisPuntualMRP = lazy(() => import('./pages/admin/AnalisisPuntualMRP'))
@@ -430,6 +433,8 @@ function App() {
             {/* Executive Analytics - Sprint 90 */}
             <Route path="/analytics/executive" element={<ProtectedRoute roles={['administrador', 'admin', 'coordinador', 'jefe']}><ExecutiveDashboard /></ProtectedRoute>} />
             <Route path="/analytics/executive/benchmarks" element={<ProtectedRoute roles={['administrador', 'admin']}><BenchmarkAnalysis /></ProtectedRoute>} />
+            {/* Shared Files (Compartidos) */}
+            <Route path="/compartidos" element={<ProtectedRoute roles={['administrador', 'admin', 'compartidos']}><SharedFiles /></ProtectedRoute>} />
             <Route path="/registro/completar" element={<ProtectedRoute><CompleteRegistration /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<Navigate to="/dashboard" />} />

@@ -287,3 +287,7 @@ def register_blueprints(app: Flask) -> None:
         return admin_dashboard()
 
     app.register_blueprint(_dashboard_alias_bp)  # Dashboard alias at /api/dashboard/admin
+
+    # Shared Files (Compartidos)
+    from backend.routes.shared_files import bp as shared_files_bp
+    app.register_blueprint(shared_files_bp)  # Shared Files at /api/shared-files
