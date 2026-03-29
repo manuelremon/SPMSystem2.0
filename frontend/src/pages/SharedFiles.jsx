@@ -43,7 +43,7 @@ export default function SharedFiles() {
   const [currentFolder, setCurrentFolder] = useState('')
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadFiles, setUploadFiles] = useState([])
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [dragOver, setDragOver] = useState(false)
@@ -74,37 +74,57 @@ export default function SharedFiles() {
     fetchFiles()
   }, [fetchFiles])
 
+  const uploadOneFile = async (file, index) => {
+    const formData = new FormData()
+    formData.append('files', file)
+    if (currentFolder) formData.append('carpeta', currentFolder)
+
+    setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'uploading' } : f))
+
+    try {
+      await api.post('/shared-files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => {
+          if (e.total) {
+            const pct = Math.round((e.loaded * 100) / e.total)
+            setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, progress: pct } : f))
+          }
+        }
+      })
+      setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'done', progress: 100 } : f))
+    } catch (err) {
+      setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error', error: err.response?.data?.error?.message || 'Error' } : f))
+    }
+  }
+
   const handleUpload = async (fileList) => {
     if (!fileList || fileList.length === 0) return
 
     setUploading(true)
-    setUploadProgress(0)
     setError(null)
     setSuccess(null)
 
-    const formData = new FormData()
-    for (let i = 0; i < fileList.length; i++) {
-      formData.append('files', fileList[i])
-    }
-    if (currentFolder) {
-      formData.append('carpeta', currentFolder)
+    const items = Array.from(fileList).map(f => ({ name: f.name, size: f.size, progress: 0, status: 'pending' }))
+    setUploadFiles(items)
+
+    // Upload en paralelo con concurrencia limitada (3 a la vez)
+    const CONCURRENCY = 3
+    const files = Array.from(fileList)
+    let nextIndex = 0
+
+    const runNext = async () => {
+      while (nextIndex < files.length) {
+        const idx = nextIndex++
+        await uploadOneFile(files[idx], idx)
+      }
     }
 
-    try {
-      const res = await api.post('/shared-files/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (e) => {
-          if (e.total) setUploadProgress(Math.round((e.loaded * 100) / e.total))
-        }
-      })
-      setSuccess(`${res.data.count} archivo(s) subido(s) correctamente`)
-      fetchFiles()
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'Error al subir archivos')
-    } finally {
-      setUploading(false)
-      setUploadProgress(0)
-    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, () => runNext()))
+
+    fetchFiles()
+    const finalFiles = items.length
+    setSuccess(`${finalFiles} archivo(s) procesado(s)`)
+    setTimeout(() => { setUploading(false); setUploadFiles([]) }, 2000)
   }
 
   const handleDelete = async (fileId, fileName) => {
@@ -226,12 +246,27 @@ export default function SharedFiles() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
-      {/* Upload progress */}
-      {uploading && (
-        <Box sx={{ mb: 2 }}>
-          <LinearProgress variant="determinate" value={uploadProgress} />
-          <Typography variant="caption" color="text.secondary">{t('shared_uploading', 'Subiendo...')} {uploadProgress}%</Typography>
-        </Box>
+      {/* Upload progress per file */}
+      {uploading && uploadFiles.length > 0 && (
+        <Paper variant="outlined" sx={{ mb: 2, p: 2, maxHeight: 200, overflow: 'auto' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('shared_uploading', 'Subiendo...')} ({uploadFiles.filter(f => f.status === 'done').length}/{uploadFiles.length})</Typography>
+          {uploadFiles.map((f, i) => (
+            <Box key={i} sx={{ mb: 1 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="caption" noWrap sx={{ maxWidth: 300 }}>{f.name}</Typography>
+                <Typography variant="caption" color={f.status === 'error' ? 'error.main' : f.status === 'done' ? 'success.main' : 'text.secondary'}>
+                  {f.status === 'error' ? 'Error' : f.status === 'done' ? 'Listo' : `${f.progress}%`}
+                </Typography>
+              </Stack>
+              <LinearProgress
+                variant="determinate"
+                value={f.progress}
+                color={f.status === 'error' ? 'error' : f.status === 'done' ? 'success' : 'primary'}
+                sx={{ height: 4, borderRadius: 2 }}
+              />
+            </Box>
+          ))}
+        </Paper>
       )}
 
       {/* Drop zone */}

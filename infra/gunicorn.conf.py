@@ -23,7 +23,7 @@ threads = int(os.environ.get("GUNICORN_THREADS", 4))
 worker_class = "gthread"
 
 # Timeout para workers (segundos)
-timeout = int(os.environ.get("GUNICORN_TIMEOUT", 120))
+timeout = int(os.environ.get("GUNICORN_TIMEOUT", 300))
 
 # Graceful timeout para shutdown
 graceful_timeout = 30

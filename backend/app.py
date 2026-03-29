@@ -115,7 +115,7 @@ def create_app(config_override: dict | None = None) -> Flask:
             app.logger.warning("Rate limiting DESHABILITADO por variable de entorno")
 
     # Request validation (sanitizacion de inputs)
-    init_request_validation(app, max_content_length=10 * 1024 * 1024)  # 10MB max
+    init_request_validation(app, max_content_length=500 * 1024 * 1024)  # 500MB max (shared files needs large uploads)
 
     # CORS (manejo manual para wildcards con credentials)
     init_cors(app)
