@@ -503,7 +503,7 @@ class RequestValidator:
 # =============================================================================
 
 
-def init_request_validation(app, max_content_length: int = 10 * 1024 * 1024) -> None:
+def init_request_validation(app, max_content_length=10 * 1024 * 1024) -> None:
     """
     Inicializa validacion de requests para Flask.
 
@@ -511,12 +511,8 @@ def init_request_validation(app, max_content_length: int = 10 * 1024 * 1024) -> 
         app: Aplicacion Flask
         max_content_length: Tamano maximo de request body (default 10MB)
     """
+    # None = sin limite (Flask default)
     app.config["MAX_CONTENT_LENGTH"] = max_content_length
-
-    @app.before_request
-    def validate_request_size():
-        # Flask ya maneja esto con MAX_CONTENT_LENGTH
-        pass
 
     @app.before_request
     def validate_content_type():
