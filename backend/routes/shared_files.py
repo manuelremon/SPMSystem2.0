@@ -79,8 +79,7 @@ def list_files():
     else:
         cursor.execute("SELECT * FROM shared_files ORDER BY created_at DESC")
 
-    columns = [desc[0] for desc in cursor.description] if cursor.description else []
-    files = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    files = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     # Obtener lista de carpetas únicas
@@ -170,17 +169,14 @@ def download_file(file_id):
     if not row:
         return jsonify({"ok": False, "error": {"code": "not_found", "message": "Archivo no encontrado"}}), 404
 
-    columns = [desc[0] for desc in cursor.description]
-    file_data = dict(zip(columns, row))
-
-    carpeta = file_data.get("carpeta", "")
+    carpeta = row.get("carpeta", "") if hasattr(row, 'get') else ""
     directory = UPLOADS_BASE / carpeta if carpeta else UPLOADS_BASE
 
     return send_from_directory(
         str(directory),
-        file_data["nombre_almacenado"],
+        row["nombre_almacenado"],
         as_attachment=True,
-        download_name=file_data["nombre_original"],
+        download_name=row["nombre_original"],
     )
 
 
@@ -198,13 +194,10 @@ def delete_file(file_id):
         conn.close()
         return jsonify({"ok": False, "error": {"code": "not_found", "message": "Archivo no encontrado"}}), 404
 
-    columns = [desc[0] for desc in cursor.description]
-    file_data = dict(zip(columns, row))
-
     # Eliminar archivo físico
-    carpeta = file_data.get("carpeta", "")
+    carpeta = row.get("carpeta", "") if hasattr(row, 'get') else ""
     directory = UPLOADS_BASE / carpeta if carpeta else UPLOADS_BASE
-    file_path = directory / file_data["nombre_almacenado"]
+    file_path = directory / row["nombre_almacenado"]
     if file_path.exists():
         file_path.unlink()
 
@@ -213,7 +206,7 @@ def delete_file(file_id):
     conn.commit()
     conn.close()
 
-    logger.info(f"Archivo {file_id} ({file_data['nombre_original']}) eliminado")
+    logger.info(f"Archivo {file_id} ({row['nombre_original']}) eliminado")
     return jsonify({"ok": True, "message": "Archivo eliminado"}), 200
 
 
