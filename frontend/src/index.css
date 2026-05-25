@@ -825,3 +825,72 @@ textarea:focus-visible,
 .border-danger { border-color: var(--danger-border) !important; }
 .border-warning { border-color: var(--warning-border) !important; }
 .border-info { border-color: var(--info-border) !important; }
+
+/* ============================================
+   RESPONSIVE MOBILE IMPROVEMENTS
+   ============================================ */
+
+/* Contenido de página con scroll horizontal seguro */
+@media (max-width: 767px) {
+  /* Evitar que el contenido desborde horizontalmente */
+  #main-content {
+    overflow-x: hidden;
+  }
+
+  /* Cards y paneles: padding reducido */
+  .MuiCard-root,
+  .MuiPaper-root {
+    border-radius: 6px !important;
+  }
+
+  /* Dialogs fullscreen en móvil */
+  .MuiDialog-paper {
+    margin: 8px !important;
+    max-height: calc(100% - 16px) !important;
+    width: calc(100% - 16px) !important;
+    max-width: 100% !important;
+  }
+
+  /* Formularios: inputs al 100% del ancho */
+  .MuiFormControl-root,
+  .MuiTextField-root {
+    width: 100%;
+  }
+
+  /* Tabla nativa HTML responsive */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  /* Chips/badges: tamaño mínimo táctil */
+  .MuiChip-root {
+    min-height: 32px;
+  }
+
+  /* Botones en grupo: wrap */
+  .MuiButtonGroup-root {
+    flex-wrap: wrap;
+  }
+}
+
+/* Scroll horizontal con indicador de sombra para tablas nativas */
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+
+@media (max-width: 767px) {
+  .table-scroll-wrapper {
+    /* Sombra que indica contenido adicional al scroll */
+    background:
+      linear-gradient(to right, var(--surface) 30%, transparent) left center / 40px 100% no-repeat local,
+      linear-gradient(to left, var(--surface) 30%, transparent) right center / 40px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.1), transparent) left center / 14px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.1), transparent) right center / 14px 100% no-repeat scroll;
+  }
+}
