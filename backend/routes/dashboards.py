@@ -638,9 +638,9 @@ def resumen_ejecutivo():
     Returns:
         {solicitudes_hoy, presupuesto_resumen, alertas_mrp_criticas, sla_breaches}
     """
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timedelta
 
-    from backend.core.db import get_db_connection, is_using_postgresql, sql_date_relative
+    from backend.core.db import get_db_connection, is_using_postgresql
 
     try:
         with get_db_connection() as conn:
@@ -715,12 +715,13 @@ def resumen_ejecutivo():
             # 4. SLA breaches (solicitudes que exceden tiempo límite)
             sla_breaches = 0
             try:
-                cursor.execute(f"""
+                sla_cutoff = (_dt.utcnow() - timedelta(days=3)).strftime("%Y-%m-%d")
+                cursor.execute("""
                     SELECT COUNT(*) as total
                     FROM solicitud
                     WHERE status = 'submitted'
-                    AND created_at < {sql_date_relative(days=-3)}
-                """)
+                    AND created_at < ?
+                """, (sla_cutoff,))
                 sla_row = cursor.fetchone()
                 sla_breaches = int((dict(sla_row) if sla_row else {}).get('total', 0))
             except Exception as e:

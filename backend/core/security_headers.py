@@ -54,9 +54,6 @@ def init_security_headers(app: Flask):
             # Clickjacking protection
             response.headers["X-Frame-Options"] = "DENY"
 
-            # XSS Protection (legacy, CSP lo reemplaza)
-            response.headers["X-XSS-Protection"] = "1; mode=block"
-
             # Content Security Policy para PRODUCCION
             # Permite Google Fonts y conexiones al propio dominio
             # media-src blob: requerido para TTS (Edge TTS genera audio como blob)

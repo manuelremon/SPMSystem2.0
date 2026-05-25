@@ -519,16 +519,18 @@ export default function MiCuenta() {
                     <PhoneIcon fontSize="small" sx={{ color: 'primary.main' }} />
                     {t('account_contact', 'Datos de Contacto')}
                   </Typography>
-                  <Stack spacing={1.5}>
-                    <ReadOnlyField label={t('account_mail', 'Mail')} value={profile.mail || "-"} />
-                    <TextField fullWidth size="small" label={t('account_phone', 'Telefono')} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('account_phone_placeholder', '+34 600 000 000')} />
-                    {phoneMessage && <Alert severity={phoneMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{phoneMessage}</Alert>}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Button variant="contained" size="small" disabled={savingPhone} onClick={submitPhone} sx={{ textTransform: "none" }}>
-                        {savingPhone ? t('common_saving', 'Guardando...') : t('account_save_contact', 'Guardar contacto')}
-                      </Button>
-                    </Box>
-                  </Stack>
+                  <Box component="form" onSubmit={(e) => { e.preventDefault(); submitPhone(); }}>
+                    <Stack spacing={1.5}>
+                      <ReadOnlyField label={t('account_mail', 'Mail')} value={profile.mail || "-"} />
+                      <TextField fullWidth size="small" label={t('account_phone', 'Telefono')} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('account_phone_placeholder', '+34 600 000 000')} />
+                      {phoneMessage && <Alert severity={phoneMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{phoneMessage}</Alert>}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button type="submit" variant="contained" size="small" disabled={savingPhone} sx={{ textTransform: "none" }}>
+                          {savingPhone ? t('common_saving', 'Guardando...') : t('account_save_contact', 'Guardar contacto')}
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </Box>
                 </Grid>
               </Grid>
             </Box>
@@ -544,17 +546,19 @@ export default function MiCuenta() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
                 {t('account_password_desc', 'Ingresa y confirma tu nueva contraseña para actualizarla.')}
               </Typography>
-              <Stack spacing={1.5}>
-                <TextField fullWidth size="small" type="password" label={t('account_new_password', 'Nueva Contrasena')} value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder={t('account_password_placeholder', 'Min 8 caracteres')} />
-                <TextField fullWidth size="small" type="password" label={t('account_repeat_password', 'Repetir Nueva Contrasena')} value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder={t('account_repeat_password_placeholder', 'Repite la contrasena')} />
-                <TextField fullWidth size="small" type="email" label={t('account_backup_mail', 'Mail de Respaldo')} value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder={t('account_backup_mail_placeholder', 'ejemplo@respaldo.com')} />
-                {passwordMessage && <Alert severity={passwordMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{passwordMessage}</Alert>}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button variant="contained" size="small" disabled={savingPassword} onClick={submitSecurity} sx={{ textTransform: "none" }}>
-                    {savingPassword ? t('common_saving', 'Guardando...') : t('account_save_security', 'Guardar seguridad')}
-                  </Button>
-                </Box>
-              </Stack>
+              <Box component="form" onSubmit={(e) => { e.preventDefault(); submitSecurity(); }}>
+                <Stack spacing={1.5}>
+                  <TextField fullWidth size="small" type="password" label={t('account_new_password', 'Nueva Contrasena')} value={passwordForm.nueva} onChange={(e) => handlePasswordChange("nueva", e.target.value)} autoComplete="new-password" placeholder={t('account_password_placeholder', 'Min 8 caracteres')} />
+                  <TextField fullWidth size="small" type="password" label={t('account_repeat_password', 'Repetir Nueva Contrasena')} value={passwordForm.repetir} onChange={(e) => handlePasswordChange("repetir", e.target.value)} autoComplete="new-password" placeholder={t('account_repeat_password_placeholder', 'Repite la contrasena')} />
+                  <TextField fullWidth size="small" type="email" label={t('account_backup_mail', 'Mail de Respaldo')} value={mailBackup} onChange={(e) => setMailBackup(e.target.value)} autoComplete="email" placeholder={t('account_backup_mail_placeholder', 'ejemplo@respaldo.com')} />
+                  {passwordMessage && <Alert severity={passwordMessage.includes("correctamente") ? "success" : "warning"} sx={{ py: 0 }}>{passwordMessage}</Alert>}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button type="submit" variant="contained" size="small" disabled={savingPassword} sx={{ textTransform: "none" }}>
+                      {savingPassword ? t('common_saving', 'Guardando...') : t('account_save_security', 'Guardar seguridad')}
+                    </Button>
+                  </Box>
+                </Stack>
+              </Box>
             </Box>
           </Box>
 

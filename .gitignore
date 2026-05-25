@@ -126,6 +126,15 @@ data/*.db-journal
 data/*.db-shm
 data/*.db-wal
 
+# SQLite WAL sidecars en cualquier ubicacion (root incluido)
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Exports locales no versionados
+Busc?digos_Export/
+Buscódigos_Export/
+
 # Data directory (Excel backups)
 data/xlsx/
 

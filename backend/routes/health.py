@@ -364,13 +364,13 @@ def readiness_probe():
     Returns:
         JSON con estado de readiness
     """
-    # Verificar BD principal
+    # Verificar BD principal (no exponer detalles en endpoint público)
     db_check = _check_database("spm")
 
     if db_check.get("status") == "healthy":
-        return jsonify({"ok": True, "status": "ready", "database": db_check}), 200
+        return jsonify({"ok": True, "status": "ready"}), 200
     else:
-        return jsonify({"ok": False, "status": "not_ready", "database": db_check}), 503
+        return jsonify({"ok": False, "status": "not_ready"}), 503
 
 
 @bp.route("/api/health/dependencies", methods=["GET"])
@@ -838,13 +838,12 @@ def jobs_queue_status():
 
 
 @bp.route("/api/health/infrastructure", methods=["GET"])
-@require_auth
+@require_admin
 def infrastructure_status():
     """
     Estado de infraestructura: Docker, Git, servicios del sistema.
 
-    Requiere autenticación para no exponer información sensible.
-    Solo usuarios autenticados pueden acceder a esta información.
+    Requiere rol admin para no exponer información sensible del servidor.
 
     Returns:
         JSON con estado de Docker, Git y servicios

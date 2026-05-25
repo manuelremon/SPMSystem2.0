@@ -136,126 +136,12 @@ function ForgotPasswordDialog({ open, handleClose, t }) {
   );
 }
 
-// Register Dialog Component
-function RegisterDialog({ open, handleClose, t, onRegister, isSubmitting, registerError }) {
-  const [formData, setFormData] = useState({ email: "", nombre: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    onRegister(formData);
-  };
-
-  const handleChange = (field) => (e) => {
-    setFormData({ ...formData, [field]: e.target.value });
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      slotProps={{
-        paper: {
-          component: "form",
-          onSubmit: handleSubmit,
-          sx: { backgroundImage: "none", minWidth: 400 },
-        },
-      }}
-    >
-      <DialogTitle>{t("login_register_title", "Crear cuenta")}</DialogTitle>
-      <DialogContent
-        sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}
-      >
-        {registerError && (
-          <Alert severity="error" sx={{ mt: 1 }}>
-            {registerError}
-          </Alert>
-        )}
-        <FormControl>
-          <FormLabel htmlFor="register-email">
-            {t("login_email_label", "Correo electrónico")}
-          </FormLabel>
-          <TextField
-            id="register-email"
-            type="email"
-            name="email"
-            placeholder={t("login_email_placeholder", "correo@empresa.com")}
-            autoComplete="email"
-            required
-            fullWidth
-            variant="outlined"
-            size="small"
-            value={formData.email}
-            onChange={handleChange("email")}
-          />
-        </FormControl>
-        <FormControl>
-          <FormLabel htmlFor="register-name">
-            {t("login_name", "Nombre completo")}
-          </FormLabel>
-          <TextField
-            id="register-name"
-            type="text"
-            name="nombre"
-            placeholder="Juan Pérez"
-            autoComplete="name"
-            required
-            fullWidth
-            variant="outlined"
-            size="small"
-            value={formData.nombre}
-            onChange={handleChange("nombre")}
-          />
-        </FormControl>
-        <FormControl>
-          <FormLabel htmlFor="register-password">
-            {t("login_pass_label", "Contraseña")}
-          </FormLabel>
-          <OutlinedInput
-            id="register-password"
-            type={showPassword ? "text" : "password"}
-            name="password"
-            placeholder="••••••••"
-            autoComplete="new-password"
-            required
-            fullWidth
-            size="small"
-            value={formData.password}
-            onChange={handleChange("password")}
-            endAdornment={
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={t('login_toggle_password', 'Alternar visibilidad de contrase\u00f1a')}
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                  size="small"
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            }
-          />
-        </FormControl>
-      </DialogContent>
-      <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button onClick={handleClose} disabled={isSubmitting}>
-          {t("login_cancel", "Cancelar")}
-        </Button>
-        <Button variant="contained" type="submit" disabled={isSubmitting}>
-          {isSubmitting
-            ? t("register_loading", "Creando cuenta...")
-            : t("login_register", "Crear cuenta")}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 // Main Login Component
 export default function Login() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { login, register, isLoading, error, clearError, user } = useAuthStore();
+  const { login, isLoading, error, clearError, user } = useAuthStore();
   const { t } = useI18n();
 
   const { ref: parallaxRef, style: parallaxStyle, isDisabled: parallaxDisabled } = useParallax({ offset: 0.7 });
@@ -266,9 +152,6 @@ export default function Login() {
   const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [openForgotPassword, setOpenForgotPassword] = useState(false);
-  const [openRegister, setOpenRegister] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registerError, setRegisterError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -334,31 +217,6 @@ export default function Login() {
     } catch (err) {
       setEmailError(true);
       setEmailErrorMessage(error || t("login_error_default", "Error en el login"));
-    }
-  };
-
-  const handleRegister = async (formData) => {
-    setRegisterError("");
-    clearError();
-    if (!formData.email || !formData.nombre || !formData.password) {
-      setRegisterError(t("register_error_required", "Todos los campos son obligatorios"));
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const response = await register(formData);
-      setOpenRegister(false);
-      if (response?.user?.is_new_user) {
-        navigate("/nuevo-usuario");
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      const errorMsg = err.response?.data?.error?.message || err.message || t("register_error_default", "Error al crear la cuenta");
-      setRegisterError(errorMsg);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -523,16 +381,7 @@ export default function Login() {
               {t("login_google", "Iniciar sesión con Google")}
             </Button>
             <Typography sx={{ textAlign: "center" }}>
-              {t("login_no_account", "¿No tienes una cuenta?")}{" "}
-              <Link
-                component="button"
-                type="button"
-                onClick={() => setOpenRegister(true)}
-                variant="body2"
-                sx={{ alignSelf: "center" }}
-              >
-                {t("login_register", "Crear cuenta")}
-              </Link>
+              {t("login_contact_admin", "Contacte al administrador para obtener una cuenta")}
             </Typography>
           </Box>
 
@@ -586,15 +435,6 @@ export default function Login() {
         t={t}
       />
 
-      {/* Register Dialog */}
-      <RegisterDialog
-        open={openRegister}
-        handleClose={() => setOpenRegister(false)}
-        t={t}
-        onRegister={handleRegister}
-        isSubmitting={isSubmitting}
-        registerError={registerError}
-      />
     </>
   );
 }
