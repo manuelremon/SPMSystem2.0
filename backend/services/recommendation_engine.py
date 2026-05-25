@@ -363,6 +363,9 @@ def obtener_recomendaciones_material(
         # Estimar ROP (media + 2*std)
         rop = demanda_promedio + 2 * demanda_std
 
+        consumo_anual = demanda_promedio * 365
+        abc_clase = 'A' if consumo_anual > 10000 else 'B' if consumo_anual > 1000 else 'C'
+
         rec = engine.generar_recomendacion(
             material_codigo=material_codigo,
             stock_actual=stock_actual,
@@ -370,7 +373,7 @@ def obtener_recomendaciones_material(
             consumo_historico=consumo_historico,
             demanda_promedio=demanda_promedio,
             demanda_std=demanda_std,
-            abc_clase='A',  # TODO: obtener de BD
+            abc_clase=abc_clase,
             lead_time_dias=14
         )
 

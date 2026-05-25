@@ -63,7 +63,6 @@ class CSRFProtection:
         exempt_paths = {
             "/api/auth/login",
             "/api/auth/csrf",
-            "/api/auth/register",
             "/api/auth/logout",
             "/api/health",
         }

@@ -21,7 +21,7 @@ from backend.core.cache import user_cache
 from backend.core.config import settings
 from backend.core.db import get_db_connection, sql_pattern_is_numeric
 from backend.core.helpers import safe_json as _safe_json
-from backend.core.roles import format_user_response, is_admin, normalize_roles
+from backend.core.roles import format_user_response, is_admin, normalize_roles, require_admin
 from backend.core.user_helpers import get_user_by_id, get_user_by_id_or_email
 
 bp = Blueprint("auth", __name__)
@@ -301,8 +301,8 @@ def login():
 
     data = _safe_json()
     if data is None:
-        logging.getLogger(__name__).error(
-            f"LOGIN DEBUG: Invalid JSON payload - raw: {request.data[:200] if request.data else 'empty'}"
+        logging.getLogger(__name__).warning(
+            "login_failed: invalid_json_payload from ip=%s", client_ip
         )
         return (
             jsonify(
@@ -340,7 +340,7 @@ def login():
     user = _get_user_for_login(username)
     if not user:
         logging.getLogger(__name__).warning(
-            f"LOGIN DEBUG: User not found for username='{username}'"
+            "login_failed: user_not_found from ip=%s", client_ip
         )
         return (
             jsonify(
@@ -398,7 +398,7 @@ def login():
     try:
         if not bcrypt.checkpw(password.encode(), pwd.encode()):
             logging.getLogger(__name__).warning(
-                f"LOGIN DEBUG: Password mismatch for username='{username}'"
+                "login_failed: password_mismatch from ip=%s", client_ip
             )
             return (
                 jsonify(
@@ -413,7 +413,9 @@ def login():
                 401,
             )
     except Exception as e:
-        logging.getLogger(__name__).error(f"LOGIN DEBUG: bcrypt error for {username}: {e}")
+        logging.getLogger(__name__).error(
+            "login_failed: bcrypt_error from ip=%s err=%s", client_ip, type(e).__name__
+        )
         return (
             jsonify(
                 {
@@ -546,11 +548,13 @@ def logout():
 
 
 @bp.route("/register", methods=["POST"])
+@require_admin
 def register():
     """
-    Registro de nuevos usuarios - acceso inmediato
+    Registro de nuevos usuarios - solo administradores.
 
-    Crea un usuario con rol 'Solicitante' y lo autentica automáticamente.
+    Crea un usuario con el rol especificado (default: Solicitante).
+    Requiere autenticación de admin para prevenir registro público no autorizado.
     """
     data = _safe_json()
     if data is None:
