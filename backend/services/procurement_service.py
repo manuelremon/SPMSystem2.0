@@ -354,7 +354,7 @@ class ProcurementService:
         return f"datetime('now', '-{days} days')"
 
     @staticmethod
-    def get_kpis(centro: Optional[str] = None, periodo: str = 'mes') -> Dict[str, Any]:
+    def get_kpis(centro: Optional[str] = None, periodo: str = 'trimestre') -> Dict[str, Any]:
         dias = {'mes': 30, 'trimestre': 90, 'anio': 365}.get(periodo, 30)
         fecha_filtro = ProcurementService._date_since_sql(dias)
 
