@@ -207,7 +207,7 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
           <Grid container spacing={2}>
             <Grid item xs={4}>
               <Typography variant="caption" color="text.disabled">
-                {t('active', 'Activas')}
+                {t('admin_estado_active', 'Activas')}
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
                 {dbMetrics.active_connections || 0}
@@ -300,7 +300,7 @@ function SystemPanel({ systemMetrics, health }) {
             </Grid>
             <Grid item xs={6} md={3}>
               <Typography variant="caption" color="text.disabled">
-                {t('memory', 'Memoria')}
+                {t('admin_estado_memory', 'Memoria')}
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
                 {systemMetrics.process.memory_mb?.toFixed(0) || '--'} MB
@@ -333,7 +333,7 @@ function SystemPanel({ systemMetrics, health }) {
           <Stack spacing={1}>
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.disabled">
-                {t('version', 'Version')}
+                {t('admin_estado_version', 'Version')}
               </Typography>
               <Typography variant="body2" fontWeight={500} color="text.primary">
                 {health.version || 'SPM 2.0'}
@@ -341,7 +341,7 @@ function SystemPanel({ systemMetrics, health }) {
             </Stack>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.disabled">
-                {t('environment', 'Entorno')}
+                {t('admin_estado_environment', 'Entorno')}
               </Typography>
               <Chip label={health.environment || 'development'} size="small" />
             </Stack>
@@ -686,7 +686,7 @@ export function TechnicalMetrics({
       </Box>
       <Stack spacing={2} sx={{ p: 2 }}>
         <CollapsibleSection
-          title={t('latency', 'Latencia')}
+          title={t('admin_estado_latency', 'Latencia')}
           icon={FlashOnIcon}
           iconColor="warning.main"
           defaultOpen={false}
@@ -714,7 +714,7 @@ export function TechnicalMetrics({
 
         {infrastructure && (
           <CollapsibleSection
-            title={t('infrastructure', 'Infraestructura')}
+            title={t('admin_estado_infrastructure', 'Infraestructura')}
             icon={ViewInArIcon}
             iconColor="primary.main"
             defaultOpen={false}

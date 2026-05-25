@@ -43,7 +43,7 @@ function AttentionBanner({ resumen }) {
       label: t('dash_attention_pending_planning', '{count} por planificar').replace('{count}', resumen.pendientes_planificacion),
       color: 'info',
       icon: <PlaylistAddCheckIcon sx={{ fontSize: 16 }} />,
-      onClick: () => navigate('/planner'),
+      onClick: () => navigate('/planificador'),
     });
   }
 
@@ -65,7 +65,7 @@ function AttentionBanner({ resumen }) {
       label: t('dash_attention_mrp', '{count} alertas MRP').replace('{count}', resumen.alertas_mrp),
       color: 'error',
       icon: <WarningAmberIcon sx={{ fontSize: 16 }} />,
-      onClick: () => navigate('/mrp'),
+      onClick: () => navigate('/planificador/mrp/alertas'),
     });
   }
 

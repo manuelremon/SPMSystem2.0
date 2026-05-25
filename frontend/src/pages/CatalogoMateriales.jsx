@@ -694,7 +694,7 @@ export default function CatalogoMateriales() {
                 size="small"
                 value={searchCodigo}
                 onChange={(e) => setSearchCodigo(e.target.value)}
-                placeholder="Ej: 100012345"
+                placeholder={t('materials_catalogo_codigo_example', 'Ej: 100012345')}
                 fullWidth
                 InputProps={{
                   sx: { fontFamily: "monospace" }

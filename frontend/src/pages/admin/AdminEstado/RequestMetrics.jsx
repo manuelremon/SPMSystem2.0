@@ -38,7 +38,7 @@ export function RequestMetrics({ metrics, health, errorRate }) {
       />
       <MetricCard
         icon={AlertTriangle}
-        label={t('errors', 'Errores')}
+        label={t('admin_estado_errors', 'Errores')}
         value={`${metrics?.total_errors?.toLocaleString() || '0'} (${errorRate.toFixed(1)}%)`}
         variant={getVariantByMetric(errorRate, 'errorRate')}
         tooltip="Peticiones que retornaron error (4xx o 5xx). Porcentaje respecto al total"
@@ -54,7 +54,7 @@ export function RequestMetrics({ metrics, health, errorRate }) {
       <MetricCard
         icon={Clock}
         iconColor="text-cyan-500"
-        label={t('uptime', 'Uptime')}
+        label={t('admin_estado_uptime', 'Uptime')}
         value={formatUptime(health?.uptime_seconds)}
         variant="info"
         tooltip="Tiempo desde el ultimo reinicio del servidor backend"

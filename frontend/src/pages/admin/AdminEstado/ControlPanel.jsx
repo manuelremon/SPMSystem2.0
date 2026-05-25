@@ -48,7 +48,7 @@ export function ControlPanel({
         <Stack direction="row" alignItems="center" spacing={1}>
           <RefreshIcon sx={{ color: 'grey.500' }} />
           <Typography variant="h6" component="h2">
-            {t('controls', 'Controles')}
+            {t('admin_estado_controls', 'Controles')}
           </Typography>
         </Stack>
       </Box>
@@ -74,7 +74,7 @@ export function ControlPanel({
                 />
               }
             >
-              {t('refresh', 'Actualizar')}
+              {t('common_refresh', 'Actualizar')}
             </Button>
 
             <Button

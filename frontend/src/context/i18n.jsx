@@ -2691,6 +2691,26 @@ const translations = {
   account_push_desc: { es: "Recibir notificaciones del navegador", en: "Receive browser notifications" },
   account_sound: { es: "Sonido", en: "Sound" },
   account_sound_desc: { es: "Reproducir sonido con cada notificación", en: "Play sound with each notification" },
+
+  // AdminEstado - System status labels (sin prefijo en código legacy, ahora prefijados)
+  admin_estado_controls: { es: "Controles", en: "Controls" },
+  admin_estado_subtotal: { es: "Subtotal", en: "Subtotal" },
+  admin_estado_errors: { es: "Errores", en: "Errors" },
+  admin_estado_uptime: { es: "Uptime", en: "Uptime" },
+  admin_estado_active: { es: "Activas", en: "Active" },
+  admin_estado_memory: { es: "Memoria", en: "Memory" },
+  admin_estado_version: { es: "Versión", en: "Version" },
+  admin_estado_environment: { es: "Entorno", en: "Environment" },
+  admin_estado_latency: { es: "Latencia", en: "Latency" },
+  admin_estado_infrastructure: { es: "Infraestructura", en: "Infrastructure" },
+
+  // Search placeholders (admin + catálogos + MRP)
+  admin_monitor_users_search_placeholder: { es: "Buscar por nombre, email o ID...", en: "Search by name, email or ID..." },
+  admin_planificadores_search_placeholder: { es: "Buscar por ID o nombre...", en: "Search by ID or name..." },
+  admin_presupuestos_search_placeholder: { es: "Buscar por centro o sector...", en: "Search by site or sector..." },
+  materials_catalogo_codigo_example: { es: "Ej: 100012345", en: "Eg: 100012345" },
+  materials_equivalencias_search_placeholder: { es: "Buscar material...", en: "Search material..." },
+  mrp_portfolio_search_placeholder: { es: "Buscar por código o descripción...", en: "Search by code or description..." },
 };
 
 export function I18nProvider({ children }) {
