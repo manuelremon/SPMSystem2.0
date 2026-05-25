@@ -347,13 +347,16 @@ class ProcurementService:
             }
 
     @staticmethod
+    def _date_since_sql(days: int) -> str:
+        """Retorna expresión SQL compatible para 'hace N días'."""
+        if is_using_postgresql():
+            return f"NOW() - INTERVAL '{days} days'"
+        return f"datetime('now', '-{days} days')"
+
+    @staticmethod
     def get_kpis(centro: Optional[str] = None, periodo: str = 'mes') -> Dict[str, Any]:
-        # Calcular rango de fechas segun periodo (PostgreSQL syntax)
-        fecha_filtro = {
-            'mes': "NOW() - INTERVAL '30 days'",
-            'trimestre': "NOW() - INTERVAL '90 days'",
-            'anio': "NOW() - INTERVAL '365 days'"
-        }.get(periodo, "NOW() - INTERVAL '30 days'")
+        dias = {'mes': 30, 'trimestre': 90, 'anio': 365}.get(periodo, 30)
+        fecha_filtro = ProcurementService._date_since_sql(dias)
 
         centro_filter = "AND s.centro = ?" if centro else ""
         params = [centro] if centro else []
@@ -555,7 +558,8 @@ class ProcurementService:
         moneda: Optional[str] = None,
         min_trans: int = 3
     ) -> List[Dict[str, Any]]:
-        conditions = [f"num_transacciones >= {min_trans}"]
+        # Filtros adicionales (excluyendo num_transacciones que va en subquery)
+        conditions = []
         params = []
 
         if material:
@@ -569,17 +573,25 @@ class ProcurementService:
             conditions.append("moneda = ?")
             params.append(moneda)
 
-        where_clause = " AND ".join(conditions)
+        extra_where = (" AND " + " AND ".join(conditions)) if conditions else ""
 
+        # num_transacciones es un alias calculado en la vista — se filtra en subquery
+        # para compatibilidad SQLite/PostgreSQL
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"""
-                SELECT * FROM v_sap_analisis_costos
-                WHERE {where_clause}
-                ORDER BY importe_total DESC
-                LIMIT 100
-            """, params)
-            rows = cur.fetchall()
+            try:
+                cur.execute(f"""
+                    SELECT * FROM (
+                        SELECT * FROM v_sap_analisis_costos
+                        WHERE num_transacciones >= ?
+                        {extra_where}
+                    ) sub
+                    ORDER BY importe_total DESC
+                    LIMIT 100
+                """, [min_trans] + params)
+                rows = cur.fetchall()
+            except Exception:
+                return []
 
         return [_row_to_dict(r) for r in rows]
 
@@ -780,11 +792,8 @@ class ProcurementService:
 
     @staticmethod
     def get_provider_scorecard(proveedor: str, periodo: str = 'anio') -> Dict[str, Any]:
-        fecha_filtro = {
-            'mes': "NOW() - INTERVAL '30 days'",
-            'trimestre': "NOW() - INTERVAL '90 days'",
-            'anio': "NOW() - INTERVAL '365 days'"
-        }.get(periodo, "NOW() - INTERVAL '365 days'")
+        dias = {'mes': 30, 'trimestre': 90, 'anio': 365}.get(periodo, 365)
+        fecha_filtro = ProcurementService._date_since_sql(dias)
 
         with get_db_connection() as conn:
             cur = conn.cursor()
