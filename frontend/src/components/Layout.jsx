@@ -20,13 +20,14 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { MessageSquare, Wifi, User, Settings, LogOut, ChevronDown, Bell, Home } from "./ui/Icons";
+import { MessageSquare, Wifi, ChevronDown, Bell, Home } from "./ui/Icons";
 import { useRealtimeStore } from "../store/realtimeStore";
 import { useAuthStore } from "../store/authStore";
 import { useVertexStore } from "../store/vertexStore";
 import { useRealtime } from "../hooks/useRealtime";
 import ChatAssistant from "./ChatAssistant";
 import HeaderNav from "./HeaderNav";
+import MobileNav from "./MobileNav";
 import ToastContainer from "./ui/ToastContainer";
 import SkipLink from "./ui/SkipLink";
 import AboutModal from "./AboutModal";
@@ -43,6 +44,7 @@ export default function Layout({ children }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const { toggleChat, getUnshownAlertsCount } = useVertexStore();
   const unshownAlertsCount = getUnshownAlertsCount();
   const unreadCount = useRealtimeStore((state) => state.unreadCount);
@@ -68,9 +70,10 @@ export default function Layout({ children }) {
     { enabled: !!user }
   );
 
-  // Close user menu on route change
+  // Close menus on route change
   useEffect(() => {
     setUserMenuAnchor(null);
+    setMobileDrawerOpen(false);
   }, [location.pathname]);
 
   // Handle logout
@@ -124,7 +127,7 @@ export default function Layout({ children }) {
             height: 43,
           }}
         >
-          {/* Izquierda: Logo SPM */}
+          {/* Izquierda: Logo SPM (siempre visible) */}
           <Box sx={{ flexShrink: 0 }}>
             <Box
               sx={{
@@ -151,45 +154,77 @@ export default function Layout({ children }) {
             </Box>
           </Box>
 
-          {/* Centro: Dashboard + Navegacion (centrado) */}
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: 43,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {/* Home icon */}
+          {/* Centro: nav desktop / hamburguesa mobile */}
+          {isMobile ? (
+            /* Móvil: botón hamburguesa que ocupa el espacio central */
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', height: 43 }}>
               <Box
-                component={NavLink}
-                to="/dashboard"
+                component="button"
+                onClick={() => setMobileDrawerOpen(true)}
+                aria-label={t("aria_open_menu", "Abrir menú")}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: 43,
                   height: 43,
-                  borderLeft: '1px solid var(--header-border, #424242)',
+                  background: 'transparent',
+                  border: 'none',
                   borderRight: '1px solid var(--header-border, #424242)',
-                  transition: 'all 0.2s',
-                  textDecoration: 'none',
-                  backgroundColor: isPathActive("/dashboard") ? 'var(--primary)' : 'transparent',
                   color: 'white',
-                  '&:hover': {
-                    backgroundColor: isPathActive("/dashboard") ? 'var(--primary)' : 'var(--header-border, #424242)',
-                  },
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'var(--header-border, #424242)' },
                 }}
-                title={t("nav_dashboard", "Dashboard")}
               >
-                <Home style={{ width: 20, height: 20 }} />
+                {/* Hamburger icon */}
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                  <rect y="3" width="18" height="2" rx="1" />
+                  <rect y="8" width="18" height="2" rx="1" />
+                  <rect y="13" width="18" height="2" rx="1" />
+                </svg>
               </Box>
-              {/* Header Navigation */}
-              <HeaderNav />
             </Box>
-          </Box>
+          ) : (
+            /* Desktop: navegación horizontal centrada */
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 43,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {/* Home icon */}
+                <Box
+                  component={NavLink}
+                  to="/dashboard"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 43,
+                    height: 43,
+                    borderLeft: '1px solid var(--header-border, #424242)',
+                    borderRight: '1px solid var(--header-border, #424242)',
+                    transition: 'all 0.2s',
+                    textDecoration: 'none',
+                    backgroundColor: isPathActive("/dashboard") ? 'var(--primary)' : 'transparent',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: isPathActive("/dashboard") ? 'var(--primary)' : 'var(--header-border, #424242)',
+                    },
+                  }}
+                  title={t("nav_dashboard", "Dashboard")}
+                >
+                  <Home style={{ width: 20, height: 20 }} />
+                </Box>
+                {/* Header Navigation */}
+                <HeaderNav />
+              </Box>
+            </Box>
+          )}
 
           {/* Derecha: User Menu + Notificaciones */}
           <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', height: 43 }}>
@@ -358,12 +393,12 @@ export default function Layout({ children }) {
               </Badge>
             </Box>
 
-            {/* Foro Icon */}
+            {/* Foro Icon — oculto en móvil para no saturar el header */}
             <Box
               component={NavLink}
               to="/foro"
               sx={{
-                display: 'flex',
+                display: { xs: 'none', sm: 'flex' },
                 alignItems: 'center',
                 justifyContent: 'center',
                 width: 43,
@@ -382,10 +417,10 @@ export default function Layout({ children }) {
               <MessageSquare style={{ width: 16, height: 16 }} />
             </Box>
 
-            {/* Connection Status Indicator */}
+            {/* Connection Status — oculto en móvil */}
             <Box
               sx={{
-                display: 'flex',
+                display: { xs: 'none', sm: 'flex' },
                 alignItems: 'center',
                 justifyContent: 'center',
                 width: 43,
@@ -407,6 +442,14 @@ export default function Layout({ children }) {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Drawer navegación móvil */}
+      {isMobile && (
+        <MobileNav
+          open={mobileDrawerOpen}
+          onClose={() => setMobileDrawerOpen(false)}
+        />
+      )}
 
       {/* Main content area - sin sidebar */}
       <Box
