@@ -400,7 +400,7 @@ export default function ProcurementDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [periodo, setPeriodo] = useState('mes');
+  const [periodo, setPeriodo] = useState('trimestre');
   const [centro, setCentro] = useState('');
 
   const [kpis, setKpis] = useState(null);

@@ -106,7 +106,7 @@ def get_order_detail(pedido_id):
 def get_kpis():
     try:
         centro = request.args.get('centro')
-        periodo = request.args.get('periodo', 'mes')
+        periodo = request.args.get('periodo', 'trimestre')
         result = ProcurementService.get_kpis(centro=centro, periodo=periodo)
         result['ok'] = True
         return jsonify(result)
