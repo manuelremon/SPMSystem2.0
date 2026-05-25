@@ -229,6 +229,7 @@ function EntityIdChip({ entityType, entityId, onClick }) {
 
 /** Selector de usuario con autocompletado */
 function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
+  const { t } = useI18n();
   const [anchorEl, setAnchorEl] = useState(null);
   const [search, setSearch] = useState("");
   const isOpen = Boolean(anchorEl);
@@ -310,7 +311,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
           <TextField
             size="small"
             fullWidth
-            placeholder="Buscar por nombre, email o ID..."
+            placeholder={t('admin_monitor_users_search_placeholder', 'Buscar por nombre, email o ID...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus

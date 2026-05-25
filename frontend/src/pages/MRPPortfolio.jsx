@@ -558,7 +558,7 @@ export default function MRPPortfolio() {
               <TextField
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por codigo o descripcion..."
+                placeholder={t('mrp_portfolio_search_placeholder', 'Buscar por código o descripción...')}
                 size="small"
                 sx={{
                   flex: 1,

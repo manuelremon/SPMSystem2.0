@@ -65,6 +65,7 @@ const tipoStyles = {
    Material Search Field Component
 --------------------------------------------------------------- */
 function MaterialSearchField({ label, value, onChange, results, loading, onSelect, selected, onClear, disabled, color = "primary" }) {
+  const { t } = useI18n();
   const textColor = color === "primary" ? "primary.main" : "secondary.main";
 
   if (disabled) {
@@ -172,7 +173,7 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
         fullWidth
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Buscar material..."
+        placeholder={t('materials_equivalencias_search_placeholder', 'Buscar material...')}
         InputProps={{
           endAdornment: loading ? (
             <InputAdornment position="end">

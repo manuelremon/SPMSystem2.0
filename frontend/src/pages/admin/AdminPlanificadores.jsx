@@ -594,7 +594,7 @@ return (
         <Box sx={{ mb: 2 }}>
           <TextField
             size="small"
-            placeholder="Buscar por ID o nombre..."
+            placeholder={t('admin_planificadores_search_placeholder', 'Buscar por ID o nombre...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoComplete="off"

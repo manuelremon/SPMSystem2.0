@@ -136,7 +136,7 @@ function DatabaseCard({ name, info }) {
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              {t('subtotal', 'Subtotal')}
+              {t('admin_estado_subtotal', 'Subtotal')}
             </Typography>
             <Typography variant="body2" fontWeight={600} color="success.main">
               {info.total_records?.toLocaleString() || '0'}

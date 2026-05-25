@@ -423,7 +423,7 @@ const [centro, sector] = id.split("|");
         <Box sx={{ mb: 2 }}>
           <TextField
             size="small"
-            placeholder="Buscar por centro o sector..."
+            placeholder={t('admin_presupuestos_search_placeholder', 'Buscar por centro o sector...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoComplete="off"
