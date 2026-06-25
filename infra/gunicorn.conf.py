@@ -45,8 +45,13 @@ access_log_format = '%(h)s - %(u)s [%(t)s] "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %
 # ==============================================================================
 # Server Mechanics
 # ==============================================================================
-# Preload app para compartir código entre workers (ahorra memoria)
-preload_app = False  # False porque usamos post_fork para reiniciar pool
+# Preload app para compartir código entre workers (ahorra memoria).
+# True: el master importa la app y carga el modelo de búsqueda semántica UNA vez;
+# los workers lo heredan por copy-on-write. Evita que los N workers carguen el
+# modelo en paralelo desde disco al arrancar (saturaba I/O y colgaba /health en
+# la VPS pequeña). El hook post_fork recrea el pool PostgreSQL en cada worker,
+# por lo que preload es seguro (no se comparten conexiones entre procesos).
+preload_app = True
 
 # PID file (opcional)
 # pidfile = "/tmp/gunicorn.pid"
