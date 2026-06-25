@@ -95,20 +95,28 @@ class PushService:
         try:
             with get_db_transaction() as conn:
                 cur = conn.cursor()
-                # Upsert: actualizar si ya existe el endpoint (SQLite 3.24+ compatible)
+                # Upsert manual (UPDATE-then-INSERT) en lugar de ON CONFLICT.
+                # En produccion el schema se importo desde pg_dump sin la
+                # constraint UNIQUE(endpoint), por lo que ON CONFLICT(endpoint)
+                # provocaba un error 500. Este enfoque es portable SQLite/PG y
+                # no depende de la existencia de la constraint.
                 cur.execute(
                     """
-                    INSERT INTO notificacion_push_suscripcion
-                    (user_id, endpoint, p256dh, auth, user_agent, created_at)
-                    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(endpoint) DO UPDATE SET
-                        user_id = excluded.user_id,
-                        p256dh = excluded.p256dh,
-                        auth = excluded.auth,
-                        user_agent = excluded.user_agent
-                """,
-                    (user_id, endpoint, p256dh, auth, user_agent),
+                    UPDATE notificacion_push_suscripcion
+                    SET user_id = ?, p256dh = ?, auth = ?, user_agent = ?
+                    WHERE endpoint = ?
+                    """,
+                    (user_id, p256dh, auth, user_agent, endpoint),
                 )
+                if cur.rowcount == 0:
+                    cur.execute(
+                        """
+                        INSERT INTO notificacion_push_suscripcion
+                        (user_id, endpoint, p256dh, auth, user_agent, created_at)
+                        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        """,
+                        (user_id, endpoint, p256dh, auth, user_agent),
+                    )
             logger.info(f"[PUSH] Suscripcion registrada para usuario {user_id}")
             return True
         except Exception as e:
