@@ -1,5 +1,5 @@
 """
-Migration 090: Agregar UNIQUE(endpoint) a la tabla de suscripciones push.
+Migration 096: Agregar UNIQUE(endpoint) a la tabla de suscripciones push.
 
 PROBLEMA:
   push_service.subscribe() ejecuta un INSERT ... ON CONFLICT(endpoint) DO UPDATE.
@@ -62,7 +62,7 @@ def up():
     from backend.core.db import get_db_transaction, is_using_postgresql
 
     logger.info("=" * 60)
-    logger.info("Migration 090: UNIQUE(endpoint) en suscripciones push")
+    logger.info("Migration 096: UNIQUE(endpoint) en suscripciones push")
     logger.info("=" * 60)
 
     is_pg = is_using_postgresql()
@@ -122,10 +122,10 @@ def up():
                 )
                 logger.info("  + Indice UNIQUE(endpoint) creado")
 
-        logger.info("Migration 090 completada")
+        logger.info("Migration 096 completada")
         return True
     except Exception as e:
-        logger.error("Migration 090 failed: %s", e)
+        logger.error("Migration 096 failed: %s", e)
         import traceback
 
         traceback.print_exc()
@@ -135,7 +135,7 @@ def up():
 def down():
     from backend.core.db import get_db_transaction, is_using_postgresql
 
-    logger.info("Rollback 090: Eliminando UNIQUE(endpoint) de suscripciones push")
+    logger.info("Rollback 096: Eliminando UNIQUE(endpoint) de suscripciones push")
 
     is_pg = is_using_postgresql()
 
@@ -153,10 +153,10 @@ def down():
             else:
                 cursor.execute(f"DROP INDEX IF EXISTS uq_{table}_endpoint")
 
-        logger.info("Rollback 090 completado")
+        logger.info("Rollback 096 completado")
         return True
     except Exception as e:
-        logger.error("Rollback 090 failed: %s", e)
+        logger.error("Rollback 096 failed: %s", e)
         return False
 
 
