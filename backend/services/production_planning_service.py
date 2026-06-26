@@ -168,7 +168,7 @@ def obtener_planes(filtros: Optional[Dict[str, Any]] = None, page: int = 1, page
                    (SELECT COUNT(*) FROM plan_produccion_item WHERE plan_id = pp.id) as total_items,
                    (SELECT COUNT(*) FROM plan_produccion_item WHERE plan_id = pp.id AND estado = 'completado') as items_completados
             FROM plan_produccion pp
-            LEFT JOIN usuarios u ON pp.responsable_id::text = u.id_spm::text
+            LEFT JOIN usuarios u ON CAST(pp.responsable_id AS TEXT) = CAST(u.id_spm AS TEXT)
             WHERE 1=1
         """ if is_using_postgresql() else """
             SELECT pp.*,
@@ -233,7 +233,7 @@ def obtener_detalle_plan(plan_id: int) -> Optional[Dict[str, Any]]:
             cursor.execute(f"""
                 SELECT pp.*, u.nombre as responsable_nombre
                 FROM plan_produccion pp
-                LEFT JOIN usuarios u ON pp.responsable_id::text = u.id_spm::text
+                LEFT JOIN usuarios u ON CAST(pp.responsable_id AS TEXT) = CAST(u.id_spm AS TEXT)
                 WHERE pp.id = {ph}
             """, (plan_id,))
         else:
@@ -607,7 +607,7 @@ def obtener_kpis() -> Dict[str, Any]:
     if is_using_postgresql():
         date_now = "CURRENT_DATE"
         date_7_ago = "CURRENT_DATE - INTERVAL '7 days'"
-        date_cast = "ppi.created_at::date = CURRENT_DATE"
+        date_cast = "CAST(ppi.created_at AS DATE) = CURRENT_DATE"
     else:
         date_now = "date('now')"
         date_7_ago = "date('now', '-7 days')"

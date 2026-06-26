@@ -6,7 +6,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from backend.core.db import get_db_connection
+from backend.core.db import (
+    get_db_connection,
+    sql_date_diff_days,
+    sql_date_relative,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -425,13 +430,14 @@ def simular_cashflow(
     cursor = conn.cursor()
 
     # Obtener facturas históricas para proyección
-    cursor.execute("""
+    mes_factura = sql_format_date("fecha_factura", "%Y-%m")
+    cursor.execute(f"""
         SELECT
-            TO_CHAR(fecha_factura, 'YYYY-MM') as periodo,
+            {mes_factura} as periodo,
             SUM(monto_total) as monto_mes
         FROM factura_proveedor
-        WHERE fecha_factura >= CURRENT_DATE - INTERVAL '6 months'
-        GROUP BY TO_CHAR(fecha_factura, 'YYYY-MM')
+        WHERE fecha_factura >= {sql_date_relative(months=-6)}
+        GROUP BY {mes_factura}
         ORDER BY periodo DESC
     """)
 
@@ -498,11 +504,11 @@ def obtener_kpis() -> Dict:
     pending_savings_potential = row[1] or 0
 
     # DPO promedio (calculado desde facturas con fecha_vencimiento en últimos 90 días)
-    cursor.execute("""
-        SELECT AVG(EXTRACT(EPOCH FROM (fecha_vencimiento_pago::timestamp - fecha_factura::timestamp)) / 86400) as dpo
+    cursor.execute(f"""
+        SELECT AVG({sql_date_diff_days('fecha_vencimiento_pago', 'fecha_factura')}) as dpo
         FROM factura_proveedor
         WHERE fecha_vencimiento_pago IS NOT NULL
-        AND fecha_factura >= CURRENT_DATE - INTERVAL '90 days'
+        AND fecha_factura >= {sql_date_relative(days=-90)}
     """)
     avg_dpo = cursor.fetchone()[0] or 30
 

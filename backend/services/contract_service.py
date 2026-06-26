@@ -213,7 +213,7 @@ def obtener_detalle_contrato(contrato_id: int) -> Dict[str, Any]:
         cursor.execute("""
             SELECT h.*, u.nombre as actor_nombre
             FROM contrato_historial h
-            LEFT JOIN usuarios u ON h.actor_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(h.actor_id AS TEXT) = u.id_spm
             WHERE h.contrato_id = %s
             ORDER BY h.created_at DESC
         """, (contrato_id,))
@@ -613,7 +613,7 @@ def obtener_documentos(contrato_id: int) -> List[Dict[str, Any]]:
         cursor.execute("""
             SELECT d.*, u.nombre as subido_por_nombre
             FROM contrato_documento d
-            LEFT JOIN usuarios u ON d.subido_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(d.subido_por AS TEXT) = u.id_spm
             WHERE d.contrato_id = %s
             ORDER BY d.created_at DESC
         """, (contrato_id,))
