@@ -6,7 +6,14 @@ Gestiona códigos HS, clasificación aduanera, operaciones de importación/expor
 import logging
 from typing import Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +37,15 @@ def crear_hs_code(data: dict) -> int:
     Returns:
         ID del código HS creado
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        hs_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO hs_code
                 (codigo, descripcion, arancel_pct, unidad_medida, capitulo, partida, subpartida, notas, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 data['codigo'],
                 data.get('descripcion'),
                 data.get('arancel_pct', 0),
@@ -48,24 +54,8 @@ def crear_hs_code(data: dict) -> int:
                 data.get('partida'),
                 data.get('subpartida'),
                 data.get('notas')
-            ))
-            hs_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO hs_code
-                (codigo, descripcion, arancel_pct, unidad_medida, capitulo, partida, subpartida, notas, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                data['codigo'],
-                data.get('descripcion'),
-                data.get('arancel_pct', 0),
-                data.get('unidad_medida'),
-                data.get('capitulo'),
-                data.get('partida'),
-                data.get('subpartida'),
-                data.get('notas')
-            ))
-            hs_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Código HS creado: {hs_id} - {data['codigo']}")
@@ -161,15 +151,35 @@ def clasificar_material(material_codigo: str, hs_code_id: int, pais_origen: str 
         ID de la clasificación creada
     """
     with get_db_transaction() as (conn, cursor):
-        cursor.execute("""
-            INSERT INTO material_clasificacion_aduanera
-            (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen, created_at)
-            VALUES (%s, %s, %s, %s, %s, NOW())
-            ON CONFLICT (material_codigo, pais_origen, pais_destino) DO UPDATE
-            SET hs_code_id = EXCLUDED.hs_code_id, certificado_origen = EXCLUDED.certificado_origen
-            RETURNING id
-        """, (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen))
-        clasificacion_id = cursor.fetchone()[0]
+        # UPSERT portable (UPDATE-then-INSERT; evita ON CONFLICT/EXCLUDED/RETURNING PG-only)
+        cursor.execute(
+            """
+            UPDATE material_clasificacion_aduanera
+            SET hs_code_id = ?, certificado_origen = ?
+            WHERE material_codigo = ? AND pais_origen = ? AND pais_destino = ?
+            """,
+            (hs_code_id, certificado_origen, material_codigo, pais_origen, pais_destino),
+        )
+        if cursor.rowcount and cursor.rowcount > 0:
+            cursor.execute(
+                """
+                SELECT id FROM material_clasificacion_aduanera
+                WHERE material_codigo = ? AND pais_origen = ? AND pais_destino = ?
+                """,
+                (material_codigo, pais_origen, pais_destino),
+            )
+            row = cursor.fetchone()
+            clasificacion_id = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            clasificacion_id = insert_returning_id(
+                cursor,
+                f"""
+                INSERT INTO material_clasificacion_aduanera
+                (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen, created_at)
+                VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+                """,
+                (material_codigo, hs_code_id, pais_origen, pais_destino, certificado_origen),
+            )
 
         conn.commit()
         logger.info(f"Material clasificado: {material_codigo} con HS code {hs_code_id}")
@@ -345,7 +355,6 @@ def crear_operacion(data: dict) -> int:
     Returns:
         ID de la operación creada
     """
-    using_pg = is_using_postgresql()
 
     valor_fob = data.get('valor_fob', 0)
     flete = data.get('flete', 0)
@@ -358,15 +367,16 @@ def crear_operacion(data: dict) -> int:
     total_tributos = aranceles + impuestos_adicionales
 
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        operacion_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO operacion_aduanera
                 (tipo, numero_despacho, proveedor_cuit, fecha_operacion, estado,
                  valor_fob, flete, seguro, valor_cif, aranceles, impuestos_adicionales,
                  total_tributos, moneda, orden_compra_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 data['tipo'],
                 data.get('numero_despacho'),
                 data.get('proveedor_cuit'),
@@ -382,33 +392,8 @@ def crear_operacion(data: dict) -> int:
                 data.get('moneda', 'USD'),
                 data.get('orden_compra_id'),
                 data.get('notas')
-            ))
-            operacion_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO operacion_aduanera
-                (tipo, numero_despacho, proveedor_cuit, fecha_operacion, estado,
-                 valor_fob, flete, seguro, valor_cif, aranceles, impuestos_adicionales,
-                 total_tributos, moneda, orden_compra_id, notas, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                data['tipo'],
-                data.get('numero_despacho'),
-                data.get('proveedor_cuit'),
-                data['fecha_operacion'],
-                data.get('estado', 'en_proceso'),
-                valor_fob,
-                flete,
-                seguro,
-                valor_cif,
-                aranceles,
-                impuestos_adicionales,
-                total_tributos,
-                data.get('moneda', 'USD'),
-                data.get('orden_compra_id'),
-                data.get('notas')
-            ))
-            operacion_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Operación aduanera creada: {operacion_id} ({data['tipo']})")
@@ -551,17 +536,16 @@ def crear_acuerdo(data: dict) -> int:
     Returns:
         ID del acuerdo creado
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        acuerdo_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO acuerdo_comercial
                 (nombre, tipo, pais_socio, preferencia_arancelaria_pct,
                  fecha_vigencia_desde, fecha_vigencia_hasta, requisitos_origen, estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'active', {sql_datetime_now()})
+            """,
+            (
                 data['nombre'],
                 data['tipo'],
                 data.get('pais_socio'),
@@ -569,24 +553,8 @@ def crear_acuerdo(data: dict) -> int:
                 data.get('fecha_vigencia_desde'),
                 data.get('fecha_vigencia_hasta'),
                 data.get('requisitos_origen')
-            ))
-            acuerdo_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO acuerdo_comercial
-                (nombre, tipo, pais_socio, preferencia_arancelaria_pct,
-                 fecha_vigencia_desde, fecha_vigencia_hasta, requisitos_origen, estado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'active', datetime('now'))
-            """, (
-                data['nombre'],
-                data['tipo'],
-                data.get('pais_socio'),
-                data.get('preferencia_arancelaria_pct', 0),
-                data.get('fecha_vigencia_desde'),
-                data.get('fecha_vigencia_hasta'),
-                data.get('requisitos_origen')
-            ))
-            acuerdo_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Acuerdo comercial creado: {acuerdo_id} - {data['nombre']}")
@@ -653,25 +621,19 @@ def obtener_kpis() -> dict:
             ahorro_acuerdos_comerciales: float
         }
     """
-    using_pg = is_using_postgresql()
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        mes_actual = sql_format_date(sql_datetime_now(), "%Y-%m")
+
         # Tributos del mes actual
-        if using_pg:
-            cursor.execute("""
-                SELECT COALESCE(SUM(total_tributos), 0)
-                FROM operacion_aduanera
-                WHERE DATE_TRUNC('month', fecha_operacion) = DATE_TRUNC('month', CURRENT_DATE)
-            """)
-        else:
-            cursor.execute("""
-                SELECT COALESCE(SUM(total_tributos), 0)
-                FROM operacion_aduanera
-                WHERE strftime('%Y-%m', fecha_operacion) = strftime('%Y-%m', date('now'))
-            """)
+        cursor.execute(f"""
+            SELECT COALESCE(SUM(total_tributos), 0)
+            FROM operacion_aduanera
+            WHERE {sql_format_date('fecha_operacion', '%Y-%m')} = {mes_actual}
+        """)
         tributos_mes_actual = float(cursor.fetchone()[0])
 
         # Operaciones pendientes
@@ -681,22 +643,13 @@ def obtener_kpis() -> dict:
         # Ahorro estimado por acuerdos comerciales (simplificación: suma de preferencias aplicadas)
         # En un caso real, se calcularía comparando aranceles con y sin acuerdo
         ahorro_acuerdos = 0.0
-        if using_pg:
-            cursor.execute("""
-                SELECT COALESCE(SUM(valor_cif * preferencia_arancelaria_pct / 100), 0)
-                FROM operacion_aduanera oa
-                JOIN acuerdo_comercial ac ON ac.estado = 'active'
-                WHERE DATE_TRUNC('month', oa.fecha_operacion) = DATE_TRUNC('month', CURRENT_DATE)
-                LIMIT 1
-            """)
-        else:
-            cursor.execute("""
-                SELECT COALESCE(SUM(valor_cif * preferencia_arancelaria_pct / 100), 0)
-                FROM operacion_aduanera oa
-                JOIN acuerdo_comercial ac ON ac.estado = 'active'
-                WHERE strftime('%Y-%m', oa.fecha_operacion) = strftime('%Y-%m', date('now'))
-                LIMIT 1
-            """)
+        cursor.execute(f"""
+            SELECT COALESCE(SUM(valor_cif * preferencia_arancelaria_pct / 100), 0)
+            FROM operacion_aduanera oa
+            JOIN acuerdo_comercial ac ON ac.estado = 'active'
+            WHERE {sql_format_date('oa.fecha_operacion', '%Y-%m')} = {mes_actual}
+            LIMIT 1
+        """)
         ahorro_row = cursor.fetchone()
         if ahorro_row:
             ahorro_acuerdos = float(ahorro_row[0])

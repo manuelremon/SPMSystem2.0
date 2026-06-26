@@ -9,7 +9,13 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 
 def detectar_desbalances() -> list:
@@ -110,41 +116,26 @@ def proponer_transferencias(desbalances: Optional[list] = None) -> list:
             if cantidad <= 0:
                 continue
 
-            if is_using_postgresql():
-                cur.execute("""
-                    SELECT COUNT(*) FROM transferencia_inventario
-                    WHERE DATE(created_at) = CURRENT_DATE
-                """)
-            else:
-                cur.execute("""
-                    SELECT COUNT(*) FROM transferencia_inventario
-                    WHERE DATE(created_at) = DATE('now')
-                """)
+            cur.execute("""
+                SELECT COUNT(*) FROM transferencia_inventario
+                WHERE DATE(created_at) = CURRENT_DATE
+            """)
 
             count = cur.fetchone()[0] + 1
             numero_transferencia = f"TRF-{datetime.now().strftime('%Y%m%d')}-{count:04d}"
 
-            if is_using_postgresql():
-                cur.execute("""
-                    INSERT INTO transferencia_inventario
-                        (numero_transferencia, material_codigo, almacen_origen,
-                         almacen_destino, cantidad, estado, prioridad, razon)
-                    VALUES (%s, %s, %s, %s, %s, 'proposed', 'normal', 'Balanceo automático de inventario')
-                    RETURNING id
-                """, (numero_transferencia, desbalance['material_codigo'],
-                      desbalance['almacen_exceso'], desbalance['almacen_deficit'],
-                      cantidad))
-                transferencia_id = cur.fetchone()[0]
-            else:
-                cur.execute("""
+            transferencia_id = insert_returning_id(
+                cur,
+                """
                     INSERT INTO transferencia_inventario
                         (numero_transferencia, material_codigo, almacen_origen,
                          almacen_destino, cantidad, estado, prioridad, razon)
                     VALUES (?, ?, ?, ?, ?, 'proposed', 'normal', 'Balanceo automático de inventario')
-                """, (numero_transferencia, desbalance['material_codigo'],
-                      desbalance['almacen_exceso'], desbalance['almacen_deficit'],
-                      cantidad))
-                transferencia_id = cur.lastrowid
+                """,
+                (numero_transferencia, desbalance['material_codigo'],
+                 desbalance['almacen_exceso'], desbalance['almacen_deficit'],
+                 cantidad),
+            )
 
             transferencia_ids.append(transferencia_id)
 
@@ -229,27 +220,15 @@ def aprobar_transferencia(transferencia_id: int, user_id: int) -> dict:
     conn, cur = get_db_transaction()
 
     try:
-        if is_using_postgresql():
-            cur.execute("""
-                UPDATE transferencia_inventario
-                SET estado = 'approved',
-                    aprobado_por = %s,
-                    updated_at = NOW()
-                WHERE id = %s
-                RETURNING *
-            """, (user_id, transferencia_id))
-            row = cur.fetchone()
-        else:
-            cur.execute("""
-                UPDATE transferencia_inventario
-                SET estado = 'approved',
-                    aprobado_por = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (user_id, transferencia_id))
-
-            cur.execute("SELECT * FROM transferencia_inventario WHERE id = ?", (transferencia_id,))
-            row = cur.fetchone()
+        cur.execute(f"""
+            UPDATE transferencia_inventario
+            SET estado = 'approved',
+                aprobado_por = ?,
+                updated_at = {sql_datetime_now()}
+            WHERE id = ?
+        """, (user_id, transferencia_id))
+        cur.execute("SELECT * FROM transferencia_inventario WHERE id = ?", (transferencia_id,))
+        row = cur.fetchone()
 
         conn.commit()
 
@@ -267,27 +246,16 @@ def completar_transferencia(transferencia_id: int, user_id: int) -> dict:
     conn, cur = get_db_transaction()
 
     try:
-        if is_using_postgresql():
-            cur.execute("""
-                UPDATE transferencia_inventario
-                SET estado = 'received',
-                    fecha_recepcion = NOW(),
-                    updated_at = NOW()
-                WHERE id = %s
-                RETURNING *
-            """, (transferencia_id,))
-            row = cur.fetchone()
-        else:
-            cur.execute("""
-                UPDATE transferencia_inventario
-                SET estado = 'received',
-                    fecha_recepcion = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """, (transferencia_id,))
-
-            cur.execute("SELECT * FROM transferencia_inventario WHERE id = ?", (transferencia_id,))
-            row = cur.fetchone()
+        now_sql = sql_datetime_now()
+        cur.execute(f"""
+            UPDATE transferencia_inventario
+            SET estado = 'received',
+                fecha_recepcion = {now_sql},
+                updated_at = {now_sql}
+            WHERE id = ?
+        """, (transferencia_id,))
+        cur.execute("SELECT * FROM transferencia_inventario WHERE id = ?", (transferencia_id,))
+        row = cur.fetchone()
 
         conn.commit()
 
@@ -315,28 +283,17 @@ def actualizar_nivel_servicio(material_codigo: str, almacen: str, nivel_servicio
     conn, cur = get_db_transaction()
 
     try:
-        ph = "%s" if is_using_postgresql() else "?"
-        now_fn = "NOW()" if is_using_postgresql() else "datetime('now')"
-
-        if is_using_postgresql():
-            cur.execute(f"""
-                UPDATE nivel_servicio_objetivo
-                SET nivel_servicio = %s, updated_at = NOW()
-                WHERE material_codigo = %s AND almacen = %s
-                RETURNING *
-            """, (nivel_servicio, material_codigo, almacen))
-            row = cur.fetchone()
-        else:
-            cur.execute(f"""
-                UPDATE nivel_servicio_objetivo
-                SET nivel_servicio = ?, updated_at = datetime('now')
-                WHERE material_codigo = ? AND almacen = ?
-            """, (nivel_servicio, material_codigo, almacen))
-            cur.execute(f"""
-                SELECT * FROM nivel_servicio_objetivo
-                WHERE material_codigo = ? AND almacen = ?
-            """, (material_codigo, almacen))
-            row = cur.fetchone()
+        # UPDATE + SELECT portable (evita RETURNING *, no soportado por SQLite)
+        cur.execute(f"""
+            UPDATE nivel_servicio_objetivo
+            SET nivel_servicio = ?, updated_at = {sql_datetime_now()}
+            WHERE material_codigo = ? AND almacen = ?
+        """, (nivel_servicio, material_codigo, almacen))
+        cur.execute("""
+            SELECT * FROM nivel_servicio_objetivo
+            WHERE material_codigo = ? AND almacen = ?
+        """, (material_codigo, almacen))
+        row = cur.fetchone()
 
         conn.commit()
 
@@ -407,30 +364,30 @@ def calcular_niveles_servicio(material_codigo: str, centro: str) -> dict:
         else:
             clasificacion = 'C'
 
-        if is_using_postgresql():
-            cur.execute("""
+        # UPSERT portable (UPDATE-then-INSERT; evita ON CONFLICT/EXCLUDED PG-only
+        # e INSERT OR REPLACE que pierde columnas no listadas)
+        now_sql = sql_datetime_now()
+        cur.execute(
+            f"""
+            UPDATE nivel_servicio_objetivo
+            SET nivel_servicio = ?, stock_seguridad_calculado = ?,
+                punto_reorden_calculado = ?, clasificacion_abc = ?,
+                ultimo_calculo = {now_sql}, updated_at = {now_sql}
+            WHERE material_codigo = ? AND almacen = ?
+            """,
+            (service_level, safety_stock, reorder_point, clasificacion, material_codigo, centro),
+        )
+        if not (cur.rowcount and cur.rowcount > 0):
+            cur.execute(
+                f"""
                 INSERT INTO nivel_servicio_objetivo
                     (material_codigo, almacen, nivel_servicio,
                      stock_seguridad_calculado, punto_reorden_calculado,
                      clasificacion_abc, ultimo_calculo, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-                ON CONFLICT (material_codigo, almacen)
-                DO UPDATE SET
-                    nivel_servicio = EXCLUDED.nivel_servicio,
-                    stock_seguridad_calculado = EXCLUDED.stock_seguridad_calculado,
-                    punto_reorden_calculado = EXCLUDED.punto_reorden_calculado,
-                    clasificacion_abc = EXCLUDED.clasificacion_abc,
-                    ultimo_calculo = NOW(),
-                    updated_at = NOW()
-            """, (material_codigo, centro, service_level, safety_stock, reorder_point, clasificacion))
-        else:
-            cur.execute("""
-                INSERT OR REPLACE INTO nivel_servicio_objetivo
-                    (material_codigo, almacen, nivel_servicio,
-                     stock_seguridad_calculado, punto_reorden_calculado,
-                     clasificacion_abc, ultimo_calculo, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-            """, (material_codigo, centro, service_level, safety_stock, reorder_point, clasificacion))
+                VALUES (?, ?, ?, ?, ?, ?, {now_sql}, {now_sql})
+                """,
+                (material_codigo, centro, service_level, safety_stock, reorder_point, clasificacion),
+            )
 
         conn.commit()
 

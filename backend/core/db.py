@@ -192,6 +192,57 @@ def sql_date_diff_days(col1: str, col2: str) -> str:
     return f"julianday({col1}) - julianday({col2})"
 
 
+def sql_date_diff_hours(col1: str, col2: str) -> str:
+    """
+    Retorna expresión SQL para diferencia de fechas en horas.
+
+    Args:
+        col1: Nombre de columna fecha más reciente
+        col2: Nombre de columna fecha más antigua
+
+    Returns:
+        Expresión SQL que calcula (col1 - col2) en horas
+
+    Example:
+        >>> sql_date_diff_hours('fecha_completado', 'fecha_generacion')
+        # PostgreSQL: "EXTRACT(EPOCH FROM (fecha_completado - fecha_generacion)) / 3600"
+        # SQLite: "(julianday(fecha_completado) - julianday(fecha_generacion)) * 24"
+    """
+    if is_using_postgresql():
+        return f"EXTRACT(EPOCH FROM ({col1} - {col2})) / 3600"
+    return f"(julianday({col1}) - julianday({col2})) * 24"
+
+
+def sql_date_add(column: str, interval: str, subtract: bool = False) -> str:
+    """
+    Retorna expresión SQL para sumar (o restar) un intervalo a una columna/expresión de fecha.
+
+    A diferencia de sql_now_plus/sql_now_minus (que operan sobre 'ahora'),
+    este helper opera sobre una columna o expresión de fecha arbitraria.
+
+    Args:
+        column: Nombre de columna o expresión de fecha
+        interval: Intervalo en formato "2 days", "30 days", "6 months", etc.
+        subtract: Si True, resta el intervalo en lugar de sumarlo
+
+    Returns:
+        Expresión SQL compatible con el motor actual
+
+    Example:
+        >>> sql_date_add('fecha_envio_estimada', '2 days')
+        # PostgreSQL: "fecha_envio_estimada + INTERVAL '2 days'"
+        # SQLite: "datetime(fecha_envio_estimada, '+2 days')"
+
+        >>> sql_date_add('fecha', '7 days', subtract=True)
+        # PostgreSQL: "fecha - INTERVAL '7 days'"
+        # SQLite: "datetime(fecha, '-7 days')"
+    """
+    op = "-" if subtract else "+"
+    if is_using_postgresql():
+        return f"{column} {op} INTERVAL '{interval}'"
+    return f"datetime({column}, '{op}{interval}')"
+
+
 def sql_format_date(column: str, format_str: str) -> str:
     """
     Retorna expresión SQL para formatear fechas.

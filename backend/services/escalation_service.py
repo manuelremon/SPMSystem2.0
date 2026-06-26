@@ -7,7 +7,7 @@ it gets reassigned/escalated to a higher role.
 import logging
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import get_db_connection, get_db_transaction, sql_datetime_now
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class EscalationService:
         with get_db_transaction() as conn:
             cur = conn.cursor()
             cur.execute(
-                f"UPDATE regla_escalacion SET {set_clause}, updated_at = datetime('now') WHERE id = ?",
+                f"UPDATE regla_escalacion SET {set_clause}, updated_at = {sql_datetime_now()} WHERE id = ?",
                 values,
             )
             return cur.rowcount > 0

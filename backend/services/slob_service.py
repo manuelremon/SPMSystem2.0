@@ -9,8 +9,12 @@ Sprint 53: Inventory Aging & SLOB
 
 from datetime import datetime
 
-from backend.core.config import settings
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    sql_date_diff_days,
+    sql_datetime_now,
+)
 
 
 def generar_snapshot_aging():
@@ -26,16 +30,15 @@ def generar_snapshot_aging():
     Returns:
         dict: Estadísticas del snapshot generado
     """
-    is_pg = settings.DATABASE_URL and settings.DATABASE_URL.startswith("postgresql")
-
     with get_db_transaction() as (conn, cursor):
         # Limpiar snapshot anterior
         cursor.execute("DELETE FROM inventario_aging")
 
         # Query para obtener stock con último movimiento
         # Nota: stock puede tener duplicados por material+almacen, se agrupan con SUM
-        if is_pg:
-            query = """
+        # Dias sin movimiento: diferencia entre ahora y el ultimo movimiento (portable)
+        dias_sin_mov = sql_date_diff_days(sql_datetime_now(), "um.fecha_ultimo_movimiento")
+        query = f"""
             WITH stock_agrupado AS (
                 SELECT
                     material,
@@ -62,41 +65,7 @@ def generar_snapshot_aging():
                 um.fecha_ultimo_movimiento,
                 CASE
                     WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
-                    ELSE EXTRACT(DAY FROM CURRENT_TIMESTAMP - um.fecha_ultimo_movimiento::TIMESTAMP)
-                END as dias_sin_movimiento
-            FROM stock_agrupado s
-            LEFT JOIN ultimo_movimiento um
-                ON s.material = um.material AND s.almacen = um.almacen
-            """
-        else:
-            query = """
-            WITH stock_agrupado AS (
-                SELECT
-                    material,
-                    almacen,
-                    SUM(stock) as cantidad,
-                    SUM(stock_valorizado) as valor
-                FROM stock
-                WHERE stock > 0
-                GROUP BY material, almacen
-            ),
-            ultimo_movimiento AS (
-                SELECT
-                    material,
-                    almacen,
-                    MAX(fecha) as fecha_ultimo_movimiento
-                FROM consumo_historico
-                GROUP BY material, almacen
-            )
-            SELECT
-                s.material as material_codigo,
-                s.almacen,
-                s.cantidad,
-                s.valor,
-                um.fecha_ultimo_movimiento,
-                CASE
-                    WHEN um.fecha_ultimo_movimiento IS NULL THEN 365
-                    ELSE CAST((julianday('now') - julianday(um.fecha_ultimo_movimiento)) AS INTEGER)
+                    ELSE CAST({dias_sin_mov} AS INTEGER)
                 END as dias_sin_movimiento
             FROM stock_agrupado s
             LEFT JOIN ultimo_movimiento um
@@ -544,8 +513,8 @@ def obtener_disposiciones(filtros=None):
         sd.id, sd.material_codigo, sd.almacen, sd.cantidad,
         sd.tipo_disposicion, sd.estado, sd.notas, sd.costo_recuperado,
         sd.propuesto_por, sd.aprobado_por, sd.completado_at, sd.created_at,
-        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = sd.propuesto_por::text LIMIT 1) as propuesto_por_nombre,
-        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = sd.aprobado_por::text LIMIT 1) as aprobado_por_nombre,
+        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = CAST(sd.propuesto_por AS TEXT) LIMIT 1) as propuesto_por_nombre,
+        (SELECT u.nombre FROM usuarios u WHERE u.id_spm = CAST(sd.aprobado_por AS TEXT) LIMIT 1) as aprobado_por_nombre,
         (SELECT m.descripcion FROM materiales_bbdd m WHERE m.codigo_material = sd.material_codigo LIMIT 1) as material_descripcion
     FROM slob_disposicion sd
     WHERE {where_sql}

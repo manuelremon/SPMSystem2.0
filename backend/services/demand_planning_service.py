@@ -5,7 +5,13 @@ Maneja ciclos de planificación, entradas de múltiples fuentes,
 generación de baseline con ML, y proceso de consenso.
 """
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 # FSM para estados de plan de demanda
 ESTADOS_VALIDOS = {
@@ -35,34 +41,21 @@ def crear_ciclo_planificacion(data: dict, user_id: int) -> int:
     Returns:
         ID del plan creado
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        plan_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO plan_demanda
                 (nombre, periodo_desde, periodo_hasta, estado, creado_por, created_at)
-                VALUES (%s, %s, %s, 'draft', %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, 'draft', ?, {sql_datetime_now()})
+            """,
+            (
                 data['nombre'],
                 data['periodo_desde'],
                 data['periodo_hasta'],
                 user_id
-            ))
-            plan_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO plan_demanda
-                (nombre, periodo_desde, periodo_hasta, estado, creado_por, created_at)
-                VALUES (?, ?, ?, 'draft', ?, datetime('now'))
-            """, (
-                data['nombre'],
-                data['periodo_desde'],
-                data['periodo_hasta'],
-                user_id
-            ))
-            plan_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         return {'ok': True, 'id': plan_id}
@@ -124,7 +117,7 @@ def obtener_ciclos(filtros: dict) -> dict:
                 COUNT(DISTINCT pde.id) as num_entradas,
                 COUNT(DISTINCT pdc.id) as num_consensos
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(pd.creado_por AS TEXT) = u.id_spm
             LEFT JOIN plan_demanda_entrada pde ON pd.id = pde.plan_id
             LEFT JOIN plan_demanda_consenso pdc ON pd.id = pdc.plan_id
             {where_sql}
@@ -189,7 +182,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pd.estado, pd.created_at, pd.creado_por,
                 u.nombre as creado_por_nombre
             FROM plan_demanda pd
-            LEFT JOIN usuarios u ON pd.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(pd.creado_por AS TEXT) = u.id_spm
             WHERE pd.id = {placeholder}
             """,
             (plan_id,)
@@ -224,7 +217,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pde.notas
             FROM plan_demanda_entrada pde
             LEFT JOIN catalogo_materiales m ON pde.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pde.usuario_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(pde.usuario_id AS TEXT) = u.id_spm
             WHERE pde.plan_id = {placeholder}
             ORDER BY pde.material_codigo, pde.created_at
             """,
@@ -264,7 +257,7 @@ def obtener_detalle_ciclo(plan_id: int) -> dict:
                 pdc.created_at
             FROM plan_demanda_consenso pdc
             LEFT JOIN catalogo_materiales m ON pdc.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON pdc.aprobado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(pdc.aprobado_por AS TEXT) = u.id_spm
             WHERE pdc.plan_id = {placeholder}
             ORDER BY pdc.material_codigo
             """,
@@ -368,38 +361,23 @@ def agregar_entrada(plan_id: int, data: dict, user_id: int) -> int:
     Returns:
         ID de la entrada creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        entrada_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO plan_demanda_entrada
                 (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, usuario_id, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 plan_id,
                 data['material_codigo'],
                 data['fuente'],
                 data['cantidad_pronosticada'],
                 data.get('notas'),
                 user_id
-            ))
-            entrada_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO plan_demanda_entrada
-                (plan_id, material_codigo, fuente, cantidad_pronosticada, notas, usuario_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                plan_id,
-                data['material_codigo'],
-                data['fuente'],
-                data['cantidad_pronosticada'],
-                data.get('notas'),
-                user_id
-            ))
-            entrada_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         return entrada_id
@@ -468,38 +446,27 @@ def generar_baseline_ml(plan_id: int) -> dict:
                     avg_result = cursor.fetchone()
                     cantidad_pronosticada = float(avg_result[0]) if avg_result and avg_result[0] else 0
 
-                # Insertar entrada ML baseline
-                if using_pg:
-                    cursor.execute("""
+                # Insertar/actualizar entrada ML baseline (UPSERT portable
+                # SELECT-then-UPDATE-or-INSERT; evita ON CONFLICT...EXCLUDED PG-only)
+                cursor.execute("""
+                    SELECT id FROM plan_demanda_entrada
+                    WHERE plan_id = ? AND material_codigo = ? AND fuente = 'ml_baseline'
+                """, (plan_id, material_codigo))
+
+                existing = cursor.fetchone()
+                if existing:
+                    cursor.execute(f"""
+                        UPDATE plan_demanda_entrada
+                        SET cantidad_pronosticada = ?, created_at = {sql_datetime_now()}
+                        WHERE id = ?
+                    """, (cantidad_pronosticada, existing[0]))
+                else:
+                    cursor.execute(f"""
                         INSERT INTO plan_demanda_entrada
                         (plan_id, material_codigo, fuente, cantidad_pronosticada,
                          notas, usuario_id, created_at)
-                        VALUES (%s, %s, 'ml_baseline', %s, 'Generado automáticamente por ML', NULL, NOW())
-                        ON CONFLICT (plan_id, material_codigo, fuente) DO UPDATE SET
-                            cantidad_pronosticada = EXCLUDED.cantidad_pronosticada,
-                            created_at = NOW()
+                        VALUES (?, ?, 'ml_baseline', ?, 'Generado automáticamente por ML', NULL, {sql_datetime_now()})
                     """, (plan_id, material_codigo, cantidad_pronosticada))
-                else:
-                    # SQLite: verificar existencia y actualizar o insertar
-                    cursor.execute("""
-                        SELECT id FROM plan_demanda_entrada
-                        WHERE plan_id = ? AND material_codigo = ? AND fuente = 'ml_baseline'
-                    """, (plan_id, material_codigo))
-
-                    existing = cursor.fetchone()
-                    if existing:
-                        cursor.execute("""
-                            UPDATE plan_demanda_entrada
-                            SET cantidad_pronosticada = ?, created_at = datetime('now')
-                            WHERE id = ?
-                        """, (cantidad_pronosticada, existing[0]))
-                    else:
-                        cursor.execute("""
-                            INSERT INTO plan_demanda_entrada
-                            (plan_id, material_codigo, fuente, cantidad_pronosticada,
-                             notas, usuario_id, created_at)
-                            VALUES (?, ?, 'ml_baseline', ?, 'Generado automáticamente por ML', NULL, datetime('now'))
-                        """, (plan_id, material_codigo, cantidad_pronosticada))
 
                 materiales_procesados += 1
 
@@ -571,15 +538,24 @@ def calcular_consenso(plan_id: int) -> dict:
 
             cantidad_consenso = suma_ponderada / suma_pesos if suma_pesos > 0 else 0
 
-            # Upsert consenso
-            cursor.execute("""
-                INSERT INTO plan_demanda_consenso
-                (plan_id, material_codigo, cantidad_consenso, created_at)
-                VALUES (%s, %s, %s, NOW())
-                ON CONFLICT (plan_id, material_codigo) DO UPDATE SET
-                    cantidad_consenso = EXCLUDED.cantidad_consenso,
-                    created_at = NOW()
-            """, (plan_id, material_codigo, cantidad_consenso))
+            # Upsert consenso (UPDATE-then-INSERT portable; evita ON CONFLICT PG-only)
+            cursor.execute(
+                f"""
+                UPDATE plan_demanda_consenso
+                SET cantidad_consenso = ?, created_at = {sql_datetime_now()}
+                WHERE plan_id = ? AND material_codigo = ?
+                """,
+                (cantidad_consenso, plan_id, material_codigo),
+            )
+            if not (cursor.rowcount and cursor.rowcount > 0):
+                cursor.execute(
+                    f"""
+                    INSERT INTO plan_demanda_consenso
+                    (plan_id, material_codigo, cantidad_consenso, created_at)
+                    VALUES (?, ?, ?, {sql_datetime_now()})
+                    """,
+                    (plan_id, material_codigo, cantidad_consenso),
+                )
 
             materiales_procesados += 1
 
@@ -651,7 +627,7 @@ def obtener_accuracy_kpis() -> dict:
             FROM plan_demanda_consenso pdc
             JOIN plan_demanda pd ON pdc.plan_id = pd.id
             WHERE pd.estado = 'approved'
-            AND pd.periodo_hasta::date < CURRENT_DATE
+            AND CAST(pd.periodo_hasta AS DATE) < CURRENT_DATE
         """)
 
         comparaciones = []

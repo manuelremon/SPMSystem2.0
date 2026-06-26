@@ -1281,7 +1281,7 @@ def obtener_kpis_tms() -> dict:
             SELECT AVG(
                 CASE
                     WHEN monto_final > 0
-                    THEN ajustes::numeric / monto_final * 100
+                    THEN CAST(ajustes AS NUMERIC) / monto_final * 100
                     ELSE 0
                 END
             ) as avg_margin

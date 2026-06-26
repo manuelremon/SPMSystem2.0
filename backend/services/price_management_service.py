@@ -6,7 +6,13 @@ Maneja precios por proveedor, historial, y comparación de precios.
 import logging
 from typing import Optional
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,24 +35,16 @@ def crear_lista(nombre: str, proveedor_cuit: str = None, moneda: str = 'ARS',
     Returns:
         ID de la lista creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        lista_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO lista_precios
                 (nombre, proveedor_cuit, moneda, fecha_vigencia_desde, fecha_vigencia_hasta, notas, created_by, estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (nombre, proveedor_cuit, moneda, fecha_desde, fecha_hasta, notas, created_by, 'draft'))
-            lista_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO lista_precios
-                (nombre, proveedor_cuit, moneda, fecha_vigencia_desde, fecha_vigencia_hasta, notas, created_by, estado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (nombre, proveedor_cuit, moneda, fecha_desde, fecha_hasta, notas, created_by, 'draft'))
-            lista_id = cursor.lastrowid
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (nombre, proveedor_cuit, moneda, fecha_desde, fecha_hasta, notas, created_by, 'draft'),
+        )
 
         conn.commit()
         logger.info(f"Lista de precios creada: {lista_id} ({nombre})")
@@ -315,24 +313,16 @@ def agregar_precio_item(lista_id: int, material_codigo: str, precio_unitario: fl
     Returns:
         ID del item creado
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        item_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO precio_item
                 (lista_id, material_codigo, precio_unitario, unidad, cantidad_minima, cantidad_maxima, descuento_pct, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (lista_id, material_codigo, precio_unitario, unidad, cantidad_minima, cantidad_maxima, descuento_pct))
-            item_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO precio_item
-                (lista_id, material_codigo, precio_unitario, unidad, cantidad_minima, cantidad_maxima, descuento_pct, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (lista_id, material_codigo, precio_unitario, unidad, cantidad_minima, cantidad_maxima, descuento_pct))
-            item_id = cursor.lastrowid
+                VALUES (?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (lista_id, material_codigo, precio_unitario, unidad, cantidad_minima, cantidad_maxima, descuento_pct),
+        )
 
         conn.commit()
         logger.info(f"Precio item creado: {item_id} (lista: {lista_id}, material: {material_codigo})")
@@ -395,13 +385,9 @@ def obtener_precio_material(material_codigo: str, proveedor_cuit: str = None, ca
             where_clauses.append(f"lp.proveedor_cuit = {placeholder}")
             params.append(proveedor_cuit)
 
-        # Date validation (current date in range)
-        if using_pg:
-            where_clauses.append("(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= CURRENT_DATE)")
-            where_clauses.append("(lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= CURRENT_DATE)")
-        else:
-            where_clauses.append("(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= date('now'))")
-            where_clauses.append("(lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= date('now'))")
+        # Date validation (current date in range) — CURRENT_DATE es portable SQLite/PG
+        where_clauses.append("(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= CURRENT_DATE)")
+        where_clauses.append("(lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= CURRENT_DATE)")
 
         where_sql = " AND ".join(where_clauses)
 
@@ -464,11 +450,8 @@ def comparar_precios(material_codigo: str, cantidad: int = 1) -> list:
     cursor = conn.cursor()
 
     try:
-        # Build date conditions
-        if using_pg:
-            date_cond = "(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= CURRENT_DATE) AND (lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= CURRENT_DATE)"
-        else:
-            date_cond = "(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= date('now')) AND (lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= date('now'))"
+        # Build date conditions (CURRENT_DATE es portable SQLite/PG)
+        date_cond = "(lp.fecha_vigencia_desde IS NULL OR lp.fecha_vigencia_desde <= CURRENT_DATE) AND (lp.fecha_vigencia_hasta IS NULL OR lp.fecha_vigencia_hasta >= CURRENT_DATE)"
 
         # Search all active prices for this material
         cursor.execute(
@@ -556,28 +539,18 @@ def crear_negociacion(material_codigo: str, proveedor_cuit: str, precio_nuevo: f
     Returns:
         ID de la negociación creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        neg_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO precio_negociacion
                 (material_codigo, proveedor_cuit, precio_anterior, precio_nuevo, descuento_negociado_pct,
                  negociado_por, fecha, notas, estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_DATE, %s, %s, NOW())
-                RETURNING id
-            """, (material_codigo, proveedor_cuit, precio_anterior, precio_nuevo, descuento_pct,
-                  negociado_por, notas, 'pending'))
-            neg_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO precio_negociacion
-                (material_codigo, proveedor_cuit, precio_anterior, precio_nuevo, descuento_negociado_pct,
-                 negociado_por, fecha, notas, estado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, date('now'), ?, ?, datetime('now'))
-            """, (material_codigo, proveedor_cuit, precio_anterior, precio_nuevo, descuento_pct,
-                  negociado_por, notas, 'pending'))
-            neg_id = cursor.lastrowid
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE, ?, ?, {sql_datetime_now()})
+            """,
+            (material_codigo, proveedor_cuit, precio_anterior, precio_nuevo, descuento_pct,
+             negociado_por, notas, 'pending'),
+        )
 
         conn.commit()
         logger.info(f"Negociación creada: {neg_id} (material: {material_codigo}, proveedor: {proveedor_cuit})")
@@ -618,18 +591,11 @@ def aprobar_negociacion(negociacion_id: int, aprobado_por: int) -> None:
         )
 
         # Insert into historial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO precio_historial
-                (material_codigo, proveedor_cuit, precio, fecha_desde, fuente, referencia_id, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """, (material_codigo, proveedor_cuit, precio_nuevo, fecha, 'negociacion', negociacion_id))
-        else:
-            cursor.execute("""
-                INSERT INTO precio_historial
-                (material_codigo, proveedor_cuit, precio, fecha_desde, fuente, referencia_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (material_codigo, proveedor_cuit, precio_nuevo, fecha, 'negociacion', negociacion_id))
+        cursor.execute(f"""
+            INSERT INTO precio_historial
+            (material_codigo, proveedor_cuit, precio, fecha_desde, fuente, referencia_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+        """, (material_codigo, proveedor_cuit, precio_nuevo, fecha, 'negociacion', negociacion_id))
 
         conn.commit()
         logger.info(f"Negociación {negociacion_id} aprobada por usuario {aprobado_por}")

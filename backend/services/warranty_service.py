@@ -203,7 +203,7 @@ def obtener_reclamos(page=1, per_page=50, estado=None, tipo=None, garantia_id=No
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
-        LEFT JOIN usuarios u ON r.asignado_a::text = u.id_spm
+        LEFT JOIN usuarios u ON CAST(r.asignado_a AS TEXT) = u.id_spm
         {where_sql}
         GROUP BY r.id, r.garantia_id, r.tipo, r.descripcion, r.estado,
                  r.reportado_por, r.asignado_a, r.resolucion,
@@ -271,7 +271,7 @@ def obtener_detalle_reclamo(reclamo_id):
         LEFT JOIN garantia g ON r.garantia_id = g.id
         LEFT JOIN materiales_bbdd m ON g.material_codigo = m.codigo_material
         LEFT JOIN proveedores p ON g.proveedor_cuit = p.id_proveedor
-        LEFT JOIN usuarios u ON r.asignado_a::text = u.id_spm
+        LEFT JOIN usuarios u ON CAST(r.asignado_a AS TEXT) = u.id_spm
         WHERE r.id = {ph}
     """, (reclamo_id,))
 
@@ -309,7 +309,7 @@ def obtener_detalle_reclamo(reclamo_id):
         SELECT h.id, h.estado_anterior, h.estado_nuevo, h.actor_id, h.notas, h.created_at,
                u.nombre as actor_nombre
         FROM reclamo_historial h
-        LEFT JOIN usuarios u ON h.actor_id::text = u.id_spm
+        LEFT JOIN usuarios u ON CAST(h.actor_id AS TEXT) = u.id_spm
         WHERE h.reclamo_id = {ph}
         ORDER BY h.created_at DESC
     """, (reclamo_id,))

@@ -5,7 +5,15 @@ Gestiona conversaciones, sugerencias y aprendizaje del copiloto.
 
 import logging
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_date_relative,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 # Try to import Vertex AI client if available
 try:
@@ -29,24 +37,17 @@ def iniciar_conversacion(usuario_id: int, titulo: str = None, contexto_tipo: str
     Returns:
         ID de la conversación creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        now_sql = sql_datetime_now()
+        conv_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO copilot_conversacion
                 (usuario_id, titulo, contexto_tipo, created_at, updated_at)
-                VALUES (%s, %s, %s, NOW(), NOW())
-                RETURNING id
-            """, (usuario_id, titulo or 'Nueva conversación', contexto_tipo))
-            conv_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO copilot_conversacion
-                (usuario_id, titulo, contexto_tipo, created_at, updated_at)
-                VALUES (?, ?, ?, datetime('now'), datetime('now'))
-            """, (usuario_id, titulo or 'Nueva conversación', contexto_tipo))
-            conv_id = cursor.lastrowid
+                VALUES (?, ?, ?, {now_sql}, {now_sql})
+            """,
+            (usuario_id, titulo or 'Nueva conversación', contexto_tipo),
+        )
 
         conn.commit()
         logger.info(f"Conversación iniciada: {conv_id} (usuario: {usuario_id})")
@@ -151,54 +152,35 @@ def enviar_mensaje(conversacion_id: int, contenido: str, usuario_id: int) -> dic
     Returns:
         Mensaje de respuesta del asistente
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
+        now_sql = sql_datetime_now()
+
         # Insertar mensaje del usuario
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO copilot_mensaje
-                (conversacion_id, rol, contenido, created_at)
-                VALUES (%s, %s, %s, NOW())
-            """, (conversacion_id, 'user', contenido))
-        else:
-            cursor.execute("""
-                INSERT INTO copilot_mensaje
-                (conversacion_id, rol, contenido, created_at)
-                VALUES (?, ?, ?, datetime('now'))
-            """, (conversacion_id, 'user', contenido))
+        cursor.execute(f"""
+            INSERT INTO copilot_mensaje
+            (conversacion_id, rol, contenido, created_at)
+            VALUES (?, ?, ?, {now_sql})
+        """, (conversacion_id, 'user', contenido))
 
         # Generar respuesta del asistente
         respuesta = _generar_respuesta(conversacion_id, contenido, usuario_id, conn)
 
         # Insertar mensaje del asistente
-        if using_pg:
-            cursor.execute("""
+        mensaje_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO copilot_mensaje
                 (conversacion_id, rol, contenido, metadata, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (conversacion_id, 'assistant', respuesta['contenido'], respuesta.get('metadata')))
-            mensaje_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO copilot_mensaje
-                (conversacion_id, rol, contenido, metadata, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (conversacion_id, 'assistant', respuesta['contenido'], respuesta.get('metadata')))
-            mensaje_id = cursor.lastrowid
+                VALUES (?, ?, ?, ?, {now_sql})
+            """,
+            (conversacion_id, 'assistant', respuesta['contenido'], respuesta.get('metadata')),
+        )
 
         # Actualizar timestamp de conversación
-        if using_pg:
-            cursor.execute(
-                "UPDATE copilot_conversacion SET updated_at = NOW() WHERE id = %s",
-                (conversacion_id,)
-            )
-        else:
-            cursor.execute(
-                "UPDATE copilot_conversacion SET updated_at = datetime('now') WHERE id = ?",
-                (conversacion_id,)
-            )
+        cursor.execute(
+            f"UPDATE copilot_conversacion SET updated_at = {now_sql} WHERE id = ?",
+            (conversacion_id,)
+        )
 
         conn.commit()
 
@@ -343,35 +325,22 @@ def generar_sugerencia_sourcing(material_codigo: str) -> dict:
 
         # Insertar sugerencia
         with get_db_transaction() as (conn_tx, cursor_tx):
-            if using_pg:
-                cursor_tx.execute("""
+            sugerencia_id = insert_returning_id(
+                cursor_tx,
+                f"""
                     INSERT INTO copilot_sugerencia
                     (tipo, titulo, contenido, datos_soporte, estado, material_codigo, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    RETURNING id
-                """, (
+                    VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+                """,
+                (
                     'sourcing_strategy',
                     f'Estrategia de Sourcing - {material_codigo}',
                     contenido,
                     f'{{"num_proveedores": {len(proveedores)}}}',
                     'pending',
                     material_codigo
-                ))
-                sugerencia_id = cursor_tx.fetchone()[0]
-            else:
-                cursor_tx.execute("""
-                    INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, datos_soporte, estado, material_codigo, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    'sourcing_strategy',
-                    f'Estrategia de Sourcing - {material_codigo}',
-                    contenido,
-                    f'{{"num_proveedores": {len(proveedores)}}}',
-                    'pending',
-                    material_codigo
-                ))
-                sugerencia_id = cursor_tx.lastrowid
+                ),
+            )
 
             conn_tx.commit()
 
@@ -457,33 +426,21 @@ Próximos pasos:
 
         # Insertar sugerencia
         with get_db_transaction() as (conn_tx, cursor_tx):
-            if using_pg:
-                cursor_tx.execute("""
+            sugerencia_id = insert_returning_id(
+                cursor_tx,
+                f"""
                     INSERT INTO copilot_sugerencia
                     (tipo, titulo, contenido, datos_soporte, estado, created_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                    RETURNING id
-                """, (
+                    VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+                """,
+                (
                     'rfq_draft',
                     f'Borrador RFQ - Solicitud #{solicitud_id}',
                     contenido,
                     f'{{"solicitud_id": {solicitud_id}, "num_proveedores": {len(proveedores_sugeridos)}}}',
                     'pending'
-                ))
-                sugerencia_id = cursor_tx.fetchone()[0]
-            else:
-                cursor_tx.execute("""
-                    INSERT INTO copilot_sugerencia
-                    (tipo, titulo, contenido, datos_soporte, estado, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    'rfq_draft',
-                    f'Borrador RFQ - Solicitud #{solicitud_id}',
-                    contenido,
-                    f'{{"solicitud_id": {solicitud_id}, "num_proveedores": {len(proveedores_sugeridos)}}}',
-                    'pending'
-                ))
-                sugerencia_id = cursor_tx.lastrowid
+                ),
+            )
 
             conn_tx.commit()
 
@@ -584,18 +541,11 @@ def feedback_sugerencia(sugerencia_id: int, accion: str, feedback: str = None) -
         )
 
         # Insertar registro de aprendizaje
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO copilot_learning
-                (sugerencia_id, accion, feedback, created_at)
-                VALUES (%s, %s, %s, NOW())
-            """, (sugerencia_id, accion, feedback))
-        else:
-            cursor.execute("""
-                INSERT INTO copilot_learning
-                (sugerencia_id, accion, feedback, created_at)
-                VALUES (?, ?, ?, datetime('now'))
-            """, (sugerencia_id, accion, feedback))
+        cursor.execute(f"""
+            INSERT INTO copilot_learning
+            (sugerencia_id, accion, feedback, created_at)
+            VALUES (?, ?, ?, {sql_datetime_now()})
+        """, (sugerencia_id, accion, feedback))
 
         conn.commit()
         logger.info(f"Feedback registrado para sugerencia {sugerencia_id}: {accion}")
@@ -708,37 +658,25 @@ def analizar_patron_gasto(periodo: str = None) -> dict:
     Returns:
         Análisis de gasto
     """
-    using_pg = is_using_postgresql()
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
         # Determinar periodo
         if not periodo:
-            if using_pg:
-                cursor.execute("SELECT TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')")
-            else:
-                cursor.execute("SELECT strftime('%Y-%m', date('now', '-1 month'))")
+            cursor.execute(
+                f"SELECT {sql_format_date(sql_date_relative(months=-1), '%Y-%m')}"
+            )
             periodo = cursor.fetchone()[0]
 
         # Top categorías de gasto por proveedor (orden_compra has no categoria_spend_id)
-        if using_pg:
-            cursor.execute("""
-                SELECT oc.proveedor_nombre as categoria, SUM(oc.monto_total) as gasto_total
-                FROM orden_compra oc
-                WHERE TO_CHAR(oc.fecha_emision, 'YYYY-MM') = %s
-                AND oc.estado IN ('completada', 'aprobada', 'completed', 'approved')
-                GROUP BY oc.proveedor_nombre ORDER BY gasto_total DESC LIMIT 5
-            """, (periodo,))
-        else:
-            cursor.execute("""
-                SELECT oc.proveedor_nombre as categoria, SUM(oc.monto_total) as gasto_total
-                FROM orden_compra oc
-                WHERE strftime('%Y-%m', oc.fecha_emision) = ?
-                AND oc.estado IN ('completada', 'aprobada', 'completed', 'approved')
-                GROUP BY oc.proveedor_nombre ORDER BY gasto_total DESC LIMIT 5
-            """, (periodo,))
+        cursor.execute(f"""
+            SELECT oc.proveedor_nombre as categoria, SUM(oc.monto_total) as gasto_total
+            FROM orden_compra oc
+            WHERE {sql_format_date('oc.fecha_emision', '%Y-%m')} = ?
+            AND oc.estado IN ('completada', 'aprobada', 'completed', 'approved')
+            GROUP BY oc.proveedor_nombre ORDER BY gasto_total DESC LIMIT 5
+        """, (periodo,))
 
         top_categorias = []
         for row in cursor.fetchall():
@@ -748,18 +686,11 @@ def analizar_patron_gasto(periodo: str = None) -> dict:
             })
 
         # Maverick spend (OCs sin contrato)
-        if using_pg:
-            cursor.execute("""
-                SELECT COUNT(*), COALESCE(SUM(monto_total), 0)
-                FROM orden_compra WHERE contrato_id IS NULL
-                AND TO_CHAR(fecha_emision, 'YYYY-MM') = %s
-            """, (periodo,))
-        else:
-            cursor.execute("""
-                SELECT COUNT(*), COALESCE(SUM(monto_total), 0)
-                FROM orden_compra WHERE contrato_id IS NULL
-                AND strftime('%Y-%m', fecha_emision) = ?
-            """, (periodo,))
+        cursor.execute(f"""
+            SELECT COUNT(*), COALESCE(SUM(monto_total), 0)
+            FROM orden_compra WHERE contrato_id IS NULL
+            AND {sql_format_date('fecha_emision', '%Y-%m')} = ?
+        """, (periodo,))
         maverick_data = cursor.fetchone()
 
         return {

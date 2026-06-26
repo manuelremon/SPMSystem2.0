@@ -12,7 +12,13 @@ try:
 except ImportError:  # noqa: E722
     BCRYPT_AVAILABLE = False
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +38,6 @@ def crear_usuario_portal(data: dict) -> int:
     Returns:
         ID del usuario creado
     """
-    using_pg = is_using_postgresql()
 
     # Hash password
     if BCRYPT_AVAILABLE:
@@ -43,33 +48,21 @@ def crear_usuario_portal(data: dict) -> int:
         logger.warning("bcrypt no disponible, usando password sin hash (NO USAR EN PRODUCCIÓN)")
 
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
+        user_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO portal_proveedor_usuario
                 (proveedor_cuit, email, nombre, password_hash, estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 data['proveedor_cuit'],
                 data['email'],
                 data['nombre'],
                 password_hash,
                 'active'
-            ))
-            user_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO portal_proveedor_usuario
-                (proveedor_cuit, email, nombre, password_hash, estado, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                data['proveedor_cuit'],
-                data['email'],
-                data['nombre'],
-                password_hash,
-                'active'
-            ))
-            user_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Usuario portal creado: {data['email']} (ID: {user_id})")
@@ -375,35 +368,29 @@ def crear_asn(data: dict) -> int:
     Returns:
         ID del ASN creado
     """
-    using_pg = is_using_postgresql()
 
     with get_db_transaction() as (conn, cursor):
         # Generar numero_asn si no se proporciona
         numero_asn = data.get('numero_asn')
         if not numero_asn:
             year = datetime.now().year
-            if using_pg:
-                cursor.execute(
-                    "SELECT COALESCE(MAX(id), 0) FROM asn WHERE numero_asn LIKE %s",
-                    (f'ASN-{year}-%',)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COALESCE(MAX(id), 0) FROM asn WHERE numero_asn LIKE ?",
-                    (f'ASN-{year}-%',)
-                )
+            cursor.execute(
+                "SELECT COALESCE(MAX(id), 0) FROM asn WHERE numero_asn LIKE ?",
+                (f'ASN-{year}-%',)
+            )
             max_id = cursor.fetchone()[0]
             numero_asn = f"ASN-{year}-{max_id + 1:04d}"
 
         # Insertar ASN
-        if using_pg:
-            cursor.execute("""
+        asn_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO asn
                 (numero_asn, proveedor_cuit, orden_compra_id, fecha_envio,
                  fecha_entrega_estimada, transportista, guia_rastreo, estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 numero_asn,
                 data['proveedor_cuit'],
                 data['orden_compra_id'],
@@ -412,52 +399,22 @@ def crear_asn(data: dict) -> int:
                 data.get('transportista'),
                 data.get('guia_rastreo'),
                 'in_transit'
-            ))
-            asn_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO asn
-                (numero_asn, proveedor_cuit, orden_compra_id, fecha_envio,
-                 fecha_entrega_estimada, transportista, guia_rastreo, estado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                numero_asn,
-                data['proveedor_cuit'],
-                data['orden_compra_id'],
-                data['fecha_envio'],
-                data['fecha_entrega_estimada'],
-                data.get('transportista'),
-                data.get('guia_rastreo'),
-                'in_transit'
-            ))
-            asn_id = cursor.lastrowid
+            )
+        )
 
         # Insertar items
         for item in data['items']:
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO asn_item
-                    (asn_id, material_codigo, cantidad, lote, fecha_vencimiento)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    asn_id,
-                    item['material_codigo'],
-                    item['cantidad'],
-                    item.get('lote'),
-                    item.get('fecha_vencimiento')
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO asn_item
-                    (asn_id, material_codigo, cantidad, lote, fecha_vencimiento)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (
-                    asn_id,
-                    item['material_codigo'],
-                    item['cantidad'],
-                    item.get('lote'),
-                    item.get('fecha_vencimiento')
-                ))
+            cursor.execute("""
+                INSERT INTO asn_item
+                (asn_id, material_codigo, cantidad, lote, fecha_vencimiento)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                asn_id,
+                item['material_codigo'],
+                item['cantidad'],
+                item.get('lote'),
+                item.get('fecha_vencimiento')
+            ))
 
         conn.commit()
         logger.info(f"ASN creado: {numero_asn} (ID: {asn_id})")
@@ -628,7 +585,6 @@ def compartir_forecast(proveedor_cuit: str, materiales: list, periodos: list, co
         periodos: Lista de periodos (formato 'YYYY-MM')
         compartido_por: ID del usuario compartiendo
     """
-    using_pg = is_using_postgresql()
 
     with get_db_transaction() as (conn, cursor):
         for material_codigo in materiales:
@@ -636,20 +592,12 @@ def compartir_forecast(proveedor_cuit: str, materiales: list, periodos: list, co
                 # Obtener forecast proyectado (simplificado: usar cantidad fija o consultar forecast real)
                 cantidad_proyectada = 1000  # Placeholder
 
-                if using_pg:
-                    cursor.execute("""
-                        INSERT INTO forecast_compartido
-                        (proveedor_cuit, material_codigo, periodo, cantidad_forecast,
-                         compartido_por, visto_por_proveedor, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                    """, (proveedor_cuit, material_codigo, periodo, cantidad_proyectada, compartido_por, False))
-                else:
-                    cursor.execute("""
-                        INSERT INTO forecast_compartido
-                        (proveedor_cuit, material_codigo, periodo, cantidad_forecast,
-                         compartido_por, visto_por_proveedor, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                    """, (proveedor_cuit, material_codigo, periodo, cantidad_proyectada, compartido_por, 0))
+                cursor.execute(f"""
+                    INSERT INTO forecast_compartido
+                    (proveedor_cuit, material_codigo, periodo, cantidad_forecast,
+                     compartido_por, visto_por_proveedor, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+                """, (proveedor_cuit, material_codigo, periodo, cantidad_proyectada, compartido_por, 0))
 
         conn.commit()
         logger.info(f"Forecast compartido con {proveedor_cuit}: {len(materiales)} materiales, {len(periodos)} periodos")
@@ -680,7 +628,7 @@ def obtener_forecasts_compartidos(proveedor_cuit: str) -> list:
                 fc.compartido_por, u.nombre as compartido_por_nombre, fc.created_at
             FROM forecast_compartido fc
             LEFT JOIN catalogo_materiales m ON fc.material_codigo = m.codigo
-            LEFT JOIN usuario u ON fc.compartido_por::text = u.id_spm
+            LEFT JOIN usuario u ON CAST(fc.compartido_por AS TEXT) = u.id_spm
             WHERE fc.proveedor_cuit = {placeholder}
             ORDER BY fc.periodo DESC
             """,
@@ -825,20 +773,11 @@ def registrar_acceso(usuario_id: int, accion: str, entidad_tipo: str = None,
         ip: Dirección IP (optional)
         user_agent: User agent (optional)
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO portal_acceso_log
-                (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """, (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent))
-        else:
-            cursor.execute("""
-                INSERT INTO portal_acceso_log
-                (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent))
+        cursor.execute(f"""
+            INSERT INTO portal_acceso_log
+            (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+        """, (usuario_id, accion, entidad_tipo, entidad_id, ip, user_agent))
 
         conn.commit()

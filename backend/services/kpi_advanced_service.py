@@ -9,7 +9,15 @@ Tier 3: Supply Chain Risk, Cost Avoidance, Kanban Health
 import logging
 from datetime import datetime, timedelta
 
-from backend.core.db import get_db_connection
+from backend.core.db import (
+    get_db_connection,
+    sql_current_date,
+    sql_date_add,
+    sql_date_diff_days,
+    sql_date_diff_hours,
+    sql_format_date,
+    sql_now_minus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +68,7 @@ def get_stock_aging():
                     AND NOT EXISTS (
                         SELECT 1 FROM consumo_historico ch
                         WHERE ch.material = s.material
-                        AND ch.fecha >= %s
+                        AND ch.fecha >= ?
                     )
                     """,
                     (date_limit,),
@@ -89,7 +97,7 @@ def get_stock_aging():
                 WHERE s.stock > 0
                 AND NOT EXISTS (
                     SELECT 1 FROM consumo_historico ch
-                    WHERE ch.material = s.material AND ch.fecha >= %s
+                    WHERE ch.material = s.material AND ch.fecha >= ?
                 )
                 GROUP BY s.material, s.material_descripcion, s.centro
                 ORDER BY valor_total DESC
@@ -129,14 +137,14 @@ def get_supplier_otd():
 
             # From ASN: compare estimated shipping vs actual state
             cursor.execute(
-                """
+                f"""
                 SELECT
                     a.proveedor_cuit,
                     pe.nombre as proveedor_nombre,
                     COUNT(*) as total_envios,
                     SUM(CASE WHEN a.estado = 'recibido' THEN 1 ELSE 0 END) as recibidos,
                     SUM(CASE WHEN a.estado = 'recibido'
-                        AND a.created_at <= a.fecha_envio_estimada + INTERVAL '2 days'
+                        AND a.created_at <= {sql_date_add('a.fecha_envio_estimada', '2 days')}
                         THEN 1 ELSE 0 END) as a_tiempo
                 FROM asn a
                 LEFT JOIN proveedores_externos pe ON pe.cuit = a.proveedor_cuit
@@ -367,9 +375,9 @@ def get_procurement_cycle():
 
             # Average time from solicitud creation to decision
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    AVG(EXTRACT(EPOCH FROM (d.created_at - s.created_at)) / 86400) as dias_solicitud_decision,
+                    AVG({sql_date_diff_days('d.created_at', 's.created_at')}) as dias_solicitud_decision,
                     COUNT(*) as total
                 FROM decision_abastecimiento d
                 JOIN solicitud s ON d.solicitud_id = s.id
@@ -382,9 +390,9 @@ def get_procurement_cycle():
 
             # Average time from OC creation to completion
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    AVG(EXTRACT(EPOCH FROM (oc.updated_at - oc.created_at)) / 86400) as dias_oc,
+                    AVG({sql_date_diff_days('oc.updated_at', 'oc.created_at')}) as dias_oc,
                     COUNT(*) as total
                 FROM orden_compra oc
                 WHERE oc.estado IN ('completada', 'recibida', 'cerrada')
@@ -396,9 +404,9 @@ def get_procurement_cycle():
 
             # Overall lead time from solicitud to close
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    AVG(EXTRACT(EPOCH FROM (s.updated_at - s.created_at)) / 86400) as dias_total,
+                    AVG({sql_date_diff_days('s.updated_at', 's.created_at')}) as dias_total,
                     COUNT(*) as total
                 FROM solicitud s
                 WHERE s.status IN ('closed', 'dispatched')
@@ -409,15 +417,16 @@ def get_procurement_cycle():
             dias_total = round(_safe_float(_row_val(row, "dias_total") or _row_val(row, 0)), 1)
 
             # Monthly trend (last 6 months)
+            mes_creado = sql_format_date("s.created_at", "%Y-%m")
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    TO_CHAR(s.created_at, 'YYYY-MM') as mes,
-                    AVG(EXTRACT(EPOCH FROM (s.updated_at - s.created_at)) / 86400) as dias
+                    {mes_creado} as mes,
+                    AVG({sql_date_diff_days('s.updated_at', 's.created_at')}) as dias
                 FROM solicitud s
                 WHERE s.status IN ('closed', 'dispatched')
-                AND s.created_at >= NOW() - INTERVAL '6 months'
-                GROUP BY TO_CHAR(s.created_at, 'YYYY-MM')
+                AND s.created_at >= {sql_now_minus('6 months')}
+                GROUP BY {mes_creado}
                 ORDER BY mes
                 """
             )
@@ -480,7 +489,7 @@ def get_supplier_scorecard():
                         SUM(CASE WHEN es_compliant = 1 THEN 1 ELSE 0 END) as compliant
                     FROM compliance_check cc
                     JOIN orden_compra oc ON cc.orden_compra_id = oc.id
-                    WHERE oc.proveedor_cuit = %s
+                    WHERE oc.proveedor_cuit = ?
                     """,
                     (cuit,),
                 )
@@ -491,7 +500,7 @@ def get_supplier_scorecard():
 
                 # Risk score
                 cursor.execute(
-                    "SELECT score_riesgo, nivel FROM proveedor_riesgo WHERE proveedor_cuit = %s ORDER BY created_at DESC LIMIT 1",
+                    "SELECT score_riesgo, nivel FROM proveedor_riesgo WHERE proveedor_cuit = ? ORDER BY created_at DESC LIMIT 1",
                     (cuit,),
                 )
                 rrow = cursor.fetchone()
@@ -662,11 +671,11 @@ def get_fleet_utilization():
 
             # Upcoming maintenance
             cursor.execute(
-                """
+                f"""
                 SELECT COUNT(*) as total
                 FROM fms_vehicles
                 WHERE proximo_mantenimiento IS NOT NULL
-                AND proximo_mantenimiento <= CURRENT_DATE + INTERVAL '30 days'
+                AND proximo_mantenimiento <= {sql_date_add(sql_current_date(), '30 days')}
                 AND activo = true
                 """
             )
@@ -731,8 +740,9 @@ def get_forecast_accuracy():
             confianza_promedio = round(confianza_sum / count, 1) if count > 0 else 0
 
             # Compare forecast with actual consumption (last 6 months)
+            hace_6_meses = sql_now_minus("6 months")
             cursor.execute(
-                """
+                f"""
                 SELECT
                     pdd.material_codigo,
                     SUM(pdd.cantidad_pronosticada) as pronosticado,
@@ -740,11 +750,11 @@ def get_forecast_accuracy():
                         SELECT SUM(ch.cantidad)
                         FROM consumo_historico ch
                         WHERE ch.material = pdd.material_codigo
-                        AND ch.fecha >= NOW() - INTERVAL '6 months'
+                        AND ch.fecha >= {hace_6_meses}
                     ), 0) as consumido
                 FROM plan_demanda_detalle pdd
                 JOIN plan_demanda pd ON pdd.plan_id = pd.id
-                WHERE pd.created_at >= NOW() - INTERVAL '6 months'
+                WHERE pd.created_at >= {hace_6_meses}
                 GROUP BY pdd.material_codigo
                 HAVING SUM(pdd.cantidad_pronosticada) > 0
                 LIMIT 20
@@ -1015,13 +1025,13 @@ def get_kanban_health():
 
             # Signal efficiency
             cursor.execute(
-                """
+                f"""
                 SELECT
                     tipo,
                     estado,
                     COUNT(*) as total,
                     AVG(CASE WHEN fecha_completado IS NOT NULL AND fecha_generacion IS NOT NULL
-                        THEN EXTRACT(EPOCH FROM (fecha_completado - fecha_generacion)) / 3600
+                        THEN {sql_date_diff_hours('fecha_completado', 'fecha_generacion')}
                         ELSE NULL END) as tiempo_respuesta_horas
                 FROM kanban_senal
                 GROUP BY tipo, estado

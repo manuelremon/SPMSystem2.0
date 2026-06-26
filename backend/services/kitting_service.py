@@ -6,7 +6,14 @@ Gestiona BOMs de kits, órdenes de kitting y asignación de componentes.
 import logging
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +34,12 @@ def crear_bom(data: dict) -> dict:
     Returns:
         Dict con datos del BOM creado
     """
-    using_pg = is_using_postgresql()
 
     with get_db_transaction() as (conn, cursor):
         # Usar kit_codigo del frontend o generar uno
         kit_codigo = data.get('kit_codigo')
         if not kit_codigo:
-            if using_pg:
-                cursor.execute("SELECT COALESCE(MAX(id), 0) FROM kit_bom")
-            else:
-                cursor.execute("SELECT COALESCE(MAX(id), 0) FROM kit_bom")
+            cursor.execute("SELECT COALESCE(MAX(id), 0) FROM kit_bom")
             max_id = cursor.fetchone()[0]
             kit_codigo = f"KIT-{max_id + 1:04d}"
 
@@ -44,35 +47,22 @@ def crear_bom(data: dict) -> dict:
         creado_por = data.get('creado_por')
 
         # Insertar BOM
-        if using_pg:
-            cursor.execute("""
+        bom_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO kit_bom
                 (kit_codigo, nombre, descripcion, version, estado, creado_por, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 kit_codigo,
                 data['nombre'],
                 data.get('descripcion'),
                 version,
                 'draft',
                 creado_por
-            ))
-            bom_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO kit_bom
-                (kit_codigo, nombre, descripcion, version, estado, creado_por, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                kit_codigo,
-                data['nombre'],
-                data.get('descripcion'),
-                version,
-                'draft',
-                creado_por
-            ))
-            bom_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"BOM de kit creado: {kit_codigo} (ID: {bom_id})")
@@ -120,7 +110,7 @@ def obtener_boms(filtros: dict = None) -> list:
                 kb.estado, kb.creado_por, u.nombre as creado_por_nombre,
                 kb.created_at
             FROM kit_bom kb
-            LEFT JOIN usuarios u ON kb.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(kb.creado_por AS TEXT) = u.id_spm
             {where_sql}
             ORDER BY kb.created_at DESC
             """,
@@ -172,7 +162,7 @@ def obtener_detalle_bom(bom_id: int) -> dict:
                 kb.estado, kb.creado_por, u.nombre as creado_por_nombre,
                 kb.created_at
             FROM kit_bom kb
-            LEFT JOIN usuarios u ON kb.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(kb.creado_por AS TEXT) = u.id_spm
             WHERE kb.id = {placeholder}
             """,
             (bom_id,)
@@ -285,38 +275,20 @@ def agregar_componente(bom_id: int, data: dict) -> int:
     Returns:
         ID del componente creado
     """
-    using_pg = is_using_postgresql()
-
     # Accept 'opcional' as alias for 'es_opcional' (frontend sends 'opcional')
     es_opcional = int(bool(data.get('es_opcional', data.get('opcional', False))))
     alternativa = data.get('alternativa_material', data.get('alternativa'))
 
     with get_db_transaction() as (conn, cursor):
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO kit_bom_componente
-                (kit_bom_id, material_codigo, cantidad, unidad, es_opcional,
-                 alternativa_material, secuencia, notas)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (
-                bom_id,
-                data['material_codigo'],
-                data['cantidad'],
-                data['unidad'],
-                es_opcional,
-                alternativa,
-                data.get('secuencia', 0),
-                data.get('notas')
-            ))
-            componente_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
+        componente_id = insert_returning_id(
+            cursor,
+            """
                 INSERT INTO kit_bom_componente
                 (kit_bom_id, material_codigo, cantidad, unidad, es_opcional,
                  alternativa_material, secuencia, notas)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
+            """,
+            (
                 bom_id,
                 data['material_codigo'],
                 data['cantidad'],
@@ -325,8 +297,8 @@ def agregar_componente(bom_id: int, data: dict) -> int:
                 alternativa,
                 data.get('secuencia', 0),
                 data.get('notas')
-            ))
-            componente_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Componente {data['material_codigo']} agregado al BOM {bom_id}")
@@ -371,21 +343,14 @@ def crear_orden(data: dict) -> dict:
     Returns:
         Dict con datos de la orden creada
     """
-    using_pg = is_using_postgresql()
 
     with get_db_transaction() as (conn, cursor):
         # Generar numero_orden (KO-YYYY-NNNN)
         year = datetime.now().year
-        if using_pg:
-            cursor.execute(
-                "SELECT COALESCE(MAX(id), 0) FROM kit_orden WHERE numero_orden LIKE %s",
-                (f'KO-{year}-%',)
-            )
-        else:
-            cursor.execute(
-                "SELECT COALESCE(MAX(id), 0) FROM kit_orden WHERE numero_orden LIKE ?",
-                (f'KO-{year}-%',)
-            )
+        cursor.execute(
+            "SELECT COALESCE(MAX(id), 0) FROM kit_orden WHERE numero_orden LIKE ?",
+            (f'KO-{year}-%',)
+        )
         max_id = cursor.fetchone()[0]
         numero_orden = f"KO-{year}-{max_id + 1:04d}"
 
@@ -394,14 +359,15 @@ def crear_orden(data: dict) -> dict:
         solicitante_id = data.get('solicitante_id')
 
         # Insertar orden
-        if using_pg:
-            cursor.execute("""
+        orden_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO kit_orden
                 (numero_orden, kit_bom_id, cantidad_kits, fecha_requerida,
                  solicitante_id, estado, prioridad, almacen_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 numero_orden,
                 data['kit_bom_id'],
                 data['cantidad_kits'],
@@ -411,26 +377,8 @@ def crear_orden(data: dict) -> dict:
                 prioridad,
                 almacen_id,
                 data.get('notas')
-            ))
-            orden_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO kit_orden
-                (numero_orden, kit_bom_id, cantidad_kits, fecha_requerida,
-                 solicitante_id, estado, prioridad, almacen_id, notas, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                numero_orden,
-                data['kit_bom_id'],
-                data['cantidad_kits'],
-                data['fecha_requerida'],
-                solicitante_id,
-                'pendiente',
-                prioridad,
-                almacen_id,
-                data.get('notas')
-            ))
-            orden_id = cursor.lastrowid
+            )
+        )
 
         conn.commit()
         logger.info(f"Orden de kitting creada: {numero_orden} (ID: {orden_id})")
@@ -498,7 +446,7 @@ def obtener_ordenes(filtros: dict = None) -> dict:
                 ko.fecha_inicio, ko.fecha_completado, ko.created_at
             FROM kit_orden ko
             LEFT JOIN kit_bom kb ON ko.kit_bom_id = kb.id
-            LEFT JOIN usuarios u ON ko.solicitante_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(ko.solicitante_id AS TEXT) = u.id_spm
             {where_sql}
             ORDER BY ko.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -564,7 +512,7 @@ def obtener_detalle_orden(orden_id: int) -> dict:
                 ko.fecha_inicio, ko.fecha_completado, ko.notas, ko.created_at
             FROM kit_orden ko
             LEFT JOIN kit_bom kb ON ko.kit_bom_id = kb.id
-            LEFT JOIN usuarios u ON ko.solicitante_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(ko.solicitante_id AS TEXT) = u.id_spm
             WHERE ko.id = {placeholder}
             """,
             (orden_id,)
@@ -746,30 +694,17 @@ def asignar_componentes(orden_id: int) -> None:
             cantidad_asignada = min(cantidad_requerida, stock_disponible)
 
             # Insertar asignación (tabla usa orden_id, componente_id)
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO kit_componente_asignacion
-                    (orden_id, componente_id, cantidad_requerida, cantidad_asignada, estado, created_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                """, (
-                    orden_id,
-                    comp_id,
-                    cantidad_requerida,
-                    cantidad_asignada,
-                    'allocated' if suficiente else 'short'
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO kit_componente_asignacion
-                    (orden_id, componente_id, cantidad_requerida, cantidad_asignada, estado, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    orden_id,
-                    comp_id,
-                    cantidad_requerida,
-                    cantidad_asignada,
-                    'allocated' if suficiente else 'short'
-                ))
+            cursor.execute(f"""
+                INSERT INTO kit_componente_asignacion
+                (orden_id, componente_id, cantidad_requerida, cantidad_asignada, estado, created_at)
+                VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+            """, (
+                orden_id,
+                comp_id,
+                cantidad_requerida,
+                cantidad_asignada,
+                'allocated' if suficiente else 'short'
+            ))
 
         # Determinar estado basado en disponibilidad
         estado_orden = 'asignado' if todas_suficientes else 'parcial'
@@ -851,7 +786,6 @@ def obtener_kpis() -> dict:
             'on_time_pct': float
         }
     """
-    using_pg = is_using_postgresql()
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -864,35 +798,23 @@ def obtener_kpis() -> dict:
         """)
         activas = cursor.fetchone()[0]
 
+        mes_completado = sql_format_date("fecha_completado", "%Y-%m")
+        mes_actual = sql_format_date(sql_datetime_now(), "%Y-%m")
+
         # Completadas este mes
-        if using_pg:
-            cursor.execute("""
-                SELECT COUNT(*) FROM kit_orden
-                WHERE estado = 'completado'
-                AND DATE_TRUNC('month', fecha_completado::timestamp) = DATE_TRUNC('month', CURRENT_DATE)
-            """)
-        else:
-            cursor.execute("""
-                SELECT COUNT(*) FROM kit_orden
-                WHERE estado = 'completado'
-                AND strftime('%Y-%m', fecha_completado) = strftime('%Y-%m', 'now')
-            """)
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM kit_orden
+            WHERE estado = 'completado'
+            AND {mes_completado} = {mes_actual}
+        """)
         completadas_mes = cursor.fetchone()[0]
 
         # On-time (completadas antes de fecha_requerida)
-        if using_pg:
-            cursor.execute("""
-                SELECT COUNT(*) FROM kit_orden
-                WHERE estado = 'completado'
-                AND fecha_completado::date <= fecha_requerida::date
-                AND DATE_TRUNC('month', fecha_completado::timestamp) = DATE_TRUNC('month', CURRENT_DATE)
-            """)
-        else:
-            cursor.execute("""
-                SELECT COUNT(*) FROM kit_orden
-                WHERE estado = 'completado'
-                AND fecha_completado <= fecha_requerida
-                AND strftime('%Y-%m', fecha_completado) = strftime('%Y-%m', 'now')
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM kit_orden
+            WHERE estado = 'completado'
+            AND fecha_completado <= fecha_requerida
+            AND {mes_completado} = {mes_actual}
             """)
         on_time = cursor.fetchone()[0]
 

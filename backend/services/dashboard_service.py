@@ -286,7 +286,7 @@ class DashboardService:
 
             # Actual PK 'id' is a UUID type; cast to text for comparison
             if is_using_postgresql():
-                _execute(cur, "SELECT * FROM dashboard WHERE id::text = ?", (str(uuid),))
+                _execute(cur, "SELECT * FROM dashboard WHERE CAST(id AS TEXT) = ?", (str(uuid),))
             else:
                 _execute(cur, "SELECT * FROM dashboard WHERE id = ?", (str(uuid),))
             row = _fetchone(cur)
@@ -344,7 +344,7 @@ class DashboardService:
 
             # Check if public (no dashboard_permiso table in actual schema)
             if is_using_postgresql():
-                _execute(cur, "SELECT es_publico FROM dashboard WHERE id::text = ?", (str(dashboard_id),))
+                _execute(cur, "SELECT es_publico FROM dashboard WHERE CAST(id AS TEXT) = ?", (str(dashboard_id),))
             else:
                 _execute(cur, "SELECT es_publico FROM dashboard WHERE id = ?", (str(dashboard_id),))
             dash_row = _fetchone(cur)
@@ -968,14 +968,21 @@ class DashboardPermisoService:
 
             now = datetime.utcnow().isoformat() + "Z"
 
-            # Insertar o actualizar
+            # Insertar o actualizar (UPDATE-then-INSERT portable; sin ON CONFLICT
+            # que depende de una constraint UNIQUE que puede no existir)
             _execute(
                 cur,
-                """INSERT INTO dashboard_permiso (dashboard_id, usuario_id, permiso, otorgado_por, created_at)
-                   VALUES (?, ?, ?, ?, ?)
-                   ON CONFLICT(dashboard_id, usuario_id) DO UPDATE SET permiso = ?, otorgado_por = ?""",
-                (dashboard_id, usuario_id, permiso, otorgado_por, now, permiso, otorgado_por),
+                """UPDATE dashboard_permiso SET permiso = ?, otorgado_por = ?
+                   WHERE dashboard_id = ? AND usuario_id = ?""",
+                (permiso, otorgado_por, dashboard_id, usuario_id),
             )
+            if not (cur.rowcount and cur.rowcount > 0):
+                _execute(
+                    cur,
+                    """INSERT INTO dashboard_permiso (dashboard_id, usuario_id, permiso, otorgado_por, created_at)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (dashboard_id, usuario_id, permiso, otorgado_por, now),
+                )
             conn.commit()
 
             _execute(
