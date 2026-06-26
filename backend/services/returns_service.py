@@ -10,7 +10,13 @@ Gestiona el proceso completo de devoluciones a proveedores:
 
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 # FSM para estados de devolución
 ESTADOS_VALIDOS = {
@@ -48,23 +54,15 @@ def crear_devolucion(data: dict, user_id: int) -> int:
     Returns:
         ID de la devolución creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
         # Generar numero_rma
         fecha_now = datetime.now()
         fecha_str = fecha_now.strftime('%Y%m%d')
 
-        if using_pg:
-            cursor.execute(
-                "SELECT COUNT(*) FROM devolucion WHERE numero_rma LIKE %s",
-                (f'RMA-{fecha_str}-%',)
-            )
-        else:
-            cursor.execute(
-                "SELECT COUNT(*) FROM devolucion WHERE numero_rma LIKE ?",
-                (f'RMA-{fecha_str}-%',)
-            )
+        cursor.execute(
+            "SELECT COUNT(*) FROM devolucion WHERE numero_rma LIKE ?",
+            (f'RMA-{fecha_str}-%',)
+        )
 
         count = cursor.fetchone()[0] + 1
         numero_rma = f"RMA-{fecha_str}-{count:04d}"
@@ -74,76 +72,43 @@ def crear_devolucion(data: dict, user_id: int) -> int:
         motivo = data.get('motivo', data.get('descripcion', ''))
 
         # Insertar devolución
-        if using_pg:
-            cursor.execute("""
+        devolucion_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO devolucion
                 (numero_rma, proveedor_cuit, orden_compra_id, tipo, motivo,
                  estado, creado_por, created_at)
-                VALUES (%s, %s, %s, %s, %s, 'draft', %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, 'draft', ?, {sql_datetime_now()})
+            """,
+            (
                 numero_rma,
                 data['proveedor_cuit'],
                 data.get('orden_compra_id'),
                 tipo,
                 motivo,
                 user_id
-            ))
-            devolucion_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO devolucion
-                (numero_rma, proveedor_cuit, orden_compra_id, tipo, motivo,
-                 estado, creado_por, created_at)
-                VALUES (?, ?, ?, ?, ?, 'draft', ?, datetime('now'))
-            """, (
-                numero_rma,
-                data['proveedor_cuit'],
-                data.get('orden_compra_id'),
-                tipo,
-                motivo,
-                user_id
-            ))
-            devolucion_id = cursor.lastrowid
+            )
+        )
 
         # Insertar items
         for item in data['items']:
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO devolucion_item
-                    (devolucion_id, material_codigo, cantidad, motivo_detalle)
-                    VALUES (%s, %s, %s, %s)
-                """, (
-                    devolucion_id,
-                    item['material_codigo'],
-                    item['cantidad'],
-                    item.get('motivo_detalle')
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO devolucion_item
-                    (devolucion_id, material_codigo, cantidad, motivo_detalle)
-                    VALUES (?, ?, ?, ?)
-                """, (
-                    devolucion_id,
-                    item['material_codigo'],
-                    item['cantidad'],
-                    item.get('motivo_detalle')
-                ))
+            cursor.execute("""
+                INSERT INTO devolucion_item
+                (devolucion_id, material_codigo, cantidad, motivo_detalle)
+                VALUES (?, ?, ?, ?)
+            """, (
+                devolucion_id,
+                item['material_codigo'],
+                item['cantidad'],
+                item.get('motivo_detalle')
+            ))
 
         # Insertar historial inicial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO devolucion_historial
-                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, NULL, 'draft', %s, 'Devolución creada', NOW())
-            """, (devolucion_id, user_id))
-        else:
-            cursor.execute("""
-                INSERT INTO devolucion_historial
-                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, NULL, 'draft', ?, 'Devolución creada', datetime('now'))
-            """, (devolucion_id, user_id))
+        cursor.execute(f"""
+            INSERT INTO devolucion_historial
+            (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, NULL, 'draft', ?, 'Devolución creada', {sql_datetime_now()})
+        """, (devolucion_id, user_id))
 
         conn.commit()
         return devolucion_id
@@ -357,7 +322,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
             FROM devolucion d
             LEFT JOIN proveedores p ON d.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON d.orden_compra_id = oc.id
-            LEFT JOIN usuarios u ON d.creado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(d.creado_por AS TEXT) = u.id_spm
             WHERE d.id = {placeholder}
             """,
             (devolucion_id,)
@@ -419,7 +384,7 @@ def obtener_detalle_devolucion(devolucion_id: int) -> dict:
                 u.nombre as actor_nombre,
                 dh.notas, dh.created_at
             FROM devolucion_historial dh
-            LEFT JOIN usuarios u ON dh.actor_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(dh.actor_id AS TEXT) = u.id_spm
             WHERE dh.devolucion_id = {placeholder}
             ORDER BY dh.created_at ASC
             """,
@@ -493,18 +458,11 @@ def cambiar_estado(devolucion_id: int, nuevo_estado: str, user_id: int, notas: s
         )
 
         # Insertar en historial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO devolucion_historial
-                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
-            """, (devolucion_id, estado_actual, nuevo_estado, user_id, notas))
-        else:
-            cursor.execute("""
-                INSERT INTO devolucion_historial
-                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            """, (devolucion_id, estado_actual, nuevo_estado, user_id, notas))
+        cursor.execute(f"""
+            INSERT INTO devolucion_historial
+            (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+        """, (devolucion_id, estado_actual, nuevo_estado, user_id, notas))
 
         conn.commit()
 
@@ -569,18 +527,11 @@ def registrar_credito(devolucion_id: int, monto: float, user_id: int) -> dict:
             )
 
             # Insertar en historial
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO devolucion_historial
-                    (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                    VALUES (%s, %s, 'credit_issued', %s, %s, NOW())
-                """, (devolucion_id, estado_actual, user_id, f"Crédito registrado: ${monto:.2f}"))
-            else:
-                cursor.execute("""
-                    INSERT INTO devolucion_historial
-                    (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
-                    VALUES (?, ?, 'credit_issued', ?, ?, datetime('now'))
-                """, (devolucion_id, estado_actual, user_id, f"Crédito registrado: ${monto:.2f}"))
+            cursor.execute(f"""
+                INSERT INTO devolucion_historial
+                (devolucion_id, estado_anterior, estado_nuevo, actor_id, notas, created_at)
+                VALUES (?, ?, 'credit_issued', ?, ?, {sql_datetime_now()})
+            """, (devolucion_id, estado_actual, user_id, f"Crédito registrado: ${monto:.2f}"))
 
         conn.commit()
 
