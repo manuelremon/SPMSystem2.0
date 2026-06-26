@@ -99,7 +99,8 @@ export default function AdminProveedores() {
     setLoadingInternos(true);
     try {
       const res = await api.get("/admin/proveedores/internos");
-      const data = (res.data || []).map(r => ({ ...r, _id: `${r.centro}_${r.almacen}` }));
+      const rawData = res.data?.items || res.data;
+      const data = (Array.isArray(rawData) ? rawData : []).map(r => ({ ...r, _id: `${r.centro}_${r.almacen}` }));
       setInternos(data);
     } catch (e) {
       setError(e.response?.data?.message || e.message);

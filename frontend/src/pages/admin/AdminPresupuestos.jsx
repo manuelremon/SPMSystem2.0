@@ -158,7 +158,9 @@ export default function AdminPresupuestos() {
     setLoadingHistorial(true);
     try {
       const res = await admin.historialPresupuestos({ limit: 100 });
-      const data = (res.data || []).map((r, idx) => ({
+      // El backend puede envolver en { items: [...] }; normalizar a array
+      const rawData = res.data?.items || res.data;
+      const data = (Array.isArray(rawData) ? rawData : []).map((r, idx) => ({
         ...r,
         _id: r.id || idx,
       }));

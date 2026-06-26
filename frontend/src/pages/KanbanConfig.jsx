@@ -53,11 +53,14 @@ const KanbanConfig = () => {
   const fetchTableros = useCallback(async () => {
     try {
       const res = await api.get('/kanban/boards');
-      setTableros(res.data);
-      if (res.data.length > 0 && !selectedTablero) {
-        setSelectedTablero(res.data[0].id);
+      // El backend devuelve { items: [...] }
+      const boards = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+      setTableros(boards);
+      if (boards.length > 0 && !selectedTablero) {
+        setSelectedTablero(boards[0].id);
       }
     } catch (error) {
+      console.debug('[KanbanConfig] error cargando tableros:', error);
     }
   }, [selectedTablero]);
 
@@ -65,8 +68,9 @@ const KanbanConfig = () => {
     if (!selectedTablero) return;
     try {
       const res = await api.get(`/kanban/boards/${selectedTablero}`);
-      setTarjetas(res.data.tarjetas || []);
+      setTarjetas(res.data?.tarjetas || res.data?.items || []);
     } catch (error) {
+      console.debug('[KanbanConfig] error cargando tarjetas:', error);
     }
   }, [selectedTablero]);
 
