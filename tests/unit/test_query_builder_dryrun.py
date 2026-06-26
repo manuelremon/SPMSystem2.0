@@ -1,15 +1,7 @@
-import sys
-import os
+from sqlalchemy.dialects import postgresql, sqlite
 
-# Add backend to path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+from backend.core.query_builder import QueryBuilder
 
-try:
-    from backend.core.query_builder import QueryBuilder
-    from sqlalchemy.dialects import sqlite, postgresql
-except ImportError as e:
-    print(f"Import Error: {e}")
-    sys.exit(1)
 
 def test_generation():
     print("Testing QueryBuilder SQL Generation...")

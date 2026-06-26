@@ -28,7 +28,6 @@ import Drawer from "@mui/material/Drawer";
 import InputAdornment from "@mui/material/InputAdornment";
 import Divider from "@mui/material/Divider";
 import FormHelperText from "@mui/material/FormHelperText";
-import Tooltip from "@mui/material/Tooltip";
 import CircularProgress from "@mui/material/CircularProgress";
 
 // MUI Icons
@@ -37,7 +36,6 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import PeopleIcon from "@mui/icons-material/People";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -463,155 +461,6 @@ function UsuariosTable({
         }}
       />
     </Box>
-  );
-}
-
-/** Fila con confirmacion de eliminacion inline */
-function UserRow({ user, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
-  const { t } = useI18n();
-  const roles = parseRoles(user.roles || user.rol);
-  const isActive = user.estado_registro?.toLowerCase() === "activo";
-
-  if (isDeleting) {
-    return (
-      <TableRow
-        sx={{
-          bgcolor: "error.50",
-          borderLeft: 4,
-          borderLeftColor: "error.400",
-        }}
-      >
-        <TableCell colSpan={6} sx={{ py: 1.5, px: 2 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "error.800" }}>
-              <WarningIcon sx={{ fontSize: 18 }} />
-              <Typography variant="body2" fontWeight={500}>
-                {t('admin_users_delete_confirm', 'Eliminar a')}{" "}
-                <Box component="strong">
-                  {user.nombre} {user.apellido}
-                </Box>
-                ?
-              </Typography>
-            </Stack>
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={onCancelDelete}
-                sx={{
-                  fontSize: "var(--text-xs)",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  color: "text.secondary",
-                  borderColor: "grey.200",
-                  "&:hover": { bgcolor: "grey.50" },
-                }}
-              >
-                {t('common_cancelar', 'Cancelar')}
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="error"
-                onClick={onConfirmDelete}
-                sx={{
-                  fontSize: "var(--text-xs)",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                }}
-              >
-                {t('common_eliminar', 'Eliminar')}
-              </Button>
-            </Stack>
-          </Stack>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  return (
-    <TableRow
-      onClick={onEdit}
-      sx={{
-        cursor: "pointer",
-        "&:hover": { bgcolor: "grey.50" },
-        "&:hover .delete-btn": { opacity: 1 },
-        borderBottom: 1,
-        borderColor: "grey.100",
-      }}
-    >
-      <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "var(--text-base)" }}>
-          {user.id_spm}
-        </Typography>
-      </TableCell>
-      <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Typography
-          variant="body2"
-          fontWeight={500}
-          noWrap
-          sx={{ maxWidth: 160, fontSize: "var(--text-base)" }}
-        >
-          {user.nombre} {user.apellido}
-        </Typography>
-      </TableCell>
-      <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Stack direction="row" flexWrap="wrap" gap={0.5}>
-          {roles.length > 0 ? (
-            roles.map((rol, idx) => <RoleBadge key={idx} role={rol} />)
-          ) : (
-            <Typography color="text.disabled">-</Typography>
-          )}
-        </Stack>
-      </TableCell>
-      <TableCell sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Typography variant="body2" noWrap title={user.mail} sx={{ color: "text.secondary", fontSize: "var(--text-base)" }}>
-          {user.mail || "-"}
-        </Typography>
-      </TableCell>
-      <TableCell align="center" sx={{ px: 1.5, py: 1.5, borderRight: 1, borderColor: "grey.100" }}>
-        <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
-          <Box
-            sx={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              bgcolor: isActive ? "success.main" : "grey.400",
-            }}
-          />
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: "var(--text-2xs)",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              color: isActive ? "success.700" : "text.disabled",
-            }}
-          >
-            {isActive ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
-          </Typography>
-        </Stack>
-      </TableCell>
-      <TableCell align="center" sx={{ px: 1, py: 1.5 }}>
-        <IconButton
-          className="delete-btn"
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          sx={{
-            opacity: 0,
-            color: "grey.400",
-            transition: "all 0.15s",
-            "&:hover": { color: "error.main", bgcolor: "error.50" },
-          }}
-          aria-label={t("aria_delete_user", "Eliminar usuario")}
-        >
-          <DeleteIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </TableCell>
-    </TableRow>
   );
 }
 

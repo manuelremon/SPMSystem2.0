@@ -52,6 +52,8 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
           })
         }
       } catch (err) {
+        // Ignorar: items sugeridos malformados en sessionStorage no deben romper la carga
+        console.debug('[useMaterialCart] suggested_items invalido:', err)
       } finally {
         sessionStorage.removeItem('suggested_items')
       }

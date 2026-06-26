@@ -1,6 +1,6 @@
 # SPM v3.0 - Docker Compose LOCAL (PC como servidor)
 # Usa Cloudflare Tunnel para HTTPS
-version: '3.8'
+# Nota: el atributo 'version' es obsoleto en Compose v2+ y se omite.
 
 services:
   redis:

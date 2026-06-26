@@ -58,21 +58,24 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
+          # test_forecast_parallel / test_lstm_model: requieren deps ML pesadas no instaladas en CI.
+          # test_approval_strategies se auto-salta (pytest.skip) por estar obsoleto; no necesita --ignore.
           python -m pytest tests/unit/ -v --tb=short \
             --ignore=tests/unit/test_forecast_parallel.py \
             --ignore=tests/unit/test_lstm_model.py \
-            --ignore=tests/unit/test_approval_strategies.py \
             --cov=backend --cov-report=xml --cov-report=term-missing \
             --cov-fail-under=29 \
             -x --timeout=60
 
       - name: Run integration tests
         run: |
+          # test_assistant_routes: 1/19 falla por setup de auth (RAG status 401); excluido hasta arreglarlo.
           python -m pytest tests/integration/ -v --tb=short \
             --ignore=tests/integration/test_assistant_routes.py \
             --cov=backend --cov-report=xml --cov-append \
             -x --timeout=120
-        continue-on-error: true  # Integration tests may need additional setup
+        # continue-on-error: algunos tests de integración requieren setup (DB/servicios) no presente en CI.
+        continue-on-error: true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
