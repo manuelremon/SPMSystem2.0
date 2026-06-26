@@ -589,9 +589,10 @@ export default function CatalogoEquivalencias() {
           offset,
         });
         const data = res.data;
+        const rows = data?.data || data?.items || data;
 
         setResults(
-          (data.data || []).map((eq, idx) => ({
+          (Array.isArray(rows) ? rows : []).map((eq, idx) => ({
             ...eq,
             _id: eq.id ?? idx,
           }))

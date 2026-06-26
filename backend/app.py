@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from flask import Flask, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Asegurar que el directorio raiz este en sys.path para imports relativos
 _project_root = Path(__file__).parent.parent
@@ -56,6 +57,11 @@ def create_app(config_override: dict | None = None) -> Flask:
         static_folder=static_dir,
         static_url_path="",
     )
+
+    # Respetar cabeceras del proxy inverso (nginx): X-Forwarded-Proto/Host.
+    # Sin esto, Flask genera redirects (p.ej. /api/lots -> /api/lots/ por
+    # strict_slashes) con esquema http://, que el navegador bloquea por CSP.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     # Configuración
     app.config.from_mapping(

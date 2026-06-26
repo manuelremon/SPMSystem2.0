@@ -61,8 +61,10 @@ const KanbanBoard = () => {
           api.get('/kanban/kpis'),
         ]);
         if (cancelled) return;
-        const boards = boardsRes.data?.boards || boardsRes.data || [];
-        setTableros(boards);
+        // El backend devuelve { items: [...] }; mantener fallbacks por compatibilidad
+        const boards = boardsRes.data?.items || boardsRes.data?.boards
+          || (Array.isArray(boardsRes.data) ? boardsRes.data : []);
+        setTableros(Array.isArray(boards) ? boards : []);
         if (boards.length > 0) {
           setSelectedTablero((prev) => prev || boards[0].id);
         }
