@@ -6,31 +6,41 @@ Gestiona programas de inventario en consignación (supplier-owned inventory at c
 import logging
 from typing import Optional
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
-PH = '%s'
+# Placeholder portable: '?' es aceptado por SQLite y PostgresCursorWrapper lo
+# convierte a '%s' para PostgreSQL.
+PH = '?'
 
 
 def crear_programa(datos: dict) -> int:
     """Crea un nuevo programa de consignación."""
     with get_db_transaction() as (conn, cursor):
-        cursor.execute(f"""
+        programa_id = insert_returning_id(
+            cursor,
+            f"""
             INSERT INTO consignment_programa
             (proveedor_cuit, almacen_id, nombre, descripcion, condiciones_pago, porcentaje_margen, periodo_reconciliacion, created_at, updated_at)
-            VALUES ({PH}, {PH}, {PH}, {PH}, {PH}, {PH}, {PH}, NOW(), NOW())
-            RETURNING id
-        """, (
-            datos['proveedor_cuit'],
-            datos.get('almacen_id'),
-            datos['nombre'],
-            datos.get('descripcion'),
-            datos.get('condiciones_pago'),
-            datos.get('porcentaje_margen'),
-            datos.get('periodo_reconciliacion', 'mensual')
-        ))
-        programa_id = cursor.fetchone()['id']
+            VALUES ({PH}, {PH}, {PH}, {PH}, {PH}, {PH}, {PH}, {sql_datetime_now()}, {sql_datetime_now()})
+            """,
+            (
+                datos['proveedor_cuit'],
+                datos.get('almacen_id'),
+                datos['nombre'],
+                datos.get('descripcion'),
+                datos.get('condiciones_pago'),
+                datos.get('porcentaje_margen'),
+                datos.get('periodo_reconciliacion', 'mensual'),
+            ),
+        )
         conn.commit()
         logger.info(f"Programa de consignación creado: {programa_id}")
         return programa_id
@@ -187,20 +197,41 @@ def obtener_detalle_programa(programa_id: int) -> dict:
 
 
 def actualizar_stock(programa_id: int, material_codigo: str, cantidad_disponible: float, valor_unitario: Optional[float] = None) -> int:
-    """Actualiza stock de un material en consignación (UPSERT)."""
+    """Actualiza stock de un material en consignación (UPSERT).
+
+    Usa UPDATE-then-INSERT en lugar de ON CONFLICT...RETURNING (PG-only y
+    dependiente de una constraint UNIQUE que puede no existir). Portable SQLite/PG.
+    """
     with get_db_transaction() as (conn, cursor):
-        cursor.execute(f"""
-            INSERT INTO consignment_stock
-            (programa_id, material_codigo, cantidad_disponible, valor_unitario, ultima_actualizacion, created_at)
-            VALUES ({PH}, {PH}, {PH}, {PH}, NOW(), NOW())
-            ON CONFLICT (programa_id, material_codigo)
-            DO UPDATE SET
-                cantidad_disponible = EXCLUDED.cantidad_disponible,
-                valor_unitario = COALESCE(EXCLUDED.valor_unitario, consignment_stock.valor_unitario),
-                ultima_actualizacion = NOW()
-            RETURNING id
-        """, (programa_id, material_codigo, cantidad_disponible, valor_unitario))
-        stock_id = cursor.fetchone()['id']
+        cursor.execute(
+            f"""
+            UPDATE consignment_stock
+            SET cantidad_disponible = {PH},
+                valor_unitario = COALESCE({PH}, valor_unitario),
+                ultima_actualizacion = {sql_datetime_now()}
+            WHERE programa_id = {PH} AND material_codigo = {PH}
+            """,
+            (cantidad_disponible, valor_unitario, programa_id, material_codigo),
+        )
+
+        if cursor.rowcount and cursor.rowcount > 0:
+            cursor.execute(
+                f"SELECT id FROM consignment_stock WHERE programa_id = {PH} AND material_codigo = {PH}",
+                (programa_id, material_codigo),
+            )
+            row = cursor.fetchone()
+            stock_id = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            stock_id = insert_returning_id(
+                cursor,
+                f"""
+                INSERT INTO consignment_stock
+                (programa_id, material_codigo, cantidad_disponible, valor_unitario, ultima_actualizacion, created_at)
+                VALUES ({PH}, {PH}, {PH}, {PH}, {sql_datetime_now()}, {sql_datetime_now()})
+                """,
+                (programa_id, material_codigo, cantidad_disponible, valor_unitario),
+            )
+
         conn.commit()
         logger.info(f"Stock actualizado: programa={programa_id}, material={material_codigo}, qty={cantidad_disponible}")
         return stock_id
@@ -213,17 +244,19 @@ def registrar_consumo(stock_id: int, cantidad: float, solicitud_id: Optional[int
             UPDATE consignment_stock
             SET cantidad_disponible = cantidad_disponible - {PH},
                 cantidad_consumida_acumulada = cantidad_consumida_acumulada + {PH},
-                ultima_actualizacion = NOW()
+                ultima_actualizacion = {sql_datetime_now()}
             WHERE id = {PH}
         """, (cantidad, cantidad, stock_id))
 
-        cursor.execute(f"""
+        consumo_id = insert_returning_id(
+            cursor,
+            f"""
             INSERT INTO consignment_consumo
             (stock_id, cantidad, solicitud_id, usuario_id, fecha_consumo, facturado, created_at)
-            VALUES ({PH}, {PH}, {PH}, {PH}, NOW(), 0, NOW())
-            RETURNING id
-        """, (stock_id, cantidad, solicitud_id, usuario_id))
-        consumo_id = cursor.fetchone()['id']
+            VALUES ({PH}, {PH}, {PH}, {PH}, {sql_datetime_now()}, 0, {sql_datetime_now()})
+            """,
+            (stock_id, cantidad, solicitud_id, usuario_id),
+        )
 
         conn.commit()
         logger.info(f"Consumo registrado: stock={stock_id}, cantidad={cantidad}, consumo_id={consumo_id}")
@@ -240,20 +273,22 @@ def generar_reconciliacion(programa_id: int, periodo: str) -> int:
             JOIN consignment_stock cs ON cc.stock_id = cs.id
             WHERE cs.programa_id = {PH}
             AND cc.facturado = 0
-            AND TO_CHAR(cc.fecha_consumo, 'YYYY-MM') = {PH}
+            AND {sql_format_date('cc.fecha_consumo', '%Y-%m')} = {PH}
         """, (programa_id, periodo))
 
         row = cursor.fetchone()
         cantidad_total = float(row['qty_total'])
         monto_total = float(row['monto_total'])
 
-        cursor.execute(f"""
+        recon_id = insert_returning_id(
+            cursor,
+            f"""
             INSERT INTO consignment_reconciliacion
             (programa_id, periodo, cantidad_consumida_total, monto_total, estado, created_at, updated_at)
-            VALUES ({PH}, {PH}, {PH}, {PH}, 'draft', NOW(), NOW())
-            RETURNING id
-        """, (programa_id, periodo, cantidad_total, monto_total))
-        recon_id = cursor.fetchone()['id']
+            VALUES ({PH}, {PH}, {PH}, {PH}, 'draft', {sql_datetime_now()}, {sql_datetime_now()})
+            """,
+            (programa_id, periodo, cantidad_total, monto_total),
+        )
 
         conn.commit()
         logger.info(f"Reconciliación generada: programa={programa_id}, periodo={periodo}, total={monto_total}")
@@ -266,9 +301,9 @@ def enviar_reconciliacion(reconciliacion_id: int, notas: Optional[str] = None) -
         cursor.execute(f"""
             UPDATE consignment_reconciliacion
             SET estado = 'enviado',
-                fecha_envio = NOW(),
+                fecha_envio = {sql_datetime_now()},
                 notas = {PH},
-                updated_at = NOW()
+                updated_at = {sql_datetime_now()}
             WHERE id = {PH}
         """, (notas, reconciliacion_id))
         conn.commit()
@@ -281,9 +316,9 @@ def confirmar_reconciliacion(reconciliacion_id: int, notas: Optional[str] = None
         cursor.execute(f"""
             UPDATE consignment_reconciliacion
             SET estado = 'confirmado',
-                fecha_confirmacion = NOW(),
+                fecha_confirmacion = {sql_datetime_now()},
                 notas = COALESCE({PH}, notas),
-                updated_at = NOW()
+                updated_at = {sql_datetime_now()}
             WHERE id = {PH}
         """, (notas, reconciliacion_id))
         conn.commit()
@@ -313,14 +348,14 @@ def obtener_kpis(programa_id: Optional[int] = None) -> dict:
                 FROM consignment_consumo cc
                 JOIN consignment_stock cs ON cc.stock_id = cs.id
                 WHERE cs.programa_id = {PH}
-                AND DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
+                AND {sql_format_date('cc.fecha_consumo', '%Y-%m')} = {sql_format_date(sql_datetime_now(), '%Y-%m')}
             """, (programa_id,))
         else:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT COALESCE(SUM(cc.cantidad * cs.valor_unitario), 0) as val
                 FROM consignment_consumo cc
                 JOIN consignment_stock cs ON cc.stock_id = cs.id
-                WHERE DATE_TRUNC('month', cc.fecha_consumo) = DATE_TRUNC('month', CURRENT_DATE)
+                WHERE {sql_format_date('cc.fecha_consumo', '%Y-%m')} = {sql_format_date(sql_datetime_now(), '%Y-%m')}
             """)
         month_consumption = float(cursor.fetchone()['val'])
 
@@ -358,7 +393,7 @@ def actualizar_programa(programa_id: int, datos: dict) -> None:
     if not updates:
         return
 
-    updates.append("updated_at = NOW()")
+    updates.append("updated_at = {sql_datetime_now()}")
     params.append(programa_id)
 
     with get_db_transaction() as (conn, cursor):
