@@ -6,7 +6,15 @@ Gestiona órdenes de cambio de ingeniería con flujo de aprobación.
 import logging
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_date_diff_days,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,34 +39,27 @@ def crear_eco(data: dict) -> int:
     Returns:
         ID del ECO creado
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
         # Generar numero_eco (ECO-YYYY-NNNN)
         year = datetime.now().year
-        if using_pg:
-            cursor.execute(
-                "SELECT COALESCE(MAX(id), 0) FROM eco WHERE numero_eco LIKE %s",
-                (f'ECO-{year}-%',)
-            )
-        else:
-            cursor.execute(
-                "SELECT COALESCE(MAX(id), 0) FROM eco WHERE numero_eco LIKE ?",
-                (f'ECO-{year}-%',)
-            )
+        cursor.execute(
+            "SELECT COALESCE(MAX(id), 0) FROM eco WHERE numero_eco LIKE ?",
+            (f'ECO-{year}-%',)
+        )
         max_id = cursor.fetchone()[0]
         numero_eco = f"ECO-{year}-{max_id + 1:04d}"
 
         # Insertar ECO
-        if using_pg:
-            cursor.execute("""
+        eco_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO eco
                 (numero_eco, titulo, descripcion, tipo, prioridad, material_codigo,
                  solicitante_id, fecha_efectividad, costo_estimado, justificacion,
                  estado, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 numero_eco,
                 data['titulo'],
                 data['descripcion'],
@@ -70,41 +71,14 @@ def crear_eco(data: dict) -> int:
                 data.get('costo_estimado'),
                 data.get('justificacion'),
                 'draft'
-            ))
-            eco_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO eco
-                (numero_eco, titulo, descripcion, tipo, prioridad, material_codigo,
-                 solicitante_id, fecha_efectividad, costo_estimado, justificacion,
-                 estado, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                numero_eco,
-                data['titulo'],
-                data['descripcion'],
-                data['tipo'],
-                data['prioridad'],
-                data.get('material_codigo'),
-                data['solicitante_id'],
-                data.get('fecha_efectividad'),
-                data.get('costo_estimado'),
-                data.get('justificacion'),
-                'draft'
-            ))
-            eco_id = cursor.lastrowid
+            )
+        )
 
         # Insertar historial inicial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (eco_id, 'draft', data['solicitante_id'], 'ECO creada'))
-        else:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (eco_id, 'draft', data['solicitante_id'], 'ECO creada'))
+        cursor.execute(f"""
+            INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, ?, ?, ?, {sql_datetime_now()})
+        """, (eco_id, 'draft', data['solicitante_id'], 'ECO creada'))
 
         conn.commit()
         logger.info(f"ECO creada: {numero_eco} (ID: {eco_id})")
@@ -183,7 +157,7 @@ def obtener_ecos(filtros: dict = None) -> dict:
                 e.material_codigo, e.solicitante_id, u.nombre as solicitante_nombre,
                 e.fecha_efectividad, e.costo_estimado, e.created_at
             FROM eco e
-            LEFT JOIN usuarios u ON e.solicitante_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(e.solicitante_id AS TEXT) = u.id_spm
             {where_sql}
             ORDER BY e.created_at DESC
             LIMIT {placeholder} OFFSET {placeholder}
@@ -250,7 +224,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 e.created_at, e.updated_at
             FROM eco e
             LEFT JOIN catalogo_materiales m ON e.material_codigo = m.codigo
-            LEFT JOIN usuarios u ON e.solicitante_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(e.solicitante_id AS TEXT) = u.id_spm
             WHERE e.id = {placeholder}
             """,
             (eco_id,)
@@ -313,7 +287,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 ea.id, ea.aprobador_id, u.nombre as aprobador_nombre,
                 ea.decision, ea.comentarios, ea.fecha_decision
             FROM eco_aprobacion ea
-            LEFT JOIN usuarios u ON ea.aprobador_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(ea.aprobador_id AS TEXT) = u.id_spm
             WHERE ea.eco_id = {placeholder}
             ORDER BY ea.created_at
             """,
@@ -341,7 +315,7 @@ def obtener_detalle_eco(eco_id: int) -> dict:
                 eh.id, eh.estado_nuevo, eh.actor_id, u.nombre as actor_nombre,
                 eh.notas, eh.created_at
             FROM eco_historial eh
-            LEFT JOIN usuarios u ON eh.actor_id::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(eh.actor_id AS TEXT) = u.id_spm
             WHERE eh.eco_id = {placeholder}
             ORDER BY eh.created_at DESC
             """,
@@ -429,36 +403,21 @@ def agregar_cambios(eco_id: int, cambios: list) -> None:
         eco_id: ID del ECO
         cambios: Lista de dicts [{campo, valor_anterior, valor_nuevo, razon}, ...]
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
         for cambio in cambios:
             campo = cambio.get('campo_afectado') or cambio.get('campo')
             tipo = cambio.get('tipo_cambio') or cambio.get('razon')
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO eco_cambio
-                    (eco_id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW())
-                """, (
-                    eco_id,
-                    campo,
-                    cambio.get('valor_anterior'),
-                    cambio.get('valor_nuevo'),
-                    tipo
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO eco_cambio
-                    (eco_id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    eco_id,
-                    campo,
-                    cambio.get('valor_anterior'),
-                    cambio.get('valor_nuevo'),
-                    tipo
-                ))
+            cursor.execute(f"""
+                INSERT INTO eco_cambio
+                (eco_id, campo_afectado, valor_anterior, valor_nuevo, tipo_cambio, created_at)
+                VALUES (?, ?, ?, ?, ?, {sql_datetime_now()})
+            """, (
+                eco_id,
+                campo,
+                cambio.get('valor_anterior'),
+                cambio.get('valor_nuevo'),
+                tipo
+            ))
 
         conn.commit()
         logger.info(f"Agregados {len(cambios)} cambios al ECO {eco_id}")
@@ -484,16 +443,10 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
         )
 
         # Crear historial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
-        else:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
+        cursor.execute(f"""
+            INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, ?, ?, ?, {now_fn})
+        """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
 
         # Crear registros de aprobación (simplificado: buscar usuarios con rol admin o jefe)
         cursor.execute(
@@ -502,16 +455,10 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
         aprobadores = [row[0] for row in cursor.fetchall()]
 
         for aprobador_id in aprobadores:
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, decision, created_at)
-                    VALUES (%s, %s, %s, NOW())
-                """, (eco_id, aprobador_id, 'pending'))
-            else:
-                cursor.execute("""
-                    INSERT INTO eco_aprobacion (eco_id, aprobador_id, decision, created_at)
-                    VALUES (?, ?, ?, datetime('now'))
-                """, (eco_id, aprobador_id, 'pending'))
+            cursor.execute(f"""
+                INSERT INTO eco_aprobacion (eco_id, aprobador_id, decision, created_at)
+                VALUES (?, ?, ?, {now_fn})
+            """, (eco_id, aprobador_id, 'pending'))
 
         conn.commit()
         logger.info(f"ECO {eco_id} enviada para aprobación a {len(aprobadores)} aprobadores")
@@ -559,16 +506,10 @@ def aprobar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> None
                 (eco_id,)
             )
 
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                    VALUES (%s, %s, %s, %s, NOW())
-                """, (eco_id, 'approved', aprobador_id, 'Todas las aprobaciones completadas'))
-            else:
-                cursor.execute("""
-                    INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                    VALUES (?, ?, ?, ?, datetime('now'))
-                """, (eco_id, 'approved', aprobador_id, 'Todas las aprobaciones completadas'))
+            cursor.execute(f"""
+                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
+                VALUES (?, ?, ?, ?, {now_fn})
+            """, (eco_id, 'approved', aprobador_id, 'Todas las aprobaciones completadas'))
 
         conn.commit()
         logger.info(f"ECO {eco_id} aprobada por usuario {aprobador_id}")
@@ -606,16 +547,10 @@ def rechazar_eco(eco_id: int, aprobador_id: int, comentarios: str = None) -> Non
         )
 
         # Crear historial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (eco_id, 'rejected', aprobador_id, comentarios or 'ECO rechazada'))
-        else:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (eco_id, 'rejected', aprobador_id, comentarios or 'ECO rechazada'))
+        cursor.execute(f"""
+            INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, ?, ?, ?, {now_fn})
+        """, (eco_id, 'rejected', aprobador_id, comentarios or 'ECO rechazada'))
 
         conn.commit()
         logger.info(f"ECO {eco_id} rechazada por usuario {aprobador_id}")
@@ -652,16 +587,10 @@ def implementar_eco(eco_id: int, actor_id: int) -> None:
         )
 
         # Crear historial
-        if using_pg:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
-            """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
-        else:
-            cursor.execute("""
-                INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
-            """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
+        cursor.execute(f"""
+            INSERT INTO eco_historial (eco_id, estado_nuevo, actor_id, notas, created_at)
+            VALUES (?, ?, ?, ?, {now_fn})
+        """, (eco_id, 'implemented', actor_id, 'ECO implementada'))
 
         conn.commit()
         logger.info(f"ECO {eco_id} marcada como completada")
@@ -779,10 +708,11 @@ def obtener_kpis() -> dict:
             'tiempo_promedio_aprobacion': float
         }
     """
-    using_pg = is_using_postgresql()
-
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    mes_updated = sql_format_date("updated_at", "%Y-%m")
+    mes_actual = sql_format_date(sql_datetime_now(), "%Y-%m")
 
     try:
         # Pendientes (submitted + under_review)
@@ -793,48 +723,27 @@ def obtener_kpis() -> dict:
         pendientes = cursor.fetchone()[0]
 
         # Implementadas este mes
-        if using_pg:
-            cursor.execute("""
-                SELECT COUNT(*) FROM eco
-                WHERE estado IN ('completed', 'implemented')
-                AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', CURRENT_DATE)
-            """)
-        else:
-            cursor.execute("""
-                SELECT COUNT(*) FROM eco
-                WHERE estado IN ('completed', 'implemented')
-                AND strftime('%Y-%m', updated_at) = strftime('%Y-%m', 'now')
-            """)
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM eco
+            WHERE estado IN ('completed', 'implemented')
+            AND {mes_updated} = {mes_actual}
+        """)
         implementadas_mes = cursor.fetchone()[0]
 
         # Rechazadas este mes
-        if using_pg:
-            cursor.execute("""
-                SELECT COUNT(*) FROM eco
-                WHERE estado = 'rejected'
-                AND DATE_TRUNC('month', updated_at) = DATE_TRUNC('month', CURRENT_DATE)
-            """)
-        else:
-            cursor.execute("""
-                SELECT COUNT(*) FROM eco
-                WHERE estado = 'rejected'
-                AND strftime('%Y-%m', updated_at) = strftime('%Y-%m', 'now')
-            """)
+        cursor.execute(f"""
+            SELECT COUNT(*) FROM eco
+            WHERE estado = 'rejected'
+            AND {mes_updated} = {mes_actual}
+        """)
         rechazadas_mes = cursor.fetchone()[0]
 
         # Tiempo promedio de aprobación (días)
-        if using_pg:
-            cursor.execute("""
-                SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400)
-                FROM eco
-                WHERE estado IN ('approved', 'completed', 'implemented')
-            """)
-        else:
-            cursor.execute("""
-                SELECT AVG(JULIANDAY(updated_at) - JULIANDAY(created_at))
-                FROM eco
-                WHERE estado IN ('approved', 'completed', 'implemented')
-            """)
+        cursor.execute(f"""
+            SELECT AVG({sql_date_diff_days('updated_at', 'created_at')})
+            FROM eco
+            WHERE estado IN ('approved', 'completed', 'implemented')
+        """)
         tiempo_promedio = cursor.fetchone()[0] or 0
 
         return {
