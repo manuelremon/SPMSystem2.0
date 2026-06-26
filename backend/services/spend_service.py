@@ -7,7 +7,12 @@ clasificación Kraljic y cálculo de TCO (Total Cost of Ownership).
 
 from datetime import datetime, timedelta
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    is_using_postgresql,
+    sql_format_date,
+)
 
 
 def calcular_gasto_por_categoria(periodo_desde: str = None, periodo_hasta: str = None) -> list:
@@ -274,8 +279,6 @@ def obtener_tendencia_gasto(meses: int = 12) -> list:
     Returns:
         Lista de periodos con gasto total, gasto con contrato y maverick
     """
-    using_pg = is_using_postgresql()
-
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -283,32 +286,19 @@ def obtener_tendencia_gasto(meses: int = 12) -> list:
         # Calcular fecha de inicio
         fecha_inicio = (datetime.now() - timedelta(days=meses * 30)).strftime('%Y-%m-01')
 
-        if using_pg:
-            cursor.execute("""
-                SELECT
-                    TO_CHAR(oc.created_at, 'YYYY-MM') as periodo,
-                    SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
-                    SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
-                    SUM(CASE WHEN oc.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
-                FROM orden_compra oc
-                JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.created_at >= %s AND oc.estado != 'cancelada'
-                GROUP BY TO_CHAR(oc.created_at, 'YYYY-MM')
-                ORDER BY periodo
-            """, (fecha_inicio,))
-        else:
-            cursor.execute("""
-                SELECT
-                    strftime('%Y-%m', oc.created_at) as periodo,
-                    SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
-                    SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
-                    SUM(CASE WHEN oc.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
-                FROM orden_compra oc
-                JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
-                WHERE oc.created_at >= ? AND oc.estado != 'cancelada'
-                GROUP BY strftime('%Y-%m', oc.created_at)
-                ORDER BY periodo
-            """, (fecha_inicio,))
+        periodo_mes = sql_format_date("oc.created_at", "%Y-%m")
+        cursor.execute(f"""
+            SELECT
+                {periodo_mes} as periodo,
+                SUM(oci.cantidad * oci.precio_unitario) as gasto_total,
+                SUM(CASE WHEN oc.contrato_id IS NOT NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_contrato,
+                SUM(CASE WHEN oc.contrato_id IS NULL THEN oci.cantidad * oci.precio_unitario ELSE 0 END) as gasto_maverick
+            FROM orden_compra oc
+            JOIN orden_compra_item oci ON oc.id = oci.orden_compra_id
+            WHERE oc.created_at >= ? AND oc.estado != 'cancelada'
+            GROUP BY {periodo_mes}
+            ORDER BY periodo
+        """, (fecha_inicio,))
 
         tendencias = []
         for row in cursor.fetchall():
