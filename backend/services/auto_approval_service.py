@@ -64,7 +64,7 @@ class AutoApprovalService:
                 cur.execute("""
                     SELECT id, nombre, condiciones_json, centro_id, prioridad
                     FROM regla_auto_aprobacion
-                    WHERE activo = TRUE
+                    WHERE activo = 1
                     AND (centro_id IS NULL OR centro_id = ?)
                     ORDER BY prioridad ASC
                 """, (centro_id,))
