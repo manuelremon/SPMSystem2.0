@@ -205,6 +205,8 @@ export async function loadVertexAlerts(store) {
       setAlerts(result.alerts || [])
     }
   } catch (error) {
+    // Ignorar: si fallan las alertas se deja la lista previa sin romper la UI
+    console.debug('[vertex] error cargando alertas:', error)
   } finally {
     setAlertsLoading(false)
   }

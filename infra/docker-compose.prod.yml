@@ -1,6 +1,6 @@
 # SPM v3.0 - Docker Compose de Produccion
 # Oracle Cloud VPS con PostgreSQL + Flask + Nginx
-version: '3.8'
+# Nota: el atributo 'version' es obsoleto en Compose v2+ y se omite.
 
 services:
   # === Redis (Message Broker for Celery) ===

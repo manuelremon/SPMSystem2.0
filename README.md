@@ -15,7 +15,7 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 | Indicador | Valor | Estado |
 |-----------|-------|--------|
 | **Testing** | 16/16 fases | ✅ Completado |
-| **Cobertura** | 87% | ✅ Excelente |
+| **Cobertura** | 29% (threshold CI) | ⚠️ Mejorable |
 | **Bugs Criticos** | 0 | ✅ Ninguno |
 | **Bugs Menores** | 5 | ⚠️ No bloqueantes |
 
@@ -25,10 +25,10 @@ Sistema web profesional para gestionar solicitudes de materiales, construido con
 
 | Area | Valor |
 |------|-------|
-| **Backend** | 168 archivos Python, ~65,000 lineas |
-| **Frontend** | 75 paginas, 80 componentes, 12 hooks |
-| **Endpoints API** | 200+ endpoints en 29 modulos |
-| **Tests** | 1,220+ tests automatizados + 16 fases manuales |
+| **Backend** | 348 archivos Python, 73 modulos de rutas, 64 servicios |
+| **Frontend** | 195 paginas, 126 componentes, 22 hooks |
+| **Endpoints API** | 200+ endpoints |
+| **Tests** | ~1,580 tests backend (69 archivos) + 21 archivos test frontend |
 | **Base de Datos** | SQLite (dev) + PostgreSQL (prod) |
 
 ---
@@ -126,7 +126,7 @@ SPMv3.0/
 ├── data/                       # Bases de datos SQLite
 ├── infra/                      # Docker, nginx, Cloud Run
 ├── scripts/                    # Scripts de utilidad
-├── tests/                      # Tests (54 archivos, 1,210+ tests)
+├── tests/                      # Tests (69 archivos, ~1,580 tests)
 │   ├── unit/                   # Tests unitarios
 │   ├── integration/            # Tests de integracion
 │   └── e2e/                    # Tests end-to-end
@@ -147,7 +147,7 @@ cd frontend && npm run dev        # Desarrollo (puerto 5173)
 cd frontend && npm run build      # Build produccion
 
 # Tests
-python -m pytest tests/           # Tests backend (1,210+ tests)
+python -m pytest tests/           # Tests backend (~1,580 tests)
 cd frontend && npm test           # Tests frontend
 
 # Windows - Inicio rapido

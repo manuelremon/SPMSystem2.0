@@ -138,6 +138,8 @@ export function useMaterials() {
       const data = res.data?.data || []
       setFavoritos(data)
     } catch (err) {
+      // Ignorar: si fallan los favoritos se deja la lista vacia sin bloquear la UI
+      console.debug('[useMaterials] error cargando favoritos:', err)
     } finally {
       setLoadingFavoritos(false)
     }

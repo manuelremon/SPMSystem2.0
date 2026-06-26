@@ -166,6 +166,8 @@ export const useRealtimeStore = create((set, get) => ({
       try {
         handler(data)
       } catch (err) {
+        // Un handler que falla no debe impedir que se ejecuten los demas
+        console.debug('[realtimeStore] handler de evento fallo:', err)
       }
     })
   },

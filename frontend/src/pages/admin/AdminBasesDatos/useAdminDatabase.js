@@ -105,6 +105,8 @@ export function useAdminDatabase() {
         setIsReadOnly(res.data.read_only || false);
       }
     } catch (err) {
+      // Ignorar: si fallan las columnas se omite el CRUD para esa tabla
+      console.debug("[useAdminDatabase] error cargando columnas:", err);
     }
   }, [selectedDb]);
 
@@ -134,6 +136,8 @@ export function useAdminDatabase() {
         setPoolStats(res.data.pools);
       }
     } catch (err) {
+      // Ignorar: las stats del pool son informativas, no deben bloquear la vista
+      console.debug("[useAdminDatabase] error cargando pool-stats:", err);
     }
   }, []);
 
