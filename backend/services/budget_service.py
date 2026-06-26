@@ -741,19 +741,20 @@ def verificar_umbrales_presupuesto() -> Dict[str, Any]:
                     conn2 = _connect()
                     try:
                         cur2 = conn2.cursor()
+                        # Schema real: usuarios con rol como texto (CSV/JSON) y
+                        # estado_registro. No existen tablas usuario_rol/rol.
                         _execute(cur2, """
-                            SELECT DISTINCT u.id FROM usuario u
-                            JOIN usuario_rol ur ON u.id = ur.usuario_id
-                            JOIN rol r ON ur.rol_id = r.id
-                            WHERE LOWER(r.nombre) IN ('admin', 'administrador', 'coordinador', 'jefe')
-                            AND u.activo = TRUE
+                            SELECT DISTINCT id_spm FROM usuario
+                            WHERE (LOWER(rol) LIKE '%admin%' OR LOWER(rol) LIKE '%coordinador%'
+                                   OR LOWER(rol) LIKE '%jefe%')
+                            AND estado_registro = 'Activo'
                         """)
                         admins = _fetchall(cur2)
                     finally:
                         conn2.close()
 
                     for admin in admins:
-                        admin_id = admin["id"] if isinstance(admin, dict) else admin[0]
+                        admin_id = admin["id_spm"] if isinstance(admin, dict) else admin[0]
                         NotificationService.create_notification(
                             destinatario_id=str(admin_id),
                             mensaje=mensaje,

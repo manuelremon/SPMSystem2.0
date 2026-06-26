@@ -448,9 +448,10 @@ def solicitar_aprobacion(eco_id: int, actor_id: int) -> None:
             VALUES (?, ?, ?, ?, {now_fn})
         """, (eco_id, 'submitted', actor_id, 'ECO enviada para aprobación'))
 
-        # Crear registros de aprobación (simplificado: buscar usuarios con rol admin o jefe)
+        # Crear registros de aprobación (buscar usuarios con rol admin o jefe).
+        # rol es texto (CSV/JSON), por eso LOWER(rol) LIKE en vez de IN exacto.
         cursor.execute(
-            "SELECT id_spm FROM usuarios WHERE rol IN ('admin', 'jefe') AND activo = TRUE"
+            "SELECT id_spm FROM usuarios WHERE (LOWER(rol) LIKE '%admin%' OR LOWER(rol) LIKE '%jefe%') AND estado_registro = 'Activo'"
         )
         aprobadores = [row[0] for row in cursor.fetchall()]
 
