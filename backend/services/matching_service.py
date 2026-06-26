@@ -7,7 +7,13 @@ Detecta discrepancias y facilita el proceso de resolución.
 
 from datetime import datetime
 
-from backend.core.db import get_db_connection, get_db_transaction, is_using_postgresql
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    insert_returning_id,
+    is_using_postgresql,
+    sql_datetime_now,
+)
 
 
 def registrar_factura(data: dict, user_id: int) -> int:
@@ -36,36 +42,29 @@ def registrar_factura(data: dict, user_id: int) -> int:
     Returns:
         ID de la factura creada
     """
-    using_pg = is_using_postgresql()
-
     with get_db_transaction() as (conn, cursor):
         # Generar numero_factura si no se proporciona
         numero_factura = data.get('numero_factura')
         if not numero_factura:
             fecha_now = datetime.now().strftime('%Y%m%d')
             # Contar facturas del día
-            if using_pg:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM factura_proveedor WHERE numero_factura LIKE %s",
-                    (f'INV-{fecha_now}-%',)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM factura_proveedor WHERE numero_factura LIKE ?",
-                    (f'INV-{fecha_now}-%',)
-                )
+            cursor.execute(
+                "SELECT COUNT(*) FROM factura_proveedor WHERE numero_factura LIKE ?",
+                (f'INV-{fecha_now}-%',)
+            )
             count = cursor.fetchone()[0] + 1
             numero_factura = f"INV-{fecha_now}-{count:04d}"
 
         # Insertar factura
-        if using_pg:
-            cursor.execute("""
+        factura_id = insert_returning_id(
+            cursor,
+            f"""
                 INSERT INTO factura_proveedor
                 (proveedor_cuit, orden_compra_id, numero_factura, fecha_factura,
                  monto_total, moneda, estado, subido_por, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """,
+            (
                 data['proveedor_cuit'],
                 data.get('orden_compra_id'),
                 numero_factura,
@@ -74,55 +73,25 @@ def registrar_factura(data: dict, user_id: int) -> int:
                 data.get('moneda', 'USD'),
                 'pending',
                 user_id
-            ))
-            factura_id = cursor.fetchone()[0]
-        else:
-            cursor.execute("""
-                INSERT INTO factura_proveedor
-                (proveedor_cuit, orden_compra_id, numero_factura, fecha_factura,
-                 monto_total, moneda, estado, subido_por, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            """, (
-                data['proveedor_cuit'],
-                data.get('orden_compra_id'),
-                numero_factura,
-                data['fecha_factura'],
-                data['monto_total'],
-                data.get('moneda', 'USD'),
-                'pending',
-                user_id
-            ))
-            factura_id = cursor.lastrowid
+            )
+        )
 
         # Insertar items
         for item in data['items']:
             precio_unitario = item['precio_unitario']
             cantidad = item['cantidad']
             precio_total = round(precio_unitario * cantidad, 2)
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO factura_item
-                    (factura_id, material_codigo, cantidad_facturada, precio_unitario, precio_total)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (
-                    factura_id,
-                    item['material_codigo'],
-                    cantidad,
-                    precio_unitario,
-                    precio_total
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO factura_item
-                    (factura_id, material_codigo, cantidad_facturada, precio_unitario, precio_total)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (
-                    factura_id,
-                    item['material_codigo'],
-                    cantidad,
-                    precio_unitario,
-                    precio_total
-                ))
+            cursor.execute("""
+                INSERT INTO factura_item
+                (factura_id, material_codigo, cantidad_facturada, precio_unitario, precio_total)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                factura_id,
+                item['material_codigo'],
+                cantidad,
+                precio_unitario,
+                precio_total
+            ))
 
         conn.commit()
         return factura_id
@@ -232,28 +201,16 @@ def ejecutar_matching(factura_id: int) -> dict:
                 f"Cant factura: {cantidad_factura}, Cant OC: {cantidad_oc}, "
                 f"Precio factura: {precio_factura}, Precio OC: {precio_oc}"
             )
-            if using_pg:
-                cursor.execute("""
-                    INSERT INTO matching_resultado
-                    (factura_id, orden_compra_id, estado, diferencia_cantidad,
-                     diferencia_precio, tolerancia_aplicada, notas, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                """, (
-                    factura_id, orden_compra_id, estado_match,
-                    diff_cantidad, diff_precio,
-                    tolerancia_cantidad, notas_detalle
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO matching_resultado
-                    (factura_id, orden_compra_id, estado, diferencia_cantidad,
-                     diferencia_precio, tolerancia_aplicada, notas, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (
-                    factura_id, orden_compra_id, estado_match,
-                    diff_cantidad, diff_precio,
-                    tolerancia_cantidad, notas_detalle
-                ))
+            cursor.execute(f"""
+                INSERT INTO matching_resultado
+                (factura_id, orden_compra_id, estado, diferencia_cantidad,
+                 diferencia_precio, tolerancia_aplicada, notas, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, {sql_datetime_now()})
+            """, (
+                factura_id, orden_compra_id, estado_match,
+                diff_cantidad, diff_precio,
+                tolerancia_cantidad, notas_detalle
+            ))
 
             resultados.append({
                 'material_codigo': material_codigo,
@@ -425,7 +382,7 @@ def obtener_detalle_factura(factura_id: int) -> dict:
             FROM factura_proveedor fp
             LEFT JOIN proveedores p ON fp.proveedor_cuit = p.id_proveedor
             LEFT JOIN orden_compra oc ON fp.orden_compra_id = oc.id
-            LEFT JOIN usuarios u ON fp.subido_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(fp.subido_por AS TEXT) = u.id_spm
             WHERE fp.id = {placeholder}
             """,
             (factura_id,)
@@ -488,7 +445,7 @@ def obtener_detalle_factura(factura_id: int) -> dict:
                 mr.tolerancia_aplicada, mr.aprobado_por,
                 u.nombre as aprobado_por_nombre, mr.notas
             FROM matching_resultado mr
-            LEFT JOIN usuarios u ON mr.aprobado_por::text = u.id_spm
+            LEFT JOIN usuarios u ON CAST(mr.aprobado_por AS TEXT) = u.id_spm
             WHERE mr.factura_id = {placeholder}
             """,
             (factura_id,)
