@@ -7,7 +7,14 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from backend.core.db import get_db_connection, get_db_transaction
+from backend.core.db import (
+    get_db_connection,
+    get_db_transaction,
+    sql_date_diff_days,
+    sql_date_relative,
+    sql_datetime_now,
+    sql_format_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -115,10 +122,12 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        mes_emision = sql_format_date("fecha_emision", "%Y-%m")
+        mes_actual = sql_format_date(sql_datetime_now(), "%Y-%m")
+        cursor.execute(f"""
             SELECT COALESCE(SUM(total), 0)
             FROM orden_compra
-            WHERE TO_CHAR(fecha_emision, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE {mes_emision} = {mes_actual}
         """)
         kpis_valores['total_spend'] = cursor.fetchone()[0]
         conn.close()
@@ -129,10 +138,11 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        mes_actual = sql_format_date(sql_datetime_now(), "%Y-%m")
+        cursor.execute(f"""
             SELECT COALESCE(SUM(ahorro_real), 0), COALESCE(SUM(baseline_cost), 1)
             FROM ahorro_costo
-            WHERE TO_CHAR(fecha, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE {sql_format_date("fecha", "%Y-%m")} = {mes_actual}
         """)
         row = cursor.fetchone()
         savings = row[0]
@@ -146,12 +156,12 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN fecha_recepcion_real <= fecha_entrega_prometida THEN 1 ELSE 0 END) as on_time
             FROM recepcion_dock
-            WHERE TO_CHAR(fecha_recepcion_real, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE {sql_format_date("fecha_recepcion_real", "%Y-%m")} = {sql_format_date(sql_datetime_now(), "%Y-%m")}
         """)
         row = cursor.fetchone()
         total = row[0] if row[0] else 1
@@ -165,12 +175,12 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN resultado_final = 'approved' THEN 1 ELSE 0 END) as approved
             FROM inspeccion_entrada
-            WHERE TO_CHAR(fecha_inspeccion, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE {sql_format_date("fecha_inspeccion", "%Y-%m")} = {sql_format_date(sql_datetime_now(), "%Y-%m")}
         """)
         row = cursor.fetchone()
         total = row[0] if row[0] else 1
@@ -184,9 +194,9 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COALESCE(SUM(costo), 0) FROM orden_compra
-            WHERE fecha_emision >= CURRENT_DATE - INTERVAL '12 months'
+            WHERE fecha_emision >= {sql_date_relative(months=-12)}
         """)
         annual_cogs = cursor.fetchone()[0]
 
@@ -219,10 +229,10 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT AVG(score_total)
             FROM proveedor_esg_score
-            WHERE periodo = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE periodo = {sql_format_date(sql_datetime_now(), "%Y-%m")}
         """)
         row = cursor.fetchone()
         kpis_valores['sustainability_score'] = row[0] if row[0] else 0
@@ -234,11 +244,11 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT AVG(EXTRACT(EPOCH FROM (fecha_pago::timestamp - fecha_factura::timestamp)) / 86400)
+        cursor.execute(f"""
+            SELECT AVG({sql_date_diff_days("fecha_pago", "fecha_factura")})
             FROM factura_proveedor
             WHERE estado = 'paid'
-            AND fecha_pago >= CURRENT_DATE - INTERVAL '30 days'
+            AND fecha_pago >= {sql_date_relative(days=-30)}
         """)
         row = cursor.fetchone()
         kpis_valores['dpo'] = row[0] if row[0] else 0
@@ -250,12 +260,12 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN estado = 'compliant' THEN 1 ELSE 0 END) as compliant
             FROM compliance_check
-            WHERE TO_CHAR(fecha_check, 'YYYY-MM') = TO_CHAR(NOW(), 'YYYY-MM')
+            WHERE {sql_format_date("fecha_check", "%Y-%m")} = {sql_format_date(sql_datetime_now(), "%Y-%m")}
         """)
         row = cursor.fetchone()
         total = row[0] if row[0] else 1
@@ -269,7 +279,7 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT
                 SUM(cantidad_solicitada) as requested,
                 SUM(cantidad_entregada) as delivered
@@ -277,7 +287,7 @@ def calcular_kpis_actuales() -> Dict[str, Any]:
                 SELECT s.cantidad as cantidad_solicitada, COALESCE(r.cantidad, 0) as cantidad_entregada
                 FROM solicitud_item s
                 LEFT JOIN recepcion_dock r ON s.solicitud_id = r.solicitud_id
-                WHERE s.created_at >= CURRENT_DATE - INTERVAL '30 days'
+                WHERE s.created_at >= {sql_date_relative(days=-30)}
             ) sub
         """)
         row = cursor.fetchone()
