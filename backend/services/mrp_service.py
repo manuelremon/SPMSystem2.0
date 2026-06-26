@@ -1149,17 +1149,18 @@ def _notificar_planificadores_alerta(
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            # Schema real: usuarios con rol como texto (CSV/JSON) y estado_registro.
+            # No existen tablas usuario_rol/rol; se filtra con LOWER(rol) LIKE.
             cursor.execute("""
-                SELECT u.id FROM usuario u
-                JOIN usuario_rol ur ON u.id = ur.usuario_id
-                JOIN rol r ON ur.rol_id = r.id
-                WHERE LOWER(r.nombre) IN ('planner', 'planificador', 'admin')
-                AND u.activo = TRUE
+                SELECT id_spm FROM usuario
+                WHERE (LOWER(rol) LIKE '%planificador%' OR LOWER(rol) LIKE '%planner%'
+                       OR LOWER(rol) LIKE '%admin%')
+                AND estado_registro = 'Activo'
             """)
             planificadores = cursor.fetchall()
 
         for p in planificadores:
-            user_id = p["id"] if isinstance(p, dict) else p[0]
+            user_id = p["id_spm"] if isinstance(p, dict) else p[0]
             NotificationService.create_notification(
                 destinatario_id=str(user_id),
                 mensaje=mensaje,
