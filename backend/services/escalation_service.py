@@ -22,7 +22,8 @@ class EscalationService:
             cur = conn.cursor()
             query = "SELECT * FROM regla_escalacion"
             if activo_only:
-                query += " WHERE activo = TRUE"
+                # activo es INTEGER en PostgreSQL (no boolean); = 1 es portable
+                query += " WHERE activo = 1"
             query += " ORDER BY centro, criticidad"
             cur.execute(query)
             rows = cur.fetchall()
