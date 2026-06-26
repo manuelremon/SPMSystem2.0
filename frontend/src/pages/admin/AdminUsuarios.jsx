@@ -95,8 +95,8 @@ const initialForm = {
   id_ypf: "",
   sector: "",
   roles: ["solicitante"],
-  centros: "",
-  almacenes: "",
+  centros: [],
+  almacenes: [],
   jefe: "",
   gerente1: "",
   gerente2: "",
@@ -117,6 +117,28 @@ function parseRoles(roles) {
     } catch {
       return roles ? [roles] : [];
     }
+  }
+  return [];
+}
+
+// Parsea centros/almacenes (CSV, array o JSON) a array de codigos sin duplicados
+function parseCsvList(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((v) => String(v).trim()).filter(Boolean))];
+  }
+  if (typeof value === "string" && value.trim()) {
+    let raw = value;
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) raw = parsed.join(",");
+    } catch {
+      // No es JSON: tratar como CSV
+    }
+    const items = raw
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return [...new Set(items)];
   }
   return [];
 }
@@ -710,6 +732,30 @@ export default function AdminUsuarios() {
   // Eliminacion inline
   const [deletingId, setDeletingId] = useState(null);
 
+  // Catalogos de centros y almacenes para los desplegables
+  const [centrosCatalog, setCentrosCatalog] = useState([]);
+  const [almacenesCatalog, setAlmacenesCatalog] = useState([]);
+
+  // Cargar catalogos de centros y almacenes
+  const loadCatalogos = useCallback(async () => {
+    try {
+      const [centrosRes, almacenesRes] = await Promise.all([
+        admin.list("centros"),
+        admin.list("almacenes"),
+      ]);
+      setCentrosCatalog(Array.isArray(centrosRes.data) ? centrosRes.data : []);
+      setAlmacenesCatalog(Array.isArray(almacenesRes.data) ? almacenesRes.data : []);
+    } catch {
+      // Si fallan los catalogos, los desplegables quedan vacios (solo legacy)
+      setCentrosCatalog([]);
+      setAlmacenesCatalog([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCatalogos();
+  }, [loadCatalogos]);
+
   // Cargar usuarios
   const loadUsuarios = useCallback(async () => {
     setLoading(true);
@@ -789,6 +835,41 @@ export default function AdminUsuarios() {
     [usuarios]
   );
 
+  // Opciones de centros: catalogo + valores legacy seleccionados que no esten en el
+  const centrosOptions = useMemo(() => {
+    const fromCatalog = centrosCatalog.map((c) => ({
+      value: String(c.codigo),
+      label: c.nombre ? `${c.codigo} - ${c.nombre}` : String(c.codigo),
+    }));
+    const known = new Set(fromCatalog.map((o) => o.value));
+    const legacy = (Array.isArray(form.centros) ? form.centros : [])
+      .filter((v) => !known.has(String(v)))
+      .map((v) => ({ value: String(v), label: `${v} (no catalogado)` }));
+    return [...fromCatalog, ...legacy];
+  }, [centrosCatalog, form.centros]);
+
+  // Opciones de almacenes: catalogo + valores legacy seleccionados que no esten en el
+  const almacenesOptions = useMemo(() => {
+    const fromCatalog = almacenesCatalog.map((a) => ({
+      value: String(a.codigo),
+      label: a.nombre ? `${a.codigo} - ${a.nombre}` : String(a.codigo),
+    }));
+    const known = new Set(fromCatalog.map((o) => o.value));
+    const legacy = (Array.isArray(form.almacenes) ? form.almacenes : [])
+      .filter((v) => !known.has(String(v)))
+      .map((v) => ({ value: String(v), label: `${v} (no catalogado)` }));
+    return [...fromCatalog, ...legacy];
+  }, [almacenesCatalog, form.almacenes]);
+
+  // Handler para los desplegables multiples (centros / almacenes)
+  const handleMultiSelectChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: typeof value === "string" ? value.split(",") : value,
+    }));
+  };
+
   // Handlers
   const handleNew = () => {
     setEditingUser(null);
@@ -807,6 +888,8 @@ export default function AdminUsuarios() {
       ...initialForm,
       ...sanitized,
       roles: parseRoles(user.roles || user.rol),
+      centros: parseCsvList(user.centros),
+      almacenes: parseCsvList(user.almacenes),
       contrasena: "",
     });
     setFormErrors({});
@@ -857,6 +940,9 @@ export default function AdminUsuarios() {
       const payload = {
         ...form,
         roles: JSON.stringify(form.roles),
+        // El backend une listas de centros/almacenes a CSV (admin.py)
+        centros: Array.isArray(form.centros) ? form.centros : parseCsvList(form.centros),
+        almacenes: Array.isArray(form.almacenes) ? form.almacenes : parseCsvList(form.almacenes),
       };
 
       if (editingUser) {
@@ -1295,24 +1381,62 @@ export default function AdminUsuarios() {
 
             {/* Jerarquia */}
             <FormSection title={t('admin_users_hierarchy', 'Jerarquia')}>
-              <TextField
-                fullWidth
-                size="small"
-                label={t('admin_users_centros', 'Centros')}
-                name="centros"
-                value={form.centros}
-                onChange={handleChange}
-                placeholder={t('admin_users_centros_placeholder', 'Ej: 1000, 2000, 3000')}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label={t('admin_users_almacenes', 'Almacenes')}
-                name="almacenes"
-                value={form.almacenes}
-                onChange={handleChange}
-                placeholder={t('admin_users_almacenes_placeholder', 'Ej: ALM01, ALM02')}
-              />
+              <FormControl fullWidth size="small">
+                <InputLabel>{t('admin_users_centros', 'Centros')}</InputLabel>
+                <Select
+                  multiple
+                  name="centros"
+                  value={Array.isArray(form.centros) ? form.centros : []}
+                  onChange={handleMultiSelectChange}
+                  label={t('admin_users_centros', 'Centros')}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {selected.map((value) => (
+                        <Chip key={value} label={value} size="small" />
+                      ))}
+                    </Box>
+                  )}
+                >
+                  {centrosOptions.length === 0 && (
+                    <MenuItem disabled value="">
+                      {t('admin_users_no_centros', 'No hay centros disponibles')}
+                    </MenuItem>
+                  )}
+                  {centrosOptions.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel>{t('admin_users_almacenes', 'Almacenes')}</InputLabel>
+                <Select
+                  multiple
+                  name="almacenes"
+                  value={Array.isArray(form.almacenes) ? form.almacenes : []}
+                  onChange={handleMultiSelectChange}
+                  label={t('admin_users_almacenes', 'Almacenes')}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {selected.map((value) => (
+                        <Chip key={value} label={value} size="small" />
+                      ))}
+                    </Box>
+                  )}
+                >
+                  {almacenesOptions.length === 0 && (
+                    <MenuItem disabled value="">
+                      {t('admin_users_no_almacenes', 'No hay almacenes disponibles')}
+                    </MenuItem>
+                  )}
+                  {almacenesOptions.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <Stack direction="row" spacing={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>{t('admin_users_jefe', 'Jefe')}</InputLabel>
