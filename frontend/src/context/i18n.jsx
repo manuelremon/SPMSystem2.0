@@ -33,7 +33,6 @@ const translations = {
   nav_dashboards: { es: "Dashboards", en: "Dashboards" },
 
   // Nav - top-level menus
-  nav_compras: { es: "Compras", en: "Procurement" },
   nav_inventario: { es: "Inventario", en: "Inventory" },
   nav_logistica: { es: "Logística", en: "Logistics" },
   nav_analytics: { es: "Analítica", en: "Analytics" },
@@ -41,9 +40,6 @@ const translations = {
   // Nav - sub-headers
   nav_header_gestiones: { es: "GESTIONES", en: "REQUESTS" },
   nav_header_aprobacion: { es: "APROBACIÓN", en: "APPROVAL" },
-  nav_header_sourcing: { es: "ABASTECIMIENTO", en: "SOURCING" },
-  nav_header_proveedores: { es: "PROVEEDORES", en: "SUPPLIERS" },
-  nav_header_facturas: { es: "FACTURAS", en: "INVOICES" },
   nav_header_panel: { es: "PANEL", en: "PANEL" },
   nav_header_mrp: { es: "MRP", en: "MRP" },
   nav_header_demanda: { es: "DEMANDA", en: "DEMAND" },
@@ -64,9 +60,6 @@ const translations = {
   nav_header_configuracion: { es: "CONFIGURACIÓN", en: "CONFIGURATION" },
 
   // Nav - menu items
-  nav_procurement_dashboard: { es: "Compras SAP", en: "SAP Procurement" },
-  nav_scorecard: { es: "Evaluación Proveedores", en: "Scorecard" },
-  nav_prices: { es: "Precios", en: "Prices" },
   nav_stock: { es: "Stock", en: "Stock" },
   nav_forecast_individual: { es: "Pronóstico Individual", en: "Individual Forecast" },
   nav_forecast_masivo: { es: "Pronóstico Masivo", en: "Bulk Forecast" },
@@ -497,7 +490,21 @@ const translations = {
 
   // Materials
   materials_title: { es: "Agregar Materiales", en: "Add Materials" },
+  materials_subtitle: { es: "Busca y agrega los materiales a la solicitud", en: "Search and add materials to the request" },
   materials_search: { es: "Buscar materiales", en: "Search materials" },
+  // Tooltips de ayuda (UX)
+  scanner_scan_tooltip: { es: "Escanear el codigo de barras de un material con la camara", en: "Scan a material's barcode with the camera" },
+  materials_asistente_ia_tooltip: { es: "Describe lo que necesitas y la IA sugiere materiales del catalogo", en: "Describe what you need and AI suggests catalog materials" },
+  materials_agregar_tooltip: { es: "Agregar este material a la solicitud", en: "Add this material to the request" },
+  materials_agregar_disabled_tooltip: { es: "Primero revisa los detalles del material", en: "Review the material details first" },
+  materials_planificado_mrp_tt: { es: "Indica si el material se repone automaticamente mediante el sistema MRP", en: "Whether the material is auto-replenished via the MRP system" },
+  materials_stock_seguridad_tt: { es: "Cantidad minima que se mantiene en reserva para cubrir imprevistos de demanda o suministro", en: "Minimum quantity kept in reserve to cover demand or supply variability" },
+  materials_punto_pedido_tt: { es: "Nivel de stock que dispara una nueva orden de reposicion automatica", en: "Stock level that triggers a new automatic replenishment order" },
+  materials_stock_maximo_tt: { es: "Cantidad maxima a almacenar; la reposicion no supera este nivel", en: "Maximum quantity to store; replenishment does not exceed this level" },
+  materials_total_consumo_tt: { es: "Consumo acumulado del material en todo el rango de anios disponible", en: "Cumulative consumption across the available year range" },
+  materials_promedio_anual_tt: { es: "Consumo medio por anio; util para estimar la demanda futura", en: "Average consumption per year; useful to estimate future demand" },
+  materials_pedidos_tt: { es: "Pedidos de compra a proveedor ya emitidos y pendientes de recepcion", en: "Purchase orders already issued and pending receipt" },
+  materials_spm_en_curso_tt: { es: "Solicitudes de este material que ya estan en tramite dentro del sistema", en: "Requests for this material already in progress in the system" },
   materials_empty: { es: "No hay materiales", en: "No materials" },
   materials_limpiar_busqueda: { es: "Limpiar búsqueda", en: "Clear search" },
   materials_cancelar_solicitud: { es: "Cancelar Solicitud", en: "Cancel Request" },
@@ -1634,7 +1641,6 @@ const translations = {
   // =====================================================================
 
   // Contracts (Sprints 54-56)
-  nav_contracts: { es: "Contratos", en: "Contracts" },
   contract_title: { es: "Gestión de Contratos", en: "Contract Management" },
   contract_new: { es: "Nuevo Contrato", en: "New Contract" },
   contract_number: { es: "N° Contrato", en: "Contract #" },
@@ -1664,7 +1670,6 @@ const translations = {
   contract_terminate: { es: "Terminar", en: "Terminate" },
 
   // RFQ (Sprints 57-58)
-  nav_rfq: { es: "Licitaciones (RFQ)", en: "RFQ" },
   rfq_title: { es: "Solicitudes de Cotización", en: "Request for Quotation" },
   rfq_new: { es: "Nueva RFQ", en: "New RFQ" },
   rfq_from_solicitud: { es: "Crear desde Solicitud", en: "Create from Request" },
@@ -1699,7 +1704,6 @@ const translations = {
   quality_score: { es: "Score de Calidad", en: "Quality Score" },
 
   // Sprint 61: 3-Way Matching
-  nav_invoices: { es: "Facturas (3-Way)", en: "Invoices (3-Way)" },
   matching_title: { es: "Facturas Proveedor", en: "Supplier Invoices" },
   matching_new: { es: "Nueva Factura", en: "New Invoice" },
   matching_run: { es: "Ejecutar Matching", en: "Run Matching" },
@@ -1729,7 +1733,6 @@ const translations = {
   spend_noncritical: { es: "No Crítico", en: "Non-critical" },
 
   // Sprint 63: Supplier Risk
-  nav_supplier_risk: { es: "Riesgo Proveedores", en: "Supplier Risk" },
   risk_title: { es: "Mapa de Riesgo", en: "Risk Map" },
   risk_score: { es: "Score Riesgo", en: "Risk Score" },
   risk_level: { es: "Nivel", en: "Level" },
@@ -1809,8 +1812,6 @@ const translations = {
   warehouse_click_times: { es: "Clic para registrar tiempos", en: "Click to register times" },
 
   // Sprint 67: Compliance & Rebates
-  nav_compliance: { es: "Cumplimiento", en: "Compliance" },
-  nav_rebates: { es: "Bonificaciones", en: "Rebates" },
   compliance_title: { es: "Compliance Contractual", en: "Contract Compliance" },
   compliance_rate: { es: "Tasa Compliance", en: "Compliance Rate" },
   compliance_check: { es: "Verificar OC", en: "Check PO" },
@@ -1832,8 +1833,6 @@ const translations = {
   inv_opt_recalculate: { es: "Recalcular", en: "Recalculate" },
 
   // Sprint 69: Supplier Audit & Certifications
-  nav_certifications: { es: "Certificaciones", en: "Certifications" },
-  nav_supplier_audits: { es: "Auditorías Prov.", en: "Supplier Audits" },
   cert_title: { es: "Certificaciones de Proveedores", en: "Supplier Certifications" },
   cert_new: { es: "Registrar Certificación", en: "Register Certification" },
   cert_expiring: { es: "Por Vencer", en: "Expiring" },
@@ -2251,7 +2250,6 @@ const translations = {
   kanban_error_update_card: { es: "Error al actualizar tarjeta", en: "Error updating card" },
 
   // Sprint 89: Supplier Finance
-  nav_supplier_finance: { es: "Financiamiento", en: "Supplier Finance" },
   nav_cashflow_sim: { es: "Simulador Cashflow", en: "Cashflow Simulator" },
   finance_title: { es: "Financiamiento de Proveedores", en: "Supplier Finance" },
   finance_programs: { es: "Programas", en: "Programs" },

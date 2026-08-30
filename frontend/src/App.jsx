@@ -61,8 +61,6 @@ const BudgetRequestCreate = lazy(() => import('./pages/BudgetRequestCreate'))
 const BudgetRequestDetail = lazy(() => import('./pages/BudgetRequestDetail'))
 
 // Procurement Dashboard (lazy-loaded)
-const ProcurementDashboard = lazy(() => import('./pages/ProcurementDashboard'))
-const ProcurementAnalytics = lazy(() => import('./pages/ProcurementAnalytics'))
 
 // Admin pages (lazy-loaded)
 const AdminCentros = lazy(() => import('./pages/admin/AdminCentros'))
@@ -118,7 +116,6 @@ const MobileScanner = lazy(() => import('./pages/MobileScanner'))
 // New feature pages (lazy-loaded)
 const AnomaliaDetection = lazy(() => import('./pages/AnomaliaDetection'))
 const MaterialClusters = lazy(() => import('./pages/MaterialClusters'))
-const ProveedorScorecard = lazy(() => import('./pages/ProveedorScorecard'))
 const ReportesProgramados = lazy(() => import('./pages/ReportesProgramados'))
 const AdminAutoAprobacion = lazy(() => import('./pages/AdminAutoAprobacion'))
 const AdminEscalacion = lazy(() => import('./pages/AdminEscalacion'))
@@ -130,12 +127,6 @@ const WhatIfInventario = lazy(() => import('./pages/WhatIfInventario'))
 const AdminAuditLog = lazy(() => import('./pages/AdminAuditLog'))
 const CostSavings = lazy(() => import('./pages/CostSavings'))
 const InventoryAging = lazy(() => import('./pages/InventoryAging'))
-const Contracts = lazy(() => import('./pages/Contracts'))
-const ContractCreate = lazy(() => import('./pages/ContractCreate'))
-const ContractDetail = lazy(() => import('./pages/ContractDetail'))
-const RFQList = lazy(() => import('./pages/RFQList'))
-const RFQCreate = lazy(() => import('./pages/RFQCreate'))
-const RFQDetail = lazy(() => import('./pages/RFQDetail'))
 const QualityInspections = lazy(() => import('./pages/QualityInspections'))
 const InspectionDetail = lazy(() => import('./pages/InspectionDetail'))
 const NCRList = lazy(() => import('./pages/NCRList'))
@@ -144,22 +135,15 @@ const CAPAList = lazy(() => import('./pages/CAPAList'))
 const CAPADetail = lazy(() => import('./pages/CAPADetail'))
 
 // Sprint 61-70 pages (lazy-loaded)
-const InvoiceList = lazy(() => import('./pages/InvoiceList'))
-const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'))
 const SpendAnalytics = lazy(() => import('./pages/SpendAnalytics'))
-const SupplierRiskMap = lazy(() => import('./pages/SupplierRiskMap'))
 const DemandPlanning = lazy(() => import('./pages/DemandPlanning'))
 const DemandPlanDetail = lazy(() => import('./pages/DemandPlanDetail'))
 const ReturnsList = lazy(() => import('./pages/ReturnsList'))
 const ReturnDetail = lazy(() => import('./pages/ReturnDetail'))
 const WarehouseReceiving = lazy(() => import('./pages/WarehouseReceiving'))
 const PutawayTasks = lazy(() => import('./pages/PutawayTasks'))
-const ContractCompliance = lazy(() => import('./pages/ContractCompliance'))
-const RebatePrograms = lazy(() => import('./pages/RebatePrograms'))
 const InventoryOptimization = lazy(() => import('./pages/InventoryOptimization'))
 const ServiceLevels = lazy(() => import('./pages/ServiceLevels'))
-const SupplierCertifications = lazy(() => import('./pages/SupplierCertifications'))
-const SupplierAudits = lazy(() => import('./pages/SupplierAudits'))
 const FreightAudit = lazy(() => import('./pages/FreightAudit'))
 const FreightTariffs = lazy(() => import('./pages/FreightTariffs'))
 
@@ -186,10 +170,6 @@ const SupplierPortalPreview = lazy(() => import('./pages/SupplierPortalPreview')
 const ProcurementCopilot = lazy(() => import('./pages/ProcurementCopilot'))
 const OnboardingList = lazy(() => import('./pages/OnboardingList'))
 const OnboardingDetail = lazy(() => import('./pages/OnboardingDetail'))
-const SupplierFinance = lazy(() => import('./pages/SupplierFinance'))
-const CashflowSimulator = lazy(() => import('./pages/CashflowSimulator'))
-const PriceManagement = lazy(() => import('./pages/PriceManagement'))
-const PriceCompare = lazy(() => import('./pages/PriceCompare'))
 const ConsignmentPrograms = lazy(() => import('./pages/ConsignmentPrograms'))
 const ConsignmentDetail = lazy(() => import('./pages/ConsignmentDetail'))
 const CustomsOperations = lazy(() => import('./pages/CustomsOperations'))
@@ -271,8 +251,6 @@ function App() {
             <Route path="/presupuestos" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequests /></ProtectedRoute>} />
             <Route path="/presupuestos/nueva" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequestCreate /></ProtectedRoute>} />
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequestDetail /></ProtectedRoute>} />
-            <Route path="/procurement" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementDashboard /></ProtectedRoute>} />
-            <Route path="/procurement/analytics" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProcurementAnalytics /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
             <Route path="/materiales/catalogo" element={<ProtectedRoute><CatalogoMateriales /></ProtectedRoute>} />
             <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />
@@ -308,7 +286,6 @@ function App() {
             {/* IA / Analytics Routes */}
             <Route path="/planificador/anomalias" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><AnomaliaDetection /></ProtectedRoute>} />
             <Route path="/planificador/clusters" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><MaterialClusters /></ProtectedRoute>} />
-            <Route path="/procurement/scorecard" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ProveedorScorecard /></ProtectedRoute>} />
             <Route path="/analytics/abc" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ABCAnalysis /></ProtectedRoute>} />
             <Route path="/analytics/what-if" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WhatIfInventario /></ProtectedRoute>} />
             {/* Admin Routes */}
@@ -337,12 +314,6 @@ function App() {
             <Route path="/reportes/programados" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ReportesProgramados /></ProtectedRoute>} />
             {/* Procurement - Sprints 52, 54-58 */}
             <Route path="/procurement/savings" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CostSavings /></ProtectedRoute>} />
-            <Route path="/procurement/contracts" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><Contracts /></ProtectedRoute>} />
-            <Route path="/procurement/contracts/new" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ContractCreate /></ProtectedRoute>} />
-            <Route path="/procurement/contracts/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ContractDetail /></ProtectedRoute>} />
-            <Route path="/procurement/rfq" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQList /></ProtectedRoute>} />
-            <Route path="/procurement/rfq/new" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQCreate /></ProtectedRoute>} />
-            <Route path="/procurement/rfq/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RFQDetail /></ProtectedRoute>} />
             {/* Operations - Sprint 53 */}
             <Route path="/operations/slob" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InventoryAging /></ProtectedRoute>} />
             {/* Quality - Sprints 59-60 */}
@@ -353,12 +324,9 @@ function App() {
             <Route path="/quality/capa" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CAPAList /></ProtectedRoute>} />
             <Route path="/quality/capa/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CAPADetail /></ProtectedRoute>} />
             {/* P2P & Matching - Sprint 61 */}
-            <Route path="/procurement/invoices" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InvoiceList /></ProtectedRoute>} />
-            <Route path="/procurement/invoices/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InvoiceDetail /></ProtectedRoute>} />
             {/* Analytics - Sprint 62 */}
             <Route path="/analytics/spend" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SpendAnalytics /></ProtectedRoute>} />
             {/* Supplier Risk - Sprint 63 */}
-            <Route path="/procurement/supplier-risk" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierRiskMap /></ProtectedRoute>} />
             {/* Demand Planning - Sprint 64 */}
             <Route path="/planning/demand" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><DemandPlanning /></ProtectedRoute>} />
             <Route path="/planning/demand/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><DemandPlanDetail /></ProtectedRoute>} />
@@ -369,15 +337,11 @@ function App() {
             <Route path="/operations/warehouse" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><WarehouseReceiving /></ProtectedRoute>} />
             <Route path="/operations/putaway" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PutawayTasks /></ProtectedRoute>} />
             {/* Compliance & Rebates - Sprint 67 */}
-            <Route path="/procurement/compliance" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ContractCompliance /></ProtectedRoute>} />
-            <Route path="/procurement/rebates" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><RebatePrograms /></ProtectedRoute>} />
             {/* Inventory Optimization - Sprint 68 */}
             <Route path="/operations/inventory-optimization" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><InventoryOptimization /></ProtectedRoute>} />
             <Route path="/operations/niveles-de-servicio" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ServiceLevels /></ProtectedRoute>} />
             <Route path="/operations/service-levels" element={<Navigate to="/operations/niveles-de-servicio" replace />} />
             {/* Supplier Audit - Sprint 69 */}
-            <Route path="/procurement/certifications" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierCertifications /></ProtectedRoute>} />
-            <Route path="/procurement/audits" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierAudits /></ProtectedRoute>} />
             {/* Freight Audit - Sprint 70 */}
             <Route path="/tms/freight" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><FreightAudit /></ProtectedRoute>} />
             <Route path="/tms/tariffs" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><FreightTariffs /></ProtectedRoute>} />
@@ -415,8 +379,6 @@ function App() {
             <Route path="/admin/supplier-onboarding" element={<ProtectedRoute roles={['administrador', 'admin']}><OnboardingList /></ProtectedRoute>} />
             <Route path="/admin/supplier-onboarding/:id" element={<ProtectedRoute roles={['administrador', 'admin']}><OnboardingDetail /></ProtectedRoute>} />
             {/* Price Management - Sprint 82 */}
-            <Route path="/procurement/prices" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PriceManagement /></ProtectedRoute>} />
-            <Route path="/procurement/prices/compare" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PriceCompare /></ProtectedRoute>} />
             {/* Consignment Inventory - Sprint 83 */}
             <Route path="/operations/consignment" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ConsignmentPrograms /></ProtectedRoute>} />
             <Route path="/operations/consignment/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><ConsignmentDetail /></ProtectedRoute>} />
@@ -436,8 +398,6 @@ function App() {
             <Route path="/operations/packaging" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PackingLists /></ProtectedRoute>} />
             <Route path="/operations/packaging/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><PackingDetail /></ProtectedRoute>} />
             {/* Supplier Finance - Sprint 89 */}
-            <Route path="/finance/supplier-finance" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><SupplierFinance /></ProtectedRoute>} />
-            <Route path="/finance/supplier-finance/simulator" element={<ProtectedRoute roles={['administrador', 'admin', 'planificador']}><CashflowSimulator /></ProtectedRoute>} />
             {/* Executive Analytics - Sprint 90 */}
             <Route path="/analytics/executive" element={<ProtectedRoute roles={['administrador', 'admin', 'coordinador', 'jefe']}><ExecutiveDashboard /></ProtectedRoute>} />
             <Route path="/analytics/executive/benchmarks" element={<ProtectedRoute roles={['administrador', 'admin']}><BenchmarkAnalysis /></ProtectedRoute>} />

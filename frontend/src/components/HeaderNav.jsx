@@ -89,44 +89,6 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
       },
     ],
   },
-  // 2. COMPRAS
-  {
-    id: 'compras',
-    labelKey: 'nav_compras',
-    labelFallback: 'Compras',
-    visible: canSeePlanner,
-    activePrefixes: ['/procurement', '/finance/supplier-finance'],
-    minWidth: 200,
-    sections: [
-      {
-        header: { key: 'nav_header_sourcing', fallback: 'ABASTECIMIENTO' },
-        items: [
-          { to: '/procurement', labelKey: 'nav_procurement_dashboard', labelFallback: 'Compras SAP' },
-          { to: '/procurement/rfq', labelKey: 'nav_rfq', labelFallback: 'Licitaciones (RFQ)' },
-          { to: '/procurement/contracts', labelKey: 'nav_contracts', labelFallback: 'Contratos' },
-          { to: '/procurement/prices', labelKey: 'nav_prices', labelFallback: 'Precios' },
-        ],
-      },
-      {
-        header: { key: 'nav_header_proveedores', fallback: 'PROVEEDORES' },
-        items: [
-          { to: '/procurement/scorecard', labelKey: 'nav_scorecard', labelFallback: 'Evaluación Proveedores' },
-          { to: '/procurement/supplier-risk', labelKey: 'nav_supplier_risk', labelFallback: 'Riesgo Proveedores' },
-          { to: '/procurement/certifications', labelKey: 'nav_certifications', labelFallback: 'Certificaciones' },
-          { to: '/procurement/audits', labelKey: 'nav_supplier_audits', labelFallback: 'Auditorias Prov.' },
-        ],
-      },
-      {
-        header: { key: 'nav_header_facturas', fallback: 'FACTURAS' },
-        items: [
-          { to: '/procurement/invoices', labelKey: 'nav_invoices', labelFallback: 'Facturas (3-Way)' },
-          { to: '/procurement/compliance', labelKey: 'nav_compliance', labelFallback: 'Cumplimiento' },
-          { to: '/procurement/rebates', labelKey: 'nav_rebates', labelFallback: 'Bonificaciones' },
-          { to: '/finance/supplier-finance', labelKey: 'nav_supplier_finance', labelFallback: 'Financiamiento' },
-        ],
-      },
-    ],
-  },
   // 3. PLANIFICACION
   {
     id: 'planificacion',
