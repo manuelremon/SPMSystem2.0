@@ -17,14 +17,16 @@ import {
   Button,
   Divider,
   Grid,
+  Tooltip,
 } from '@mui/material'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
 /**
  * InfoRow - Key-value display row
  */
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, tooltip }) {
   return (
     <Stack
       direction="row"
@@ -32,9 +34,18 @@ function InfoRow({ label, value }) {
       alignItems="center"
       sx={{ typography: 'body2' }}
     >
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <Typography variant="body2" color="text.secondary">
+          {label}
+        </Typography>
+        {tooltip && (
+          <Tooltip title={tooltip}>
+            <HelpOutlineIcon
+              sx={{ fontSize: 14, color: 'text.disabled', cursor: 'help' }}
+            />
+          </Tooltip>
+        )}
+      </Stack>
       <Typography variant="body2" fontWeight={600} color="text.primary">
         {value}
       </Typography>
@@ -99,10 +110,9 @@ export function MaterialDetailModal({
       title={`${selectedMaterial.codigo} — ${selectedMaterial.descripcion}`}
       size="xl"
     >
-      <Stack spacing={2}>
         <Grid container spacing={2}>
           {/* Descripcion larga */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <Paper
               variant="outlined"
               sx={{
@@ -130,7 +140,7 @@ export function MaterialDetailModal({
           </Grid>
 
           {/* Info general */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <Paper
               variant="outlined"
               sx={{
@@ -163,10 +173,12 @@ export function MaterialDetailModal({
                 <InfoRow
                   label={t('materials_pedidos', 'Pedidos en curso')}
                   value={loadingDetail ? '...' : detail?.pedidos_en_curso ?? 'N/D'}
+                  tooltip={t('materials_pedidos_tt', 'Pedidos de compra a proveedor ya emitidos y pendientes de recepcion')}
                 />
                 <InfoRow
                   label={t('materials_spm_en_curso', 'Solicitudes SPM en curso')}
                   value="N/D"
+                  tooltip={t('materials_spm_en_curso_tt', 'Solicitudes de este material que ya estan en tramite dentro del sistema')}
                 />
 
                 {/* Stock detallado - Colapsable */}
@@ -222,11 +234,9 @@ export function MaterialDetailModal({
               </Stack>
             </Paper>
           </Grid>
-        </Grid>
 
-        <Grid container spacing={2}>
           {/* MRP */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <Paper
               variant="outlined"
               sx={{
@@ -252,6 +262,7 @@ export function MaterialDetailModal({
                 <InfoRow
                   label={t('materials_planificado_mrp', 'Planificado MRP')}
                   value={detail?.mrp?.planificado_mrp ? 'Si' : 'No'}
+                  tooltip={t('materials_planificado_mrp_tt', 'Indica si el material se repone automaticamente mediante el sistema MRP')}
                 />
                 <InfoRow
                   label={t('materials_sector', 'Sector')}
@@ -260,21 +271,24 @@ export function MaterialDetailModal({
                 <InfoRow
                   label={t('materials_stock_seguridad', 'Stock seguridad')}
                   value={detail?.mrp?.stock_seguridad ?? 'N/D'}
+                  tooltip={t('materials_stock_seguridad_tt', 'Cantidad minima que se mantiene en reserva para cubrir imprevistos de demanda o suministro')}
                 />
                 <InfoRow
                   label={t('materials_punto_pedido', 'Punto pedido')}
                   value={detail?.mrp?.punto_pedido ?? 'N/D'}
+                  tooltip={t('materials_punto_pedido_tt', 'Nivel de stock que dispara una nueva orden de reposicion automatica')}
                 />
                 <InfoRow
                   label={t('materials_stock_maximo', 'Stock maximo')}
                   value={detail?.mrp?.stock_maximo ?? 'N/D'}
+                  tooltip={t('materials_stock_maximo_tt', 'Cantidad maxima a almacenar; la reposicion no supera este nivel')}
                 />
               </Stack>
             </Paper>
           </Grid>
 
           {/* Consumo historico */}
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} lg={3}>
             <Paper
               variant="outlined"
               sx={{
@@ -304,6 +318,7 @@ export function MaterialDetailModal({
                       ? detail.consumo.total.toFixed(0)
                       : 'N/D'
                   }
+                  tooltip={t('materials_total_consumo_tt', 'Consumo acumulado del material en todo el rango de anios disponible')}
                 />
                 <InfoRow
                   label={t('materials_promedio_anual', 'Promedio anual')}
@@ -312,6 +327,7 @@ export function MaterialDetailModal({
                       ? detail.consumo.promedio_anual.toFixed(0)
                       : 'N/D'
                   }
+                  tooltip={t('materials_promedio_anual_tt', 'Consumo medio por anio; util para estimar la demanda futura')}
                 />
                 <InfoRow
                   label={t('materials_rango_anios', 'Rango anios')}
@@ -367,7 +383,6 @@ export function MaterialDetailModal({
             </Paper>
           </Grid>
         </Grid>
-      </Stack>
     </Modal>
   )
 }

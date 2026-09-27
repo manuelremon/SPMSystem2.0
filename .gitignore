@@ -222,3 +222,6 @@ backups/
 # Archivos temporales
 # =============================================================================
 =*
+
+# Adjuntos subidos por usuarios (no versionar)
+backend/uploads/
