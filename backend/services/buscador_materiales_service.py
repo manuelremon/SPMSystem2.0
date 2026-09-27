@@ -8,6 +8,7 @@ Ver docs/superpowers/specs/2026-09-27-buscador-materiales-equivalencias-design.m
 import re
 
 from backend.core.db import get_db_connection
+from backend.core.repository.equivalencias import EquivalenciasRepository
 from backend.core.search_utils import strip_accents
 from backend.services.buscador_materiales_diccionario import ABREVIATURAS, PALABRAS_VACIAS
 
@@ -162,3 +163,146 @@ def buscar_por_descripcion(texto: str, limite: int = 8) -> list[dict]:
         {k: m[k] for k in ("codigo", "descripcion", "unidad", "precio_usd", "cant_equivalencias")}
         for m in top[:limite]
     ]
+
+
+TIPOS_ORDEN = ("E1_ESTRICTA", "E2_SUPLIBLE", "E0_DUPLICADO")
+EJEMPLOS = ["bomba centrífuga", "rodamiento 6205", "equivalentes de rodamiento 6205"]
+
+
+def _orden_tipo(tipo: str) -> int:
+    return TIPOS_ORDEN.index(tipo) if tipo in TIPOS_ORDEN else len(TIPOS_ORDEN)
+
+
+def _fichas(codigos: list[str]) -> dict[str, dict]:
+    if not codigos:
+        return {}
+    marcas = ", ".join(["%s"] * len(codigos))
+    with get_db_connection(DB_MATERIALES) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT codigo, descripcion, unidad_medida, precio_usd FROM catalogo_materiales "
+            f"WHERE codigo IN ({marcas})",
+            list(codigos),
+        )
+        return {
+            f["codigo"]: {
+                "codigo": f["codigo"],
+                "descripcion": f["descripcion"] or "",
+                "unidad": f["unidad_medida"] or "UNI",
+                "precio_usd": float(f["precio_usd"]) if f["precio_usd"] is not None else None,
+            }
+            for f in cur.fetchall()
+        }
+
+
+def ficha_material(codigo: str) -> dict | None:
+    ficha = _fichas([codigo]).get(codigo)
+    if ficha is None:
+        return None
+    return {**ficha, "cant_equivalencias": contar_equivalencias([codigo]).get(codigo, 0)}
+
+
+def equivalencias_de(codigo: str, limite_por_tipo: int = 10) -> dict:
+    filas = EquivalenciasRepository.get_equivalencias_con_score(codigo)
+    material = ficha_material(codigo)
+
+    # Una entrada por codigo equivalente, quedandose con el tipo mas fuerte
+    mejor: dict[str, dict] = {}
+    for f in filas:
+        cod = f["codigo_equivalente"]
+        if cod == codigo:
+            continue
+        previo = mejor.get(cod)
+        if previo is None or _orden_tipo(f["tipo_equiv"]) < _orden_tipo(previo["tipo_equiv"]):
+            mejor[cod] = f
+
+    fichas = _fichas(list(mejor))
+    grupos = []
+    for tipo in TIPOS_ORDEN:
+        del_tipo = sorted(
+            (f for f in mejor.values() if f["tipo_equiv"] == tipo), key=lambda f: f["codigo_equivalente"]
+        )
+        if not del_tipo:
+            continue
+        items = []
+        for f in del_tipo[:limite_por_tipo]:
+            ficha = fichas.get(f["codigo_equivalente"], {})
+            items.append(
+                {
+                    "codigo": f["codigo_equivalente"],
+                    "descripcion": ficha.get("descripcion") or f["descripcion_equivalente"],
+                    "criterio": f["criterio"],
+                    "motivo": f["motivo_equivalencia"],
+                    "unidad": ficha.get("unidad", "UNI"),
+                    "precio_usd": ficha.get("precio_usd"),
+                }
+            )
+        grupos.append(
+            {
+                "tipo": tipo,
+                "compatibilidad_pct": del_tipo[0]["compatibilidad_pct"],
+                "total": len(del_tipo),
+                "items": items,
+            }
+        )
+    return {"material": material, "grupos": grupos}
+
+
+def _respuesta(intencion, consulta, texto, materiales=None, equivalencias=None, sugerencias=None) -> dict:
+    return {
+        "intencion": intencion,
+        "consulta": consulta,
+        "texto": texto,
+        "materiales": materiales or [],
+        "equivalencias": equivalencias,
+        "sugerencias": sugerencias or [],
+    }
+
+
+def _sin_resultados(consulta: str) -> dict:
+    return _respuesta(
+        "sin_resultados",
+        consulta,
+        f"No encontré materiales para «{consulta}». Prueba con menos palabras o con el código SAP.",
+        sugerencias=EJEMPLOS,
+    )
+
+
+def responder(mensaje: str) -> dict:
+    consulta = (mensaje or "").strip()
+    intencion = interpretar(consulta)
+
+    if intencion["intencion"] == "ayuda":
+        return _respuesta(
+            "ayuda", consulta, "Describe el material que buscas o escribe un código SAP.", sugerencias=EJEMPLOS
+        )
+
+    if intencion["intencion"] == "descripcion":
+        materiales = buscar_por_descripcion(intencion["texto"])
+        if not materiales:
+            return _sin_resultados(consulta)
+        sugerencias = [f"equivalentes de {m['codigo']}" for m in materiales if m["cant_equivalencias"]][:2]
+        return _respuesta(
+            "descripcion",
+            consulta,
+            f"Encontré {len(materiales)} materiales para «{consulta}».",
+            materiales,
+            None,
+            sugerencias,
+        )
+
+    codigo = intencion["codigo"]
+    if codigo is None:  # "equivalentes de <descripcion>": se usa el mejor resultado
+        mejores = buscar_por_descripcion(intencion["texto"], limite=1)
+        if not mejores:
+            return _sin_resultados(consulta)
+        codigo = mejores[0]["codigo"]
+
+    equivalencias = equivalencias_de(codigo)
+    if equivalencias["material"] is None and not equivalencias["grupos"]:
+        return _sin_resultados(consulta)
+    materiales = [equivalencias["material"]] if equivalencias["material"] else []
+    total = sum(g["total"] for g in equivalencias["grupos"])
+    return _respuesta(
+        intencion["intencion"], consulta, f"{codigo} tiene {total} equivalencias.", materiales, equivalencias
+    )

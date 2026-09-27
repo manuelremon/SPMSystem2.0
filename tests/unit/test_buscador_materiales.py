@@ -1,7 +1,8 @@
 """Buscador conversacional de materiales (Equivalencias)."""
 
-import pytest
 from contextlib import contextmanager
+
+import pytest
 
 from backend.core import db as db_module
 from backend.services import buscador_materiales_service as svc
@@ -134,3 +135,54 @@ class TestBuscarPorDescripcion:
             "0101-0000080": 2,
             "0101-0000090": 1,
         }
+
+
+class TestEquivalenciasYResponder:
+    def test_equivalencias_agrupadas_en_orden(self, db_materiales):
+        r = svc.equivalencias_de("0101-0000080")
+        assert r["material"]["codigo"] == "0101-0000080"
+        assert [g["tipo"] for g in r["grupos"]] == ["E1_ESTRICTA", "E2_SUPLIBLE"]
+        e1 = r["grupos"][0]
+        assert e1["compatibilidad_pct"] == 95 and e1["total"] == 1
+        assert e1["items"][0] == {
+            "codigo": "0101-0000090",
+            "descripcion": "BOMBA DOSIFICADORA",
+            "criterio": "Norma",
+            "motivo": "Misma norma",
+            "unidad": "UNI",
+            "precio_usd": 300.0,
+        }
+
+    def test_equivalencias_en_sentido_inverso(self, db_materiales):
+        r = svc.equivalencias_de("0101-0000090")
+        assert r["grupos"][0]["items"][0]["codigo"] == "0101-0000080"
+
+    def test_equivalencias_codigo_inexistente(self, db_materiales):
+        assert svc.equivalencias_de("9999-9999999") == {"material": None, "grupos": []}
+
+    def test_responder_ayuda(self, db_materiales):
+        r = svc.responder("hola")
+        assert r["intencion"] == "ayuda" and r["materiales"] == [] and len(r["sugerencias"]) == 3
+
+    def test_responder_descripcion_con_sugerencias(self, db_materiales):
+        r = svc.responder("bomba centrifuga")
+        assert r["intencion"] == "descripcion"
+        assert r["materiales"][0]["codigo"] == "0101-0000080"
+        assert r["sugerencias"][0] == "equivalentes de 0101-0000080"
+        assert r["equivalencias"] is None
+
+    def test_responder_codigo(self, db_materiales):
+        r = svc.responder("0101-0000080")
+        assert r["intencion"] == "codigo"
+        assert r["materiales"][0]["codigo"] == "0101-0000080"
+        assert len(r["equivalencias"]["grupos"]) == 2
+
+    def test_responder_equivalencias_por_descripcion(self, db_materiales):
+        r = svc.responder("sustitutos del rodamiento 6205")
+        assert r["intencion"] == "equivalencias"
+        assert r["equivalencias"]["material"]["codigo"] == "0202-0000001"
+        assert r["equivalencias"]["grupos"][0]["tipo"] == "E0_DUPLICADO"
+
+    def test_responder_sin_resultados(self, db_materiales):
+        r = svc.responder("zzzz qqqq")
+        assert r["intencion"] == "sin_resultados" and r["materiales"] == []
