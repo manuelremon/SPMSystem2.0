@@ -25,7 +25,6 @@ const ROUTE_NAMES = {
   // Materiales
   '/materiales': 'nav_materiales',
   '/materiales/catalogo': 'nav_catalogo_materiales',
-  '/materiales/equivalencias': 'nav_equivalencias',
 
   // Aprobaciones
   '/aprobaciones': 'nav_aprobaciones',
@@ -81,7 +80,6 @@ const ROUTE_FALLBACKS = {
   '/mis-solicitudes': 'Mis Solicitudes',
   '/materiales': 'Materiales',
   '/materiales/catalogo': 'Catalogo',
-  '/materiales/equivalencias': 'Equivalencias',
   '/aprobaciones': 'Aprobaciones',
   '/aprobaciones/historial': 'Historial',
   '/planificador': 'Planificador',
