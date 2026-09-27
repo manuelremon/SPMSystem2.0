@@ -238,6 +238,7 @@ const translations = {
   consumo_kpi_cantidad: { es: "Cantidad total", en: "Total quantity" },
   consumo_kpi_materiales: { es: "Materiales distintos", en: "Distinct materials" },
   consumo_kpi_valor: { es: "Valor estimado", en: "Estimated value" },
+  consumo_nota_valorizacion: { es: "Valorizado a precio SAP del stock; {n} materiales sin precio", en: "Valued at SAP stock price; {n} materials without a price" },
   consumo_todos_centros: { es: "Todos los centros", en: "All plants" },
   consumo_todos_almacenes: { es: "Todos los almacenes", en: "All warehouses" },
   consumo_material_placeholder: { es: "Código o descripción del material...", en: "Material code or description..." },

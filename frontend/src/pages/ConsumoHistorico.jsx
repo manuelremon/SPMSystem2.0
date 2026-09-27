@@ -39,7 +39,7 @@ function formatNumber(value) {
 }
 
 /** SummaryCard: tarjeta simple de resumen (mismo estilo que Stock.jsx) */
-function SummaryCard({ label, value, variant = "default" }) {
+function SummaryCard({ label, value, variant = "default", note }) {
   const variantStyles = {
     default: { bgcolor: "background.paper" },
     primary: { bgcolor: "primary.50", borderColor: "primary.200" },
@@ -63,6 +63,11 @@ function SummaryCard({ label, value, variant = "default" }) {
       <Typography variant="h6" sx={{ fontWeight: 700, color: "text.primary" }}>
         {value}
       </Typography>
+      {note && (
+        <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+          {note}
+        </Typography>
+      )}
     </Paper>
   );
 }
@@ -270,7 +275,13 @@ export default function ConsumoHistorico() {
           <SummaryCard label={t("consumo_kpi_movimientos", "Movimientos")} value={formatNumber(resumen.movimientos)} />
           <SummaryCard label={t("consumo_kpi_cantidad", "Cantidad total")} value={formatNumber(resumen.cantidad_total)} />
           <SummaryCard label={t("consumo_kpi_materiales", "Materiales distintos")} value={formatNumber(resumen.materiales)} />
-          <SummaryCard label={t("consumo_kpi_valor", "Valor estimado")} value={formatCurrency(resumen.valor_usd)} variant="primary" />
+          <SummaryCard
+            label={t("consumo_kpi_valor", "Valor estimado")}
+            value={formatCurrency(resumen.valor_usd)}
+            variant="primary"
+            note={t("consumo_nota_valorizacion", "Valorizado a precio SAP del stock; {n} materiales sin precio")
+              .replace("{n}", formatNumber(resumen.materiales_sin_precio))}
+          />
         </Box>
       )}
 

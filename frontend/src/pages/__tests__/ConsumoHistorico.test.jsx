@@ -59,7 +59,7 @@ const RESPUESTA_BASE = {
       descripcion: 'MATERIAL UNO', cantidad: 10, unidad: 'UNI', precio_usd: 2.5, valor_usd: 25 },
   ],
   truncado: false,
-  resumen: { movimientos: 4, cantidad_total: 25, materiales: 3, valor_usd: 65.5, desde: null, hasta: null },
+  resumen: { movimientos: 4, cantidad_total: 25, materiales: 3, materiales_sin_precio: 1, valor_usd: 65.5, desde: null, hasta: null },
   mensual: [
     { mes: '2024-01', movimientos: 2, cantidad: 15, valor_usd: 37.5 },
     { mes: '2024-02', movimientos: 2, cantidad: 10, valor_usd: 28 },
@@ -93,6 +93,8 @@ describe('ConsumoHistorico', () => {
     expect(screen.getByText('Movimientos')).toBeInTheDocument()
     expect(screen.getByText('Materiales distintos')).toBeInTheDocument()
     expect(screen.getByTestId('fila-M1')).toBeInTheDocument()
+    // Nota de valorizacion: precio SAP del stock, materiales sin precio
+    expect(screen.getByText(/Valorizado a precio SAP del stock; 1 materiales sin precio/)).toBeInTheDocument()
   })
 
   it('cambiar a "Por material" pide agrupar=material', async () => {

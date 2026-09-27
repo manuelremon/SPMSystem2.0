@@ -2,12 +2,19 @@
 Consumo historico de materiales (Inventario): filtros, agregados y valorizacion.
 
 Datos en `consumo_historico` (SQLite `data/sap_data.db`; en PostgreSQL es una vista
-sobre `sap_consumo_historico`, misma BD que el resto). Precios en
-`catalogo_materiales.precio_usd` (`master_materiales.db` / misma BD en PG).
+sobre `sap_consumo_historico`, misma BD que el resto).
 
-En SQLite dev, consumo y catalogo son archivos distintos: NO se hace JOIN entre
-bases, los precios se piden con una segunda consulta `WHERE codigo IN (...)`
-sobre los materiales resultantes (en lotes si hace falta).
+Valorizacion: precio SAP ponderado del stock por material
+(SUM(stock_valorizado)/SUM(stock), stock>0), tabla `stock` de la MISMA base que
+`consumo_historico` (sap_data.db / misma BD en PG) -> se resuelve con una
+subconsulta/JOIN normal sobre el mismo cursor.
+
+IMPORTANTE: `catalogo_materiales.precio_usd` (`master_materiales.db`) es dato
+sintetico de relleno, NO representa precios reales -> NUNCA se usa para
+valorizar. El catalogo solo se consulta para completar `unidad_medida` cuando
+el material no tiene stock (y por lo tanto no tiene `um` de stock). Un
+material sin stock SAP no tiene precio: `precio_usd`/`valor_usd` quedan None
+("Sin precio"), aunque tenga movimientos y catalogo.
 """
 
 from __future__ import annotations
@@ -161,35 +168,83 @@ def agregados_mensuales_por_material(cur, where_sql: str, params: list) -> list[
 
 
 # ---------------------------------------------------------------------------
-# Precios (BD distinta: master_materiales)
+# Valorizacion: precio SAP ponderado del stock (NUNCA catalogo_materiales)
 # ---------------------------------------------------------------------------
 
 
-def obtener_precios(codigos, conn_factory=None) -> dict:
-    """{codigo: (precio_usd | None, unidad_medida | None)} para los codigos dados, en lotes."""
-    factory = conn_factory or get_db_connection
-    codigos_unicos = sorted({c for c in codigos if c})
-    precios: dict[str, tuple] = {}
-    if not codigos_unicos:
-        return precios
+def _precios_desde_stock(cur, codigos_unicos: list[str]) -> dict:
+    """{material: (precio_ponderado | None, um | None)} desde `stock` (misma BD que consumo).
 
+    precio = SUM(stock_valorizado) / SUM(stock) por material, agregando TODOS
+    los centros/almacenes, solo filas con stock > 0.
+    """
+    precios: dict[str, tuple] = {}
+    for inicio in range(0, len(codigos_unicos), LOTE_PRECIOS):
+        lote = codigos_unicos[inicio:inicio + LOTE_PRECIOS]
+        placeholders = ", ".join("?" for _ in lote)
+        cur.execute(
+            f"SELECT material, SUM(stock_valorizado) AS valorizado, SUM(stock) AS stock_total, MAX(um) AS um"
+            f" FROM stock WHERE stock > 0 AND material IN ({placeholders}) GROUP BY material",
+            lote,
+        )
+        for fila in cur.fetchall():
+            material = _valor(fila, 0, "material")
+            valorizado = _valor(fila, 1, "valorizado")
+            stock_total = _valor(fila, 2, "stock_total")
+            um = _valor(fila, 3, "um")
+            precio = float(valorizado) / float(stock_total) if stock_total else None
+            precios[material] = (precio, um)
+    return precios
+
+
+def _unidades_desde_catalogo(codigos: list[str], conn_factory=None) -> dict:
+    """{codigo: unidad_medida} desde catalogo_materiales, solo para completar `unidad`
+    de materiales sin stock (JAMAS se usa su precio_usd: es dato sintetico de relleno)."""
+    if not codigos:
+        return {}
+    factory = conn_factory or get_db_connection
+    unidades: dict[str, str] = {}
     with factory("master_materiales") as conn:
         cur = conn.cursor()
-        for inicio in range(0, len(codigos_unicos), LOTE_PRECIOS):
-            lote = codigos_unicos[inicio:inicio + LOTE_PRECIOS]
+        for inicio in range(0, len(codigos), LOTE_PRECIOS):
+            lote = codigos[inicio:inicio + LOTE_PRECIOS]
             placeholders = ", ".join("?" for _ in lote)
             cur.execute(
-                f"SELECT codigo, precio_usd, unidad_medida FROM catalogo_materiales"
-                f" WHERE codigo IN ({placeholders})",
+                f"SELECT codigo, unidad_medida FROM catalogo_materiales WHERE codigo IN ({placeholders})",
                 lote,
             )
             for fila in cur.fetchall():
                 codigo = _valor(fila, 0, "codigo")
-                precio = _valor(fila, 1, "precio_usd")
-                unidad = _valor(fila, 2, "unidad_medida")
-                precios[codigo] = (float(precio) if precio is not None else None, unidad)
+                unidad = _valor(fila, 1, "unidad_medida")
+                if unidad:
+                    unidades[codigo] = unidad
+    return unidades
 
-    return precios
+
+def obtener_valorizacion(cur, codigos, conn_factory=None) -> dict:
+    """{material: (precio_usd | None, unidad | None)} para los codigos dados.
+
+    Precio: SAP ponderado del stock (`stock.stock_valorizado`/`stock.stock`).
+    Unidad: la de `stock`; si el material no tiene stock, se completa desde
+    `catalogo_materiales.unidad_medida` (nunca su precio).
+    """
+    codigos_unicos = sorted({c for c in codigos if c})
+    if not codigos_unicos:
+        return {}
+
+    valorizacion = _precios_desde_stock(cur, codigos_unicos)
+
+    faltantes_unidad = [c for c in codigos_unicos if not valorizacion.get(c, (None, None))[1]]
+    if faltantes_unidad:
+        unidades_catalogo = _unidades_desde_catalogo(faltantes_unidad, conn_factory=conn_factory)
+        for material, unidad in unidades_catalogo.items():
+            precio_actual = valorizacion.get(material, (None, None))[0]
+            valorizacion[material] = (precio_actual, unidad)
+
+    for material in codigos_unicos:
+        valorizacion.setdefault(material, (None, None))
+
+    return valorizacion
 
 
 # ---------------------------------------------------------------------------
@@ -256,10 +311,12 @@ def construir_resumen(material_valorizado: list[dict], desde: date | None, hasta
     movimientos = sum(r["movimientos"] for r in material_valorizado)
     cantidad_total = sum(r["cantidad_total"] for r in material_valorizado)
     valor_usd = sum(r["valor_usd"] for r in material_valorizado if r["valor_usd"] is not None)
+    materiales_sin_precio = sum(1 for r in material_valorizado if r["valor_usd"] is None)
     return {
         "movimientos": movimientos,
         "cantidad_total": cantidad_total,
         "materiales": len(material_valorizado),
+        "materiales_sin_precio": materiales_sin_precio,
         "valor_usd": valor_usd,
         "desde": desde.isoformat() if desde else None,
         "hasta": hasta.isoformat() if hasta else None,
@@ -283,12 +340,12 @@ def obtener_consumo(
     filas_mensuales = agregados_mensuales_por_material(cur, where_sql, params)
 
     codigos = {f["material"] for f in filas_material}
-    precios = obtener_precios(codigos, conn_factory=conn_factory)
+    valorizacion = obtener_valorizacion(cur, codigos, conn_factory=conn_factory)
 
-    material_valorizado = construir_por_material(filas_material, precios)
+    material_valorizado = construir_por_material(filas_material, valorizacion)
     resultado = {
         "resumen": construir_resumen(material_valorizado, desde, hasta),
-        "mensual": construir_mensual(filas_mensuales, precios),
+        "mensual": construir_mensual(filas_mensuales, valorizacion),
         "rango_datos": rango_datos(cur),
     }
 
@@ -297,7 +354,7 @@ def obtener_consumo(
         resultado["truncado"] = False
     else:
         filas_detalle, truncado = listar_detalle(cur, where_sql, params)
-        resultado["data"] = construir_detalle_valorizado(filas_detalle, precios)
+        resultado["data"] = construir_detalle_valorizado(filas_detalle, valorizacion)
         resultado["truncado"] = truncado
 
     return resultado

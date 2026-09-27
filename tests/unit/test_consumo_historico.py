@@ -15,16 +15,26 @@ CONSUMO = [
     ("2024-02-11", "AA101", "0001", "M3", "MATERIAL TRES BOMBA CENTRIFUGA", 7),
 ]
 
-# codigo, descripcion, unidad_medida, precio_usd (M2 no tiene precio: "sin precio")
+# material, stock, um, stock_valorizado -> precio SAP ponderado = valorizado/stock
+# M1: 250/100 = 2.5 ; M3: 80/20 = 4.0 ; M2 NO tiene stock -> sin precio SAP
+STOCK = [
+    ("M1", 100.0, "UNI", 250.0),
+    ("M3", 20.0, "UNI", 80.0),
+]
+
+# codigo, descripcion, unidad_medida, precio_usd: dato SINTETICO de relleno (precio_usd
+# aqui es un decoy que NUNCA debe usarse para valorizar, solo puede aportar `unidad_medida`
+# cuando el material no tiene stock (M2)).
 CATALOGO = [
-    ("M1", "MATERIAL UNO", "UNI", 2.5),
-    ("M3", "MATERIAL TRES BOMBA CENTRIFUGA", "UNI", 4.0),
+    ("M1", "MATERIAL UNO", "UNI", 999.0),
+    ("M3", "MATERIAL TRES BOMBA CENTRIFUGA", "UNI", 999.0),
+    ("M2", "MATERIAL DOS SIN PRECIO", "CAJA", 999.0),
 ]
 
 
 @pytest.fixture
 def dbs(tmp_path):
-    """Dos SQLite temporales: sap_data (consumo_historico) y master_materiales (catalogo)."""
+    """Dos SQLite temporales: sap_data (consumo_historico + stock) y master_materiales (catalogo)."""
     sap_path = str(tmp_path / "sap_data.db")
     master_path = str(tmp_path / "master_materiales.db")
 
@@ -34,6 +44,10 @@ def dbs(tmp_path):
         " material TEXT, descripcion TEXT, cantidad REAL)"
     )
     conn.executemany("INSERT INTO consumo_historico VALUES (?, ?, ?, ?, ?, ?)", CONSUMO)
+    conn.execute(
+        "CREATE TABLE stock (material TEXT, stock REAL, um TEXT, stock_valorizado REAL)"
+    )
+    conn.executemany("INSERT INTO stock VALUES (?, ?, ?, ?)", STOCK)
     conn.commit()
     conn.close()
 
@@ -126,9 +140,9 @@ class TestAgrupadoPorMaterial:
         r = svc.obtener_consumo(cur, agrupar="material", conn_factory=conn_factory)
         assert r["truncado"] is False
         codigos = [f["material"] for f in r["data"]]
-        # M3 (28.0 USD) > M1 (37.5 USD)... valor real: M1=15*2.5=37.5, M3=7*4=28 -> M1 primero
+        # Precio SAP ponderado del stock: M1 = 15*2.5 = 37.5 > M3 = 7*4.0 = 28.0
         assert codigos[0] == "M1"
-        assert codigos[-1] == "M2"  # sin precio: al final
+        assert codigos[-1] == "M2"  # sin stock SAP: sin precio, al final
 
         m1 = next(f for f in r["data"] if f["material"] == "M1")
         assert m1 == {
@@ -145,6 +159,17 @@ class TestAgrupadoPorMaterial:
 
         m2 = next(f for f in r["data"] if f["material"] == "M2")
         assert m2["precio_usd"] is None and m2["valor_usd"] is None
+        # Sin stock SAP -> unidad se completa desde catalogo (nunca su precio, que es 999 = decoy)
+        assert m2["unidad"] == "CAJA"
+
+    def test_material_con_solo_precio_de_catalogo_no_se_usa(self, cur, conn_factory):
+        """El catalogo trae precio_usd=999 (dato sintetico) para M1/M2/M3: nunca debe
+        aparecer en el resultado; M1/M3 usan el precio SAP del stock y M2 (sin stock)
+        queda sin precio."""
+        r = svc.obtener_consumo(cur, agrupar="material", conn_factory=conn_factory)
+        precios = {f["material"]: f["precio_usd"] for f in r["data"]}
+        assert precios == {"M1": 2.5, "M3": 4.0, "M2": None}
+        assert 999.0 not in precios.values()
 
 
 class TestMensualYResumen:
@@ -167,6 +192,7 @@ class TestMensualYResumen:
             "movimientos": 4,
             "cantidad_total": 25.0,
             "materiales": 3,
+            "materiales_sin_precio": 1,
             "valor_usd": 65.5,
             "desde": None,
             "hasta": None,
