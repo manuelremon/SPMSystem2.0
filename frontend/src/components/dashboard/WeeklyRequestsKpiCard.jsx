@@ -61,6 +61,11 @@ function ProfessionalSparkline({ data, labels = [], height = 60, trend = 'neutra
     );
   }
 
+  return <SparklineChart data={data} labels={labels} height={height} trend={trend} />;
+}
+
+// Separado de ProfessionalSparkline para que los hooks no se llamen condicionalmente
+function SparklineChart({ data, labels, height, trend }) {
   // Normalizar datos
   const values = data.map(v => Number(v) || 0);
   const colors = CHART_COLORS[trend] || CHART_COLORS.neutral;

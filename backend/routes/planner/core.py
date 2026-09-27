@@ -178,8 +178,8 @@ def listar_solicitudes_aprobadas():
     sin_asignar = request.args.get("sin_asignar", "").lower() in ("true", "1", "yes")
 
     # Parametros de paginacion
-    page = int(request.args.get("page", 1))
-    page_size = int(request.args.get("page_size", 50))
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    page_size = min(max(1, request.args.get("page_size", 50, type=int) or 50), 500)
 
     filters = {"centro": centro, "sector": sector}
 

@@ -209,33 +209,11 @@ describe('TratarSolicitudModal', () => {
     })
   })
 
-  describe('Modal de rechazo', () => {
-    it('debe abrir modal de rechazo al hacer clic', async () => {
+  describe('Rechazo (el planificador no rechaza, devuelve al aprobador)', () => {
+    it('no ofrece rechazar la solicitud', async () => {
       await renderAndWaitForLoad()
-
-      fireEvent.click(screen.getByText('Rechazar Paso1'))
-
-      expect(screen.getByText(/Rechazar Solicitud/)).toBeInTheDocument()
-    })
-
-    it('debe mostrar campo de motivo de rechazo', async () => {
-      await renderAndWaitForLoad()
-
-      fireEvent.click(screen.getByText('Rechazar Paso1'))
-
-      expect(screen.getByText('Motivo del rechazo')).toBeInTheDocument()
-    })
-
-    it('debe cerrar modal de rechazo con Cancelar', async () => {
-      await renderAndWaitForLoad()
-
-      fireEvent.click(screen.getByText('Rechazar Paso1'))
-      expect(screen.getByText(/Rechazar Solicitud/)).toBeInTheDocument()
-
-      const cancelButtons = screen.getAllByText('Cancelar')
-      fireEvent.click(cancelButtons[0])
-
-      expect(screen.queryByText('Motivo del rechazo')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Rechazar solicitud/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Motivo del rechazo/i)).not.toBeInTheDocument()
     })
   })
 

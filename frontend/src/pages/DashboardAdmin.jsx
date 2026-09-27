@@ -30,8 +30,6 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import SpeedIcon from '@mui/icons-material/Speed';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
-import InsightsIcon from '@mui/icons-material/Insights';
-import HubIcon from '@mui/icons-material/Hub';
 // Sub-components (extracted for maintainability)
 import { SolicitudesSection } from './DashboardAdmin/index';
 import { FiltersBar } from './DashboardAdmin/index';
@@ -41,8 +39,6 @@ import { KPIRow3 } from './DashboardAdmin/index';
 import { ExpandedCardDialog } from './DashboardAdmin/index';
 import { AttentionBanner } from './DashboardAdmin/index';
 import { QuickActions } from './DashboardAdmin/index';
-import { OperationsOverview } from './DashboardAdmin/index';
-import { KPIRow4 } from './DashboardAdmin/index';
 import { CategoryHeader } from './DashboardAdmin/index';
 import DrillDownModal from '../components/dashboard/DrillDownModal';
 
@@ -52,8 +48,6 @@ const CATEGORY_ICONS = {
   RequestManagement: <AssignmentIcon sx={{ fontSize: 20 }} />,
   Performance: <SpeedIcon sx={{ fontSize: 20 }} />,
   Inventory: <Inventory2Icon sx={{ fontSize: 20 }} />,
-  AdvancedMetrics: <InsightsIcon sx={{ fontSize: 20 }} />,
-  Operations: <HubIcon sx={{ fontSize: 20 }} />,
 };
 
 // ============================================================================
@@ -115,7 +109,7 @@ function getTableColumnsAgGrid(t) {
       },
     },
     {
-      field: "items", headerName: t('common_items', 'Items'), width: 80, flex: 0,
+      field: "items", headerName: t('common_items_header', 'Ítems'), width: 80, flex: 0,
       valueGetter: (params) => (params.data?.items || []).length,
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
@@ -851,10 +845,6 @@ export default function DashboardAdmin() {
         return <AttentionBanner key="attention" resumen={resumenData} />;
       case 'quick_actions':
         return <QuickActions key="quick_actions" />;
-      case 'kpi_row4':
-        return <KPIRow4 key="kpi_row4" />;
-      case 'operations':
-        return <OperationsOverview key="operations" />;
       default:
         return null;
     }

@@ -22,12 +22,12 @@ from backend.core.fsm import (
     normalizar_estado,
     validar_transicion,
 )
-from backend.core.helpers import row_to_dict as _row_to_dict, safe_error_response
+from backend.core.helpers import row_to_dict as _row_to_dict
+from backend.core.helpers import safe_error_response
 from backend.core.item_schemas import validar_items
 from backend.core.roles import has_any_role, is_admin, require_auth
 from backend.routes.solicitudes import bp
 from backend.routes.solicitudes.helpers import (
-    _aprobador_por_monto,
     _calcular_total,
     _check_auto_approval,
     _get_raw,
@@ -37,7 +37,7 @@ from backend.routes.solicitudes.helpers import (
     _update_solicitud,
     _validar_consumo_previo_balanceado,
 )
-from backend.services.approval_service import puede_aprobar
+from backend.services.approval_service import puede_aprobar, resolver_aprobador_solicitud
 from backend.services.audit_service import (
     auditar_aprobacion,
     auditar_cancelacion,
@@ -129,13 +129,38 @@ def enviar_solicitud(solicitud_id):
             400,
         )
 
-    aprobador = _aprobador_por_monto(total)
+    # Validar la transicion ANTES de modificar la solicitud (no tocar una ya enviada/aprobada)
+    estado_actual = normalizar_estado(solicitud.get("status") or "")
+    if not validar_transicion(estado_actual, EstadoSolicitud.SUBMITTED):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "invalid_transition",
+                        "message": f"Solicitud no puede enviarse desde estado '{estado_para_display(estado_actual)}'",
+                        "estado_actual": estado_actual,
+                    },
+                }
+            ),
+            400,
+        )
 
-    # Actualizar items y total antes de cambiar estado
+    # Aprobador segun la cadena jerarquica del solicitante y el monto
+    aprobador = resolver_aprobador_solicitud(user_id, total)
+
+    # Actualizar items y total antes de cambiar estado (conservando adjuntos y otros datos)
+    try:
+        data_json_actual = json.loads(solicitud.get("data_json") or "{}")
+        if not isinstance(data_json_actual, dict):
+            data_json_actual = {}
+    except (json.JSONDecodeError, TypeError):
+        data_json_actual = {}
+    data_json_actual["items"] = items_validos
     _update_solicitud(
         solicitud_id,
         {
-            "data_json": json.dumps({"items": items_validos}),
+            "data_json": json.dumps(data_json_actual),
             "total_monto": total,
             "aprobador_id": aprobador,
         },
@@ -606,7 +631,21 @@ def rechazar_solicitud(solicitud_id):
         )
 
     data = request.get_json(silent=True) or {}
-    motivo = data.get("motivo") or ""
+    motivo = data.get("motivo")
+    motivo = motivo.strip() if isinstance(motivo, str) else ""
+    if not motivo or len(motivo) > 1000:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": "El motivo del rechazo es obligatorio (maximo 1000 caracteres)",
+                    },
+                }
+            ),
+            400,
+        )
 
     # SPRINT 1.1: Revertir presupuesto si la solicitud estaba APPROVED
     # Esto previene fuga de dinero cuando se rechaza una solicitud ya aprobada
@@ -733,6 +772,8 @@ def cancelar_solicitud(solicitud_id):
     # 6. Obtener motivo de cancelacion (requerido)
     data = request.get_json(silent=True) or {}
     motivo = data.get("motivo") or data.get("motivo_cancelacion") or ""
+    if not isinstance(motivo, str):
+        motivo = ""
     if not motivo.strip():
         return (
             jsonify(
@@ -806,9 +847,9 @@ def cancelar_solicitud(solicitud_id):
 @require_auth
 def reenviar_solicitud(solicitud_id):
     """
-    Reenviar solicitud rechazada para nueva aprobacion.
-    Transicion: rejected -> submitted
-    Maximo 2 reenvios permitidos (validacion de reenvios).
+    "Corregir y reenviar": devuelve una solicitud rechazada a borrador para que el
+    solicitante la edite y la envie de nuevo con el flujo normal (enviar).
+    Transicion: rejected -> draft. Maximo 2 reenvios.
     """
     actor_id = str(g.user.get("user_id", ""))
 
@@ -857,10 +898,10 @@ def reenviar_solicitud(solicitud_id):
     # 4. Validar maximo de reenvios (maximo 2)
     with get_db_connection() as conn:
         cur = conn.cursor()
-        # Contar transiciones de rejected -> submitted
+        # Contar reenvios previos (rejected -> draft)
         cur.execute(
             """SELECT COUNT(*) as reenvios FROM solicitud_historial_estado
-               WHERE solicitud_id = ? AND estado_anterior = 'rejected' AND estado_nuevo = 'submitted'""",
+               WHERE solicitud_id = ? AND estado_anterior = 'rejected' AND estado_nuevo = 'draft'""",
             (solicitud_id,),
         )
         row = cur.fetchone()
@@ -880,19 +921,25 @@ def reenviar_solicitud(solicitud_id):
             400,
         )
 
-    # 5. Transicionar a submitted
+    # 5. Volver a borrador para corregir
     data = request.get_json(silent=True) or {}
-    razon_reenvio = (data.get("razon_reenvio") or "").strip()
+    razon_reenvio = data.get("razon_reenvio")
+    razon_reenvio = razon_reenvio.strip() if isinstance(razon_reenvio, str) else ""
 
-    # 6. Hacer transicion
-    cambiar_estado(
-        solicitud_id=solicitud_id,
-        nuevo_estado=EstadoSolicitud.SUBMITTED,
-        actor_id=actor_id,
-        razon=razon_reenvio or f"Reenvio #{reenvios + 1}",
-    )
+    try:
+        cambiar_estado(
+            solicitud_id=solicitud_id,
+            nuevo_estado=EstadoSolicitud.DRAFT,
+            actor_id=actor_id,
+            razon=razon_reenvio or f"Corregir y reenviar (reenvio #{reenvios + 1})",
+        )
+    except TransicionInvalidaError as e:
+        return (
+            jsonify({"ok": False, "error": {"code": "invalid_transition", "message": str(e)}}),
+            400,
+        )
 
-    logger.info(f"[REENVIAR] Solicitud {solicitud_id} reenviada (reenvio #{reenvios + 1})")
+    logger.info(f"[REENVIAR] Solicitud {solicitud_id} devuelta a borrador (reenvio #{reenvios + 1})")
 
     # Import get_solicitud here to avoid circular import at module level
     from backend.routes.solicitudes.crud import get_solicitud

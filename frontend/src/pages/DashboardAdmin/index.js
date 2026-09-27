@@ -7,7 +7,5 @@ export { default as ExpandedCardDialog } from './ExpandedCardDialog';
 export { default as ExpandCardButton } from './ExpandCardButton';
 export { default as AttentionBanner } from './AttentionBanner';
 export { default as QuickActions } from './QuickActions';
-export { default as OperationsOverview } from './OperationsOverview';
 export { default as MrpAlertsCard } from './MrpAlertsCard';
-export { default as KPIRow4 } from './KPIRow4';
 export { default as CategoryHeader } from './CategoryHeader';

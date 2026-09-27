@@ -1,5 +1,6 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { useModuleStore } from '../store/moduleStore'
 import Loading from './Loading'
 import Layout from './Layout'
 
@@ -70,6 +71,8 @@ const hasRequiredRole = (userRoles, requiredRoles) => {
 
 export default function ProtectedRoute({ children, roles }) {
   const { user, isLoading, isAuthenticated } = useAuthStore()
+  const { pathname } = useLocation()
+  const moduleEnabled = useModuleStore(s => s.isPathEnabled(pathname))
 
   if (isLoading) {
     return <Loading />
@@ -77,6 +80,11 @@ export default function ProtectedRoute({ children, roles }) {
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Modulo deshabilitado desde Admin > Modulos: bloquear para todos (incluido admin)
+  if (!moduleEnabled) {
+    return <Navigate to="/dashboard" replace />
   }
 
   // Si se especifican roles requeridos, verificar autorización

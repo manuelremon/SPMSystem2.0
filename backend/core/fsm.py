@@ -660,52 +660,54 @@ def _disparar_notificaciones(
 
     Esta funcion es llamada internamente por cambiar_estado.
     """
-    destinatario = None
-    mensaje = None
+    solicitante = solicitud_data.get("id_usuario")
+    motivo = f": {razon}" if razon else ""
 
-    # Determinar destinatario, mensaje y tipo segun transicion
-    tipo = "info"
+    # (destinatario, mensaje, tipo) segun transicion
+    notificaciones = []
 
     if estado_nuevo == "submitted":
-        # Notificar al aprobador asignado
-        destinatario = solicitud_data.get("aprobador_id")
-        mensaje = f"Nueva solicitud #{solicitud_id} pendiente de aprobación"
-        tipo = "solicitud_submitted"
+        notificaciones.append((
+            solicitud_data.get("aprobador_id"),
+            f"Nueva solicitud #{solicitud_id} pendiente de aprobación",
+            "solicitud_submitted",
+        ))
 
     elif estado_nuevo == "approved":
-        # Notificar al planificador asignado
-        destinatario = solicitud_data.get("planner_id")
-        mensaje = f"Solicitud #{solicitud_id} aprobada y asignada para planificacion"
-        tipo = "solicitud_approved"
+        notificaciones.append((
+            solicitud_data.get("planner_id"),
+            f"Solicitud #{solicitud_id} aprobada y asignada para planificacion",
+            "solicitud_approved",
+        ))
+        notificaciones.append((
+            solicitante,
+            f"Tu solicitud #{solicitud_id} fue aprobada",
+            "solicitud_approved",
+        ))
 
     elif estado_nuevo == "rejected":
-        # Notificar al solicitante
-        destinatario = solicitud_data.get("id_usuario")
-        motivo = f": {razon}" if razon else ""
-        mensaje = f"Solicitud #{solicitud_id} rechazada{motivo}"
-        tipo = "solicitud_rejected"
+        notificaciones.append((solicitante, f"Solicitud #{solicitud_id} rechazada{motivo}", "solicitud_rejected"))
 
-    elif estado_nuevo == "in_planning":
-        # Notificar al solicitante que esta en proceso
-        destinatario = solicitud_data.get("id_usuario")
-        mensaje = f"Solicitud #{solicitud_id} en proceso de planificacion"
-        tipo = "solicitud_planned"
+    elif estado_nuevo == "in_treatment":
+        notificaciones.append((
+            solicitante,
+            f"Solicitud #{solicitud_id} en tratamiento por planificacion",
+            "solicitud_planned",
+        ))
 
     elif estado_nuevo == "completed":
-        # Notificar al solicitante que esta completada
-        destinatario = solicitud_data.get("id_usuario")
-        mensaje = f"Solicitud #{solicitud_id} completada exitosamente"
-        tipo = "solicitud_dispatched"
+        notificaciones.append((solicitante, f"Solicitud #{solicitud_id} completada exitosamente", "solicitud_dispatched"))
 
     elif estado_nuevo == "cancelled":
         # M14: Notificar al solicitante que fue cancelada
-        destinatario = solicitud_data.get("id_usuario")
-        motivo = f": {razon}" if razon else ""
-        mensaje = f"Solicitud #{solicitud_id} cancelada{motivo}"
-        tipo = "solicitud_cancelled"
+        notificaciones.append((solicitante, f"Solicitud #{solicitud_id} cancelada{motivo}", "solicitud_cancelled"))
 
-    # Crear notificacion si hay destinatario
-    if destinatario and mensaje:
+    notificados = set()
+    for destinatario, mensaje, tipo in notificaciones:
+        # No notificar a quien hizo la accion ni duplicar destinatarios
+        if not destinatario or str(destinatario) in notificados or str(destinatario) == str(actor_id):
+            continue
+        notificados.add(str(destinatario))
         crear_notificacion(cursor, destinatario, solicitud_id, mensaje, tipo)
 
 

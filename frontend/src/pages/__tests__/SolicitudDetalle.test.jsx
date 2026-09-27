@@ -311,20 +311,50 @@ describe('SolicitudDetalle', () => {
   })
 
   describe('Estado Borrador Actions', () => {
-    it('should show edit button when estado is borrador', async () => {
+    it('should show edit button when estado is borrador and user is the owner', async () => {
+      solicitudes.obtener.mockResolvedValue({
+        data: { solicitud: { ...mockSolicitud, estado: 'borrador', id_usuario: 1 } }
+      })
+      renderComponent()
+      await waitFor(() => {
+        expect(screen.getByText(/editar solicitud/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should show edit button for canonical draft status', async () => {
+      solicitudes.obtener.mockResolvedValue({
+        data: { solicitud: { ...mockSolicitud, estado: undefined, status: 'draft', id_usuario: 1 } }
+      })
+      renderComponent()
+      await waitFor(() => {
+        expect(screen.getByText(/editar solicitud/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should NOT show edit button to other users', async () => {
       solicitudes.obtener.mockResolvedValue({
         data: { solicitud: { ...mockSolicitud, estado: 'borrador' } }
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Editar Solicitud')).toBeInTheDocument()
+        expect(screen.queryByText(/editar solicitud/i)).not.toBeInTheDocument()
+      })
+    })
+
+    it('should offer "Corregir y reenviar" to the owner of a rejected request', async () => {
+      solicitudes.obtener.mockResolvedValue({
+        data: { solicitud: { ...mockSolicitud, estado: 'rejected', id_usuario: 1 } }
+      })
+      renderComponent()
+      await waitFor(() => {
+        expect(screen.getByText('Corregir y reenviar')).toBeInTheDocument()
       })
     })
 
     it('should NOT show edit button when estado is pendiente', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.queryByText('Editar Solicitud')).not.toBeInTheDocument()
+        expect(screen.queryByText(/editar solicitud/i)).not.toBeInTheDocument()
       })
     })
   })
@@ -342,10 +372,10 @@ describe('SolicitudDetalle', () => {
     it('should render card titles', async () => {
       renderComponent()
       await waitFor(() => {
-        // i18n mock returns fallback strings which do NOT have accents
-        expect(screen.getByText('Informacion General')).toBeInTheDocument()
-        expect(screen.getByText('Ubicacion y Costos')).toBeInTheDocument()
-        expect(screen.getByText('Justificacion')).toBeInTheDocument()
+        // i18n mock returns fallback strings (now with proper accents)
+        expect(screen.getByText('Información general')).toBeInTheDocument()
+        expect(screen.getByText('Ubicación y costos')).toBeInTheDocument()
+        expect(screen.getByText('Justificación')).toBeInTheDocument()
       })
     })
   })

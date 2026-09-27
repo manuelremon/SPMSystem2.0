@@ -1756,6 +1756,7 @@ function OpcionCardMulti({ opcion, selected, onToggle }) {
 // =============================================================================
 
 function OpcionesTablaMulti({ opciones, fuentesSeleccionadas, onToggle, isSelected }) {
+  const { t } = useI18n();
   return (
     <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <Table size="small">

@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../context/i18n';
 import { useUserRoles } from '../../hooks/useUserRoles';
+import { useModuleStore } from '../../store/moduleStore';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
@@ -20,6 +21,9 @@ function QuickActions() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { isAdmin, isPlanner, isJefe, canApprove, canSeeBudget } = useUserRoles();
+  const planificacionEnabled = useModuleStore(s => s.isModuleEnabled('planificacion'));
+  const logisticaEnabled = useModuleStore(s => s.isModuleEnabled('logistica'));
+  const calidadEnabled = useModuleStore(s => s.isModuleEnabled('calidad'));
 
   const actions = [
     {
@@ -40,15 +44,15 @@ function QuickActions() {
       key: 'plan',
       label: t('dash_quick_plan', 'Planificar'),
       icon: <EventNoteIcon />,
-      path: '/planner',
-      visible: isAdmin || isPlanner,
+      path: '/planificador',
+      visible: (isAdmin || isPlanner) && planificacionEnabled,
     },
     {
       key: 'mrp',
       label: 'MRP',
       icon: <InventoryIcon />,
-      path: '/mrp',
-      visible: isAdmin || isPlanner,
+      path: '/mrp/portfolio',
+      visible: (isAdmin || isPlanner) && planificacionEnabled,
     },
     {
       key: 'budgets',
@@ -61,15 +65,15 @@ function QuickActions() {
       key: 'shipping',
       label: t('dash_quick_shipping', 'Envíos'),
       icon: <LocalShippingIcon />,
-      path: '/tms',
-      visible: isAdmin,
+      path: '/tms/shipments',
+      visible: isAdmin && logisticaEnabled,
     },
     {
       key: 'quality',
       label: t('dash_quick_quality', 'Calidad'),
       icon: <VerifiedIcon />,
-      path: '/quality',
-      visible: isAdmin,
+      path: '/quality/inspections',
+      visible: isAdmin && calidadEnabled,
     },
   ];
 

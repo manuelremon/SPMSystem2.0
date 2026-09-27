@@ -76,12 +76,14 @@ class TestTransicionesValidas:
         assert len(transiciones) == 2
 
     def test_transiciones_desde_approved(self):
-        """Desde APPROVED solo se puede ir a IN_PLANNING o CANCELLED."""
+        """Desde APPROVED se pasa directo a IN_TREATMENT (C2: IN_PLANNING eliminado) o CANCELLED."""
         from backend.core.fsm import TRANSICIONES_VALIDAS, EstadoSolicitud
 
         transiciones = TRANSICIONES_VALIDAS[EstadoSolicitud.APPROVED]
-        assert EstadoSolicitud.IN_PLANNING in transiciones
+        assert EstadoSolicitud.IN_TREATMENT in transiciones
         assert EstadoSolicitud.CANCELLED in transiciones
+        # El planificador no rechaza una aprobada: se devuelve al aprobador
+        assert EstadoSolicitud.REJECTED not in transiciones
         assert len(transiciones) == 2
 
     def test_transiciones_desde_in_planning(self):
@@ -100,13 +102,17 @@ class TestTransicionesValidas:
         assert len(transiciones) == 1
 
     def test_transiciones_desde_in_treatment(self):
-        """Desde IN_TREATMENT se puede ir a TREATED o volver a IN_PLANNING."""
+        """Desde IN_TREATMENT solo se puede ir a TREATED."""
         from backend.core.fsm import TRANSICIONES_VALIDAS, EstadoSolicitud
 
         transiciones = TRANSICIONES_VALIDAS[EstadoSolicitud.IN_TREATMENT]
-        assert EstadoSolicitud.TREATED in transiciones
-        assert EstadoSolicitud.IN_PLANNING in transiciones
-        assert len(transiciones) == 2
+        assert transiciones == [EstadoSolicitud.TREATED]
+
+    def test_rechazada_vuelve_a_borrador(self):
+        """Corregir y reenviar: REJECTED -> DRAFT (nunca directo a SUBMITTED)."""
+        from backend.core.fsm import TRANSICIONES_VALIDAS, EstadoSolicitud
+
+        assert TRANSICIONES_VALIDAS[EstadoSolicitud.REJECTED] == [EstadoSolicitud.DRAFT]
 
     def test_transiciones_desde_treated(self):
         """Desde TREATED solo se puede ir a COMPLETED."""

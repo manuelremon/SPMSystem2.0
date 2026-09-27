@@ -38,6 +38,7 @@ import TagIcon from "@mui/icons-material/Tag";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import CloseIcon from "@mui/icons-material/Close";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 
 import StatusBadge from "../components/ui/StatusBadge";
 
@@ -269,9 +270,44 @@ export default function SolicitudDetalle() {
     if (estado !== "submitted" && estado !== "enviada" && estado !== "pendiente_aprobacion") return false;
     const rolStr = String(user.rol || "").toLowerCase();
     const roles = user.roles || rolStr.split(",").map(r => r.trim());
-    const approverRoles = ["admin", "administrador", "aprobador", "aprobador_solicitudes", "aprobador solicitudes", "aprobador de solicitudes", "coordinador", "jefe"];
-    return roles.some(r => approverRoles.includes(r.toLowerCase()));
+    const esAdmin = roles.some(r => ["admin", "administrador"].includes(r.toLowerCase()));
+    // Solo el aprobador asignado (o admin) puede aprobar; el backend aplica la misma regla
+    const esAsignado = String(solicitud.aprobador_id ?? "") === String(user.id ?? user.id_spm ?? "");
+    const esSolicitante = String(solicitud.id_usuario ?? "") === String(user.id ?? user.id_spm ?? "");
+    return !esSolicitante && (esAdmin || esAsignado);
   }, [user, solicitud]);
+
+  const esPropietario = useMemo(() => {
+    if (!user || !solicitud) return false;
+    return String(solicitud.id_usuario ?? "") === String(user.id ?? user.id_spm ?? "");
+  }, [user, solicitud]);
+
+  const handleDescargarAdjunto = async (archivo) => {
+    try {
+      const res = await solicitudes.descargarAdjunto(solicitud.id, archivo.id);
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = archivo.nombre || "adjunto";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(t("detalle_adjunto_error", "No se pudo descargar el archivo"));
+    }
+  };
+
+  const handleCorregirYReenviar = async () => {
+    setActionLoading(true);
+    setError("");
+    try {
+      await solicitudes.corregirYReenviar(solicitud.id);
+      navigate(`/solicitudes/${solicitud.id}/materiales`);
+    } catch (err) {
+      setError(err.response?.data?.error?.message || t("solicitud_reenviar_error", "No se pudo reabrir la solicitud"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleAprobar = async () => {
     setActionLoading(true);
@@ -439,14 +475,20 @@ export default function SolicitudDetalle() {
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {t("detalle_info_general", "Informacion General")}
+              {t("detalle_info_general", "Información general")}
             </Typography>
           </Box>
           <Stack spacing={2.5} sx={{ p: 2.5 }}>
-            <DetailRow icon={TagIcon} label={t("detalle_id", "ID de Solicitud")} value={solicitud.id} />
-            <DetailRow icon={PersonIcon} label={t("detalle_solicitante", "Solicitante")} value={solicitud.id_usuario || solicitud.solicitante} />
-            <DetailRow icon={CalendarTodayIcon} label={t("detalle_fecha_creacion", "Fecha de Creacion")} value={formatDate(solicitud.created_at || solicitud.fecha_creacion)} />
-            <DetailRow icon={AccessTimeIcon} label={t("detalle_fecha_necesidad", "Fecha de Necesidad")} value={formatDate(solicitud.fecha_necesidad)} />
+            <DetailRow icon={TagIcon} label={t("detalle_id", "ID de solicitud")} value={solicitud.id} />
+            <DetailRow icon={PersonIcon} label={t("detalle_solicitante", "Solicitante")} value={solicitud.solicitante_nombre || solicitud.id_usuario || solicitud.solicitante} />
+            {solicitud.aprobador_id && (
+              <DetailRow icon={CheckCircleIcon} label={t("detalle_aprobador", "Aprobador")} value={solicitud.aprobador_nombre || solicitud.aprobador_id} />
+            )}
+            {solicitud.planner_id && (
+              <DetailRow icon={InventoryIcon} label={t("detalle_planificador", "Planificador")} value={solicitud.planner_nombre || solicitud.planner_id} />
+            )}
+            <DetailRow icon={CalendarTodayIcon} label={t("detalle_fecha_creacion", "Fecha de creación")} value={formatDate(solicitud.created_at || solicitud.fecha_creacion)} />
+            <DetailRow icon={AccessTimeIcon} label={t("detalle_fecha_necesidad", "Fecha de necesidad")} value={formatDate(solicitud.fecha_necesidad)} />
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
               <Box sx={{ height: 36, width: 36, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <WarningAmberIcon sx={{ fontSize: 18, color: isAltaCriticidad ? "error.main" : "text.secondary" }} />
@@ -467,21 +509,21 @@ export default function SolicitudDetalle() {
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {t("detalle_ubicacion", "Ubicacion y Costos")}
+              {t("detalle_ubicacion", "Ubicación y costos")}
             </Typography>
           </Box>
           <Stack spacing={2.5} sx={{ p: 2.5 }}>
             <DetailRow icon={BusinessIcon} label={t("detalle_centro", "Centro")} value={solicitud.centro || solicitud.centro_id} />
             <DetailRow icon={LocationOnIcon} label={t("detalle_sector", "Sector")} value={getSectorNombre(solicitud.sector || solicitud.sector_id)} />
-            <DetailRow icon={InventoryIcon} label={t("detalle_almacen", "Almacen Virtual")} value={formatAlmacen(solicitud.almacen_virtual || solicitud.almacen)} />
-            <DetailRow icon={AttachMoneyIcon} label={t("detalle_centro_costos", "Centro de Costos")} value={solicitud.centro_costos} />
+            <DetailRow icon={InventoryIcon} label={t("detalle_almacen", "Almacén virtual")} value={formatAlmacen(solicitud.almacen_virtual || solicitud.almacen)} />
+            <DetailRow icon={AttachMoneyIcon} label={t("detalle_centro_costos", "Centro de costos")} value={solicitud.centro_costos} />
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
               <Box sx={{ height: 36, width: 36, bgcolor: "primary.50", border: "1px solid", borderColor: "primary.200", display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="overline" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
-                  {t("detalle_monto_total", "Monto Total")}
+                  {t("detalle_monto_total", "Monto total")}
                 </Typography>
                 <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 700, mt: 0.5 }}>
                   {formatCurrency(solicitud.total_monto || 0)}
@@ -496,7 +538,7 @@ export default function SolicitudDetalle() {
       <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            {t("detalle_justificacion", "Justificacion")}
+            {t("detalle_justificacion", "Justificación")}
           </Typography>
         </Box>
         <Box sx={{ p: 2.5 }}>
@@ -505,7 +547,7 @@ export default function SolicitudDetalle() {
               <DescriptionIcon sx={{ fontSize: 18, color: "text.secondary" }} />
             </Box>
             <Typography variant="body2" sx={{ color: "text.primary", lineHeight: 1.7, flex: 1 }}>
-              {solicitud.justificacion || t("detalle_sin_justificacion", "Sin justificacion proporcionada")}
+              {solicitud.justificacion || t("detalle_sin_justificacion", "Sin justificación")}
             </Typography>
           </Box>
         </Box>
@@ -534,11 +576,43 @@ export default function SolicitudDetalle() {
         </Box>
       </Paper>
 
+      {/* Adjuntos */}
+      {(solicitud.archivos || []).length > 0 && (
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+          <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "grey.50" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {t("detalle_adjuntos", "Archivos adjuntos")} ({solicitud.archivos.length})
+            </Typography>
+          </Box>
+          <Stack sx={{ p: 2.5 }} spacing={1}>
+            {solicitud.archivos.map((archivo) => (
+              <Box key={archivo.id} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <AttachFileIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                <Typography variant="body2" sx={{ flex: 1, wordBreak: "break-all" }}>
+                  {archivo.nombre}
+                  {archivo.tamanio ? ` (${Math.max(1, Math.round(archivo.tamanio / 1024))} KB)` : ""}
+                </Typography>
+                <Button size="small" onClick={() => handleDescargarAdjunto(archivo)} sx={{ textTransform: "none" }}>
+                  {t("common_descargar", "Descargar")}
+                </Button>
+              </Box>
+            ))}
+          </Stack>
+        </Paper>
+      )}
+
       {/* Acciones segun estado */}
-      {estado.toLowerCase() === "borrador" && (
+      {esPropietario && ["borrador", "draft"].includes(estado.toLowerCase()) && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
           <Button variant="outlined" size="small" onClick={() => navigate(`/solicitudes/${solicitud.id}/materiales`)} sx={{ textTransform: "none" }}>
-            {t("detalle_btn_editar", "Editar Solicitud")}
+            {t("detalle_btn_editar", "Editar solicitud")}
+          </Button>
+        </Box>
+      )}
+      {esPropietario && ["rejected", "rechazada"].includes(estado.toLowerCase()) && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
+          <Button variant="contained" size="small" onClick={handleCorregirYReenviar} disabled={actionLoading} sx={{ textTransform: "none" }}>
+            {t("detalle_btn_corregir_reenviar", "Corregir y reenviar")}
           </Button>
         </Box>
       )}

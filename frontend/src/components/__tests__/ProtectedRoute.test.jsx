@@ -27,6 +27,7 @@ vi.mock('../Loading', () => ({
 
 // Importar después de los mocks
 import ProtectedRoute from '../ProtectedRoute'
+import { useModuleStore, getModuleForPath } from '../../store/moduleStore'
 
 // Helper para renderizar con router
 const renderWithRouter = (ui, { route = '/' } = {}) => {
@@ -364,6 +365,103 @@ describe('ProtectedRoute', () => {
 
       // Debería tratar el JSON inválido como string y redirigir
       expect(screen.getByTestId('dashboard')).toBeInTheDocument()
+    })
+  })
+
+  describe('Modulos deshabilitados', () => {
+    const adminUser = { user: { id: 1, rol: 'admin' }, isLoading: false, isAuthenticated: true }
+
+    const renderAt = (route) => renderWithRouter(
+      <Routes>
+        <Route path={route} element={
+          <ProtectedRoute>
+            <div>Protected Content</div>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={<div data-testid="dashboard">Dashboard</div>} />
+      </Routes>,
+      { route }
+    )
+
+    beforeEach(() => {
+      mockUseAuthStore.mockReturnValue(adminUser)
+      useModuleStore.setState({
+        isLoaded: true,
+        modules: [
+          { module_key: 'logistica', enabled: false },
+          { module_key: 'calidad', enabled: false },
+          { module_key: 'compras', enabled: false },
+          { module_key: 'inventario', enabled: true },
+        ],
+      })
+    })
+
+    it('redirige a dashboard si la ruta pertenece a un modulo deshabilitado (incluso admin)', () => {
+      renderAt('/tms/shipments')
+      expect(screen.getByTestId('dashboard')).toBeInTheDocument()
+      expect(screen.queryByText('Protected Content')).not.toBeInTheDocument()
+    })
+
+    it('bloquea rutas de calidad', () => {
+      renderAt('/quality/ncr')
+      expect(screen.getByTestId('dashboard')).toBeInTheDocument()
+    })
+
+    it('bloquea rutas de compras', () => {
+      renderAt('/procurement/savings')
+      expect(screen.getByTestId('dashboard')).toBeInTheDocument()
+    })
+
+    it('permite rutas de modulos habilitados', () => {
+      renderAt('/materiales/stock')
+      expect(screen.getByText('Protected Content')).toBeInTheDocument()
+    })
+
+    it('permite todo mientras los modulos no se cargaron', () => {
+      useModuleStore.setState({ isLoaded: false, modules: [] })
+      renderAt('/tms/shipments')
+      expect(screen.getByText('Protected Content')).toBeInTheDocument()
+    })
+
+    it('bloquea submodulos deshabilitados y deja pasar el resto del modulo padre', () => {
+      useModuleStore.setState({
+        isLoaded: true,
+        modules: [
+          { module_key: 'inventario', enabled: true },
+          { module_key: 'inventario.vmi', enabled: false },
+          { module_key: 'planificacion.kanban', enabled: false },
+        ],
+      })
+      renderAt('/operations/vmi/5')
+      expect(screen.getByTestId('dashboard')).toBeInTheDocument()
+    })
+
+    it('un submodulo queda deshabilitado si su padre lo esta', () => {
+      useModuleStore.setState({
+        isLoaded: true,
+        modules: [
+          { module_key: 'inventario', enabled: false },
+          { module_key: 'inventario.lotes', enabled: true },
+        ],
+      })
+      expect(useModuleStore.getState().isModuleEnabled('inventario.lotes')).toBe(false)
+      expect(useModuleStore.getState().isPathEnabled('/operations/lots')).toBe(false)
+    })
+
+    it('getModuleForPath mapea prefijos sin falsos positivos', () => {
+      expect(getModuleForPath('/operations/production/2')).toBe('planificacion.mps')
+      expect(getModuleForPath('/operations/kanban/config')).toBe('planificacion.kanban')
+      expect(getModuleForPath('/operations/cycle-count')).toBe('inventario.conteo_ciclico')
+      expect(getModuleForPath('/operations/warehouse')).toBe('inventario.recepcion')
+      expect(getModuleForPath('/operations/putaway')).toBe('inventario.ubicaciones')
+      expect(getModuleForPath('/operations/slob')).toBe('inventario.slob')
+      expect(getModuleForPath('/fms/vehicles/3')).toBe('logistica')
+      expect(getModuleForPath('/operations/kitting/boms')).toBe('calidad')
+      expect(getModuleForPath('/procurement/savings')).toBe('compras')
+      expect(getModuleForPath('/admin/supplier-portal/preview')).toBe('compras')
+      expect(getModuleForPath('/admin/proveedores')).toBeNull()
+      expect(getModuleForPath('/tmsx')).toBeNull()
+      expect(getModuleForPath('/materiales/stock')).toBeNull()
     })
   })
 })

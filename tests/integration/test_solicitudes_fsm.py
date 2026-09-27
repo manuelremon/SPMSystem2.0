@@ -25,7 +25,7 @@ def mock_db_with_tables():
     # Crear tablas necesarias
     cursor.executescript(
         """
-        CREATE TABLE usuarios (
+        CREATE TABLE usuario (
             id INTEGER PRIMARY KEY,
             id_spm TEXT UNIQUE,
             nombre TEXT,
@@ -35,7 +35,7 @@ def mock_db_with_tables():
             centro TEXT
         );
 
-        CREATE TABLE solicitudes (
+        CREATE TABLE solicitud (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             id_usuario TEXT,
             centro TEXT,
@@ -54,7 +54,7 @@ def mock_db_with_tables():
             data_json TEXT
         );
 
-        CREATE TABLE solicitudes_historial_estados (
+        CREATE TABLE solicitud_historial_estado (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             solicitud_id INTEGER NOT NULL,
             estado_anterior TEXT NOT NULL,
@@ -80,7 +80,7 @@ def mock_db_with_tables():
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
         );
 
-        CREATE TABLE notificaciones (
+        CREATE TABLE notificacion (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             destinatario_id TEXT,
             solicitud_id INTEGER,
@@ -90,7 +90,7 @@ def mock_db_with_tables():
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
         );
 
-        CREATE TABLE presupuestos (
+        CREATE TABLE presupuesto (
             id INTEGER PRIMARY KEY,
             centro TEXT,
             sector TEXT,
@@ -106,12 +106,12 @@ def mock_db_with_tables():
         );
 
         -- Insertar datos de prueba
-        INSERT INTO usuarios (id_spm, nombre, apellido, email, rol) VALUES
+        INSERT INTO usuario (id_spm, nombre, apellido, email, rol) VALUES
             ('user_1', 'Test', 'User', 'test@test.com', 'usuario'),
             ('aprobador_1', 'Test', 'Aprobador', 'aprobador@test.com', 'aprobador'),
             ('planner_1', 'Test', 'Planner', 'planner@test.com', 'planificador');
 
-        INSERT INTO presupuestos (centro, sector, monto_usd, saldo_usd) VALUES
+        INSERT INTO presupuesto (centro, sector, monto_usd, saldo_usd) VALUES
             ('1008', 'Mantenimiento', 100000, 50000);
 
         INSERT INTO planificador_asignaciones (planificador_id, centro, sector) VALUES
@@ -166,20 +166,20 @@ class TestFSMIntegration:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}')
         """
         )
         mock_db_with_tables.commit()
         solicitud_id = cursor.lastrowid
 
-        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
+        cursor.execute("SELECT status FROM solicitud WHERE id = ?", (solicitud_id,))
         row = cursor.fetchone()
 
         assert normalizar_estado(row["status"]) == "draft"
 
     def test_flujo_completo_draft_to_completed(self, mock_db_with_tables):
-        """Test del flujo completo: draft -> submitted -> approved -> in_planning -> in_treatment -> treated -> completed."""
+        """Test del flujo completo: draft -> submitted -> approved -> in_treatment -> treated -> completed."""
         from backend.core.fsm import (EstadoSolicitud, cambiar_estado,
                                       obtener_historial_estados)
 
@@ -187,7 +187,7 @@ class TestFSMIntegration:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
         """
         )
@@ -214,7 +214,7 @@ class TestFSMIntegration:
             assert resultado["estado_nuevo"] == "submitted"
 
         # Verificar estado en BD
-        cursor.execute("SELECT status FROM solicitudes WHERE id = ?", (solicitud_id,))
+        cursor.execute("SELECT status FROM solicitud WHERE id = ?", (solicitud_id,))
         assert cursor.fetchone()["status"] == "submitted"
 
         # Transicion 2: submitted -> approved
@@ -236,25 +236,7 @@ class TestFSMIntegration:
             assert resultado["success"] is True
             assert resultado["estado_nuevo"] == "approved"
 
-        # Transicion 3: approved -> in_planning
-        with (
-            patch("backend.core.fsm.get_db_transaction") as mock_trans,
-            patch("backend.core.fsm.get_db_connection") as mock_conn,
-        ):
-            mock_trans.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
-            mock_trans.return_value.__exit__ = MagicMock(return_value=False)
-            mock_conn.return_value.__enter__ = MagicMock(return_value=mock_db_with_tables)
-            mock_conn.return_value.__exit__ = MagicMock(return_value=False)
-
-            resultado = cambiar_estado(
-                solicitud_id=solicitud_id,
-                nuevo_estado=EstadoSolicitud.IN_PLANNING,
-                actor_id="planner_1",
-                razon="En planificacion",
-            )
-            assert resultado["success"] is True
-
-        # Transicion 4: in_planning -> in_treatment
+        # Transicion 3: approved -> in_treatment (C2: IN_PLANNING eliminado)
         with (
             patch("backend.core.fsm.get_db_transaction") as mock_trans,
             patch("backend.core.fsm.get_db_connection") as mock_conn,
@@ -315,7 +297,7 @@ class TestFSMIntegration:
             mock_conn.return_value.__exit__ = MagicMock(return_value=False)
 
             historial = obtener_historial_estados(solicitud_id)
-            assert len(historial) == 6  # 6 transiciones
+            assert len(historial) == 5  # 5 transiciones
 
     def test_transicion_invalida_rechazada(self, mock_db_with_tables):
         """Transiciones invalidas deben fallar con TransicionInvalidaError."""
@@ -326,7 +308,7 @@ class TestFSMIntegration:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}')
         """
         )
@@ -363,7 +345,7 @@ class TestFSMIntegration:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json)
             VALUES ('user_1', '1008', 'Mantenimiento', 'completed', '{"items": []}')
         """
         )
@@ -401,7 +383,7 @@ class TestHistorialEstados:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
         """
         )
@@ -420,7 +402,7 @@ class TestHistorialEstados:
 
             cambiar_estado(solicitud_id, EstadoSolicitud.SUBMITTED, "user_1", "Test")
 
-        cursor.execute("UPDATE solicitudes SET status = 'submitted' WHERE id = ?", (solicitud_id,))
+        cursor.execute("UPDATE solicitud SET status = 'submitted' WHERE id = ?", (solicitud_id,))
         mock_db_with_tables.commit()
 
         with (
@@ -454,7 +436,7 @@ class TestHistorialEstados:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'draft', '{"items": []}', 'planner_1')
         """
         )
@@ -480,7 +462,7 @@ class TestHistorialEstados:
 
         # Verificar que metadata se guardo
         cursor.execute(
-            "SELECT metadata_json FROM solicitudes_historial_estados WHERE solicitud_id = ?",
+            "SELECT metadata_json FROM solicitud_historial_estado WHERE solicitud_id = ?",
             (solicitud_id,),
         )
         row = cursor.fetchone()
@@ -527,7 +509,7 @@ class TestBackwardCompatibility:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'Borrador', '{"items": []}', 'planner_1')
         """
         )
@@ -564,7 +546,7 @@ class TestNotificaciones:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'submitted', '{"items": []}', 'planner_1')
         """
         )
@@ -589,7 +571,7 @@ class TestNotificaciones:
 
         # Verificar que se creo notificacion
         cursor.execute(
-            "SELECT * FROM notificaciones WHERE solicitud_id = ? AND destinatario_id = ?",
+            "SELECT * FROM notificacion WHERE solicitud_id = ? AND destinatario_id = ?",
             (solicitud_id, "planner_1"),
         )
         notif = cursor.fetchone()
@@ -603,7 +585,7 @@ class TestNotificaciones:
         cursor = mock_db_with_tables.cursor()
         cursor.execute(
             """
-            INSERT INTO solicitudes (id_usuario, centro, sector, status, data_json, planner_id)
+            INSERT INTO solicitud (id_usuario, centro, sector, status, data_json, planner_id)
             VALUES ('user_1', '1008', 'Mantenimiento', 'submitted', '{"items": []}', 'planner_1')
         """
         )
@@ -628,7 +610,7 @@ class TestNotificaciones:
 
         # Verificar que se creo notificacion
         cursor.execute(
-            "SELECT * FROM notificaciones WHERE solicitud_id = ? AND destinatario_id = ?",
+            "SELECT * FROM notificacion WHERE solicitud_id = ? AND destinatario_id = ?",
             (solicitud_id, "user_1"),
         )
         notif = cursor.fetchone()

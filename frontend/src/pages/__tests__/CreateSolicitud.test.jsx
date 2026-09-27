@@ -151,8 +151,8 @@ describe('CreateSolicitud', () => {
       renderWithRouter(<CreateSolicitud />)
 
       await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith('/catalogos', expect.any(Object))
-        expect(api.get).toHaveBeenCalledWith('/auth/mi-acceso', expect.any(Object))
+        expect(api.get).toHaveBeenCalledWith('/catalogos')
+        expect(api.get).toHaveBeenCalledWith('/auth/mi-acceso')
       })
     })
   })
@@ -458,7 +458,8 @@ describe('CreateSolicitud', () => {
       // which is still the initial empty state at call time. So values won't
       // be pre-loaded. We verify the API calls were made correctly instead.
       await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith('/auth/me', expect.any(Object))
+        // Los permisos de centro/sector salen de /auth/mi-acceso (ya no de /auth/me)
+        expect(api.get).toHaveBeenCalledWith('/auth/mi-acceso')
       })
 
       // Verify the form rendered correctly after catalog load

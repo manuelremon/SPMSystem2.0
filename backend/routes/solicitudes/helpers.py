@@ -31,6 +31,28 @@ def _get_uploads_dir(solicitud_id) -> Path:
     return base_dir
 
 
+# Adjuntos de solicitudes (mismos tipos que acepta la UI de creacion)
+ADJUNTO_EXTENSIONES = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"}
+MAX_ADJUNTOS = 5
+
+
+def _validar_adjuntos(files) -> str:
+    """Mensaje de error si los archivos no son validos; cadena vacia si estan bien."""
+    files = [f for f in files if f and f.filename]
+    if len(files) > MAX_ADJUNTOS:
+        return f"Se permiten hasta {MAX_ADJUNTOS} archivos adjuntos"
+    for f in files:
+        if Path(secure_filename(f.filename)).suffix.lower() not in ADJUNTO_EXTENSIONES:
+            return f"Tipo de archivo no permitido: {f.filename}"
+    return ""
+
+
+def _archivos_publicos(archivos) -> list:
+    """Metadata de adjuntos apta para el cliente (sin rutas del servidor)."""
+    campos = ("id", "nombre", "mime_type", "tamanio", "created_at")
+    return [{k: a.get(k) for k in campos} for a in (archivos or []) if isinstance(a, dict)]
+
+
 def _save_uploaded_file(file, solicitud_id) -> dict:
     """Guarda un archivo subido y retorna su metadata"""
     if not file or not file.filename:
@@ -115,6 +137,57 @@ def _calcular_total(items):
         except Exception:
             continue
     return total
+
+
+# Roles que pueden ver solicitudes de otros usuarios (ademas de admin)
+ROLES_VISION_AMPLIA = (
+    "aprobador",
+    "aprobador_solicitudes",
+    "aprobador solicitudes",
+    "aprobador de solicitudes",
+    "aprobador_presupuestos",
+    "aprobador presupuestos",
+    "aprobador de presupuesto",
+    "approver",
+    "coordinador",
+    "coordinator",
+    "planificador",
+    "planner",
+    "jefe",
+    "gerente1",
+    "gerente2",
+)
+
+
+def _rol_usuario_actual(user_id: str) -> str:
+    """Rol del usuario autenticado (g.user o, si falta, desde la BD)."""
+    from flask import g
+
+    user_rol = (g.user or {}).get("rol", "") if hasattr(g, "user") else ""
+    if not user_rol and user_id:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT rol FROM usuario WHERE id_spm=?", (str(user_id),))
+            row = cur.fetchone()
+            if row:
+                user_rol = row["rol"] if isinstance(row, dict) else row[0]
+    return user_rol or ""
+
+
+def _tiene_vision_amplia(user_rol: str) -> bool:
+    """True si el rol permite ver solicitudes ajenas."""
+    from backend.core.roles import has_any_role, is_admin
+
+    return is_admin(user_rol) or has_any_role(user_rol, list(ROLES_VISION_AMPLIA))
+
+
+def _puede_ver_solicitud(solicitud: dict, user_id: str) -> bool:
+    """Ownership: el dueno, admin o roles de vision amplia."""
+    if not solicitud:
+        return False
+    if str(solicitud.get("id_usuario", "")) == str(user_id):
+        return True
+    return _tiene_vision_amplia(_rol_usuario_actual(user_id))
 
 
 def _aprobador_por_monto(total, centro: str = None):
@@ -295,20 +368,36 @@ def _planificador_para(centro: str, sector: str) -> str:
                 if cur.fetchone():
                     return planificador_id
 
-    # Fallback: buscar cualquier usuario con rol de planificador
+    # Fallback: planificador activo (no admin) que cubra el centro, con menor carga
+    # de solicitudes en curso; si ninguno cubre el centro, cualquiera activo.
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id_spm FROM usuario
-            WHERE LOWER(rol) LIKE '%planificador%'
-            LIMIT 1
-        """
+            SELECT u.id_spm, u.rol, u.centros,
+                (SELECT COUNT(*) FROM solicitud s
+                 WHERE s.planner_id = u.id_spm AND s.status IN ('approved', 'in_treatment')) AS carga
+            FROM usuario u
+            WHERE LOWER(u.rol) LIKE '%planificador%'
+              AND LOWER(COALESCE(u.estado_registro, '')) = 'activo'
+            """
         )
-        row = cur.fetchone()
+        candidatos = [dict(r) for r in cur.fetchall()]
 
-    if row:
-        return str(row["id_spm"])
+    def _es_admin(c):
+        return "admin" in (c.get("rol") or "").lower()
+
+    def _cubre_centro(c):
+        return centro and centro in [x.strip() for x in (c.get("centros") or "").split(",")]
+
+    for grupo in (
+        [c for c in candidatos if not _es_admin(c) and _cubre_centro(c)],
+        [c for c in candidatos if not _es_admin(c)],
+        candidatos,
+    ):
+        if grupo:
+            elegido = min(grupo, key=lambda c: (int(c.get("carga") or 0), str(c["id_spm"])))
+            return str(elegido["id_spm"])
 
     # Fallback final: retornar "1" (admin por defecto)
     return "1"

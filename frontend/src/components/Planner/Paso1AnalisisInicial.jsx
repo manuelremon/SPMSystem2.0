@@ -361,16 +361,20 @@ function PresupuestoInsuficienteModal({ solicitud, isOpen, onClose }) {
         solicitud_id: solicitud.id,
         tipo: "presupuesto_insuficiente",
       });
-      if (solicitud.jefe || solicitud.usuario_jefe) {
+      // Devolver al aprobador: es quien decide cancelar (revierte el presupuesto) o continuar
+      if (solicitud.aprobador_id && String(solicitud.aprobador_id) !== String(solicitud.id_usuario)) {
         await api.post("/mensajes", {
-          destinatario_id: solicitud.jefe || solicitud.usuario_jefe,
-          asunto: `[COPIA] Presupuesto insuficiente - Solicitud #${solicitud.id}`,
+          destinatario_id: solicitud.aprobador_id,
+          asunto: `[DEVUELTA] Presupuesto insuficiente - Solicitud #${solicitud.id}`,
           mensaje: mensajeDefault,
           solicitud_id: solicitud.id,
           tipo: "presupuesto_insuficiente",
         });
       }
-      await api.patch(`/solicitudes/${solicitud.id}`, { estado: "presupuesto_insuficiente" });
+      // Dejar constancia en la solicitud
+      await api.post(`/solicitudes/${solicitud.id}/comentar`, {
+        comentario: `Presupuesto insuficiente: ${mensajeDefault}`,
+      });
       setSuccess(true);
       setTimeout(() => { onClose(); window.location.reload(); }, 2000);
     } catch (err) {

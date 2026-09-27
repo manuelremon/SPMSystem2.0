@@ -9,7 +9,7 @@
  * - SearchDropdown: Search results dropdown
  */
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useMaterials } from "../hooks/useMaterials";
 import { formatCurrency } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
@@ -33,6 +33,7 @@ import {
   CircularProgress,
   Divider,
   InputAdornment,
+  Tooltip,
 } from "@mui/material";
 
 // MUI Icons
@@ -76,6 +77,7 @@ function TableSkeleton() {
 
 export default function Materials() {
   const { t } = useI18n();
+  const navigate = useNavigate();
 
   // Get all state and handlers from custom hook
   const m = useMaterials();
@@ -91,18 +93,37 @@ export default function Materials() {
 
   if (m.loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {t("materials_title", "Agregar Materiales")}
-          </Typography>
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+          {/* Header */}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Tooltip title={t("common_volver", "Volver")}>
+              <IconButton
+                onClick={() => navigate(-1)}
+                aria-label={t("common_volver", "Volver")}
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": { bgcolor: "background.paper", borderColor: "divider" },
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+            </Tooltip>
+            <Box>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {t("materials_title", "Agregar Materiales")}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
+              </Typography>
+            </Box>
+          </Stack>
+          <Paper variant="outlined" aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
+            <Box sx={{ pt: 3 }}>
+              <TableSkeleton />
+            </Box>
+          </Paper>
         </Box>
-        <Paper variant="outlined" aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
-          <Box sx={{ pt: 3 }}>
-            <TableSkeleton />
-          </Box>
-        </Paper>
       </Box>
     );
   }
@@ -112,24 +133,31 @@ export default function Materials() {
   // ═══════════════════════════════════════════════════════════════════
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
     <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h5" component="h1" fontWeight={600} color="text.primary">
-          {t("materials_title", "Agregar Materiales")}
-        </Typography>
-        <Button
-          component={Link}
-          to="/mis-solicitudes"
-          variant="text"
-          startIcon={<ArrowBackIcon />}
-          sx={{ textTransform: "none" }}
-          aria-label={t("common_volver_mis_solicitudes", "Volver a Mis Solicitudes")}
-        >
-          {t("common_volver", "Volver")}
-        </Button>
-      </Box>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Tooltip title={t("common_volver", "Volver")}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            aria-label={t("common_volver", "Volver")}
+            sx={{
+              color: "text.secondary",
+              "&:hover": { bgcolor: "background.paper", borderColor: "divider" },
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
+        <Box>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {t("materials_title", "Agregar Materiales")}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
+          </Typography>
+        </Box>
+      </Stack>
 
       {/* Messages */}
       <Box aria-live="polite">
@@ -378,48 +406,52 @@ function SearchSection({ m, t }) {
         >
           {t("materials_buscar", "Buscar material")}
         </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<QrCodeScannerIcon sx={{ fontSize: 16 }} />}
-          onClick={() => m.setShowScanner && m.setShowScanner(true)}
-          sx={{
-            textTransform: "none",
-            fontSize: "0.75rem",
-            py: 0.5,
-            px: 1.5,
-            borderColor: "info.light",
-            color: "info.dark",
-            bgcolor: "info.50",
-            "&:hover": {
-              borderColor: "info.main",
-              bgcolor: "info.100",
-            },
-          }}
-        >
-          {t("scanner_scan", "Escanear")}
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<AutoAwesomeIcon sx={{ fontSize: 16, color: "secondary.main" }} />}
-          onClick={() => m.setShowAssistant && m.setShowAssistant(true)}
-          sx={{
-            textTransform: "none",
-            fontSize: "0.75rem",
-            py: 0.5,
-            px: 1.5,
-            borderColor: "warning.light",
-            color: "warning.dark",
-            bgcolor: "warning.50",
-            "&:hover": {
-              borderColor: "warning.main",
-              bgcolor: "warning.100",
-            },
-          }}
-        >
-          {t("materials_asistente_ia", "Asistente IA")}
-        </Button>
+        <Tooltip title={t("scanner_scan_tooltip", "Escanear el codigo de barras de un material con la camara")}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<QrCodeScannerIcon sx={{ fontSize: 16 }} />}
+            onClick={() => m.setShowScanner && m.setShowScanner(true)}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.75rem",
+              py: 0.5,
+              px: 1.5,
+              borderColor: "info.light",
+              color: "info.dark",
+              bgcolor: "info.50",
+              "&:hover": {
+                borderColor: "info.main",
+                bgcolor: "info.100",
+              },
+            }}
+          >
+            {t("scanner_scan", "Escanear")}
+          </Button>
+        </Tooltip>
+        <Tooltip title={t("materials_asistente_ia_tooltip", "Describe lo que necesitas y la IA sugiere materiales del catalogo")}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AutoAwesomeIcon sx={{ fontSize: 16, color: "secondary.main" }} />}
+            onClick={() => m.setShowAssistant && m.setShowAssistant(true)}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.75rem",
+              py: 0.5,
+              px: 1.5,
+              borderColor: "warning.light",
+              color: "warning.dark",
+              bgcolor: "warning.50",
+              "&:hover": {
+                borderColor: "warning.main",
+                bgcolor: "warning.100",
+              },
+            }}
+          >
+            {t("materials_asistente_ia", "Asistente IA")}
+          </Button>
+        </Tooltip>
       </Box>
 
       {/* Search inputs container */}
@@ -475,14 +507,16 @@ function SearchSection({ m, t }) {
                     />
                   )}
                   {(m.searchCodigo || m.searchDesc) && (
-                    <IconButton
-                      size="small"
-                      onClick={m.handleClearSearch}
-                      aria-label={t("materials_limpiar_busqueda", "Limpiar busqueda")}
-                      sx={{ p: 0.25 }}
-                    >
-                      <CloseIcon sx={{ fontSize: 18, color: "error.main" }} />
-                    </IconButton>
+                    <Tooltip title={t("materials_limpiar_busqueda", "Limpiar busqueda")}>
+                      <IconButton
+                        size="small"
+                        onClick={m.handleClearSearch}
+                        aria-label={t("materials_limpiar_busqueda", "Limpiar busqueda")}
+                        sx={{ p: 0.25 }}
+                      >
+                        <CloseIcon sx={{ fontSize: 18, color: "error.main" }} />
+                      </IconButton>
+                    </Tooltip>
                   )}
                 </Stack>
               </InputAdornment>
@@ -599,17 +633,28 @@ function SelectedMaterialSection({ m, t }) {
             >
               {t("materials_mas_detalles", "Ver detalles")}
             </Button>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={m.handleAdd}
-              disabled={!m.detailViewed}
-              aria-label={`${t("materials_agregar", "Agregar")} ${m.selectedMaterial?.codigo || ''}`}
-              sx={{ flex: 1, textTransform: "none" }}
+            <Tooltip
+              title={
+                m.detailViewed
+                  ? t("materials_agregar_tooltip", "Agregar este material a la solicitud")
+                  : t("materials_agregar_disabled_tooltip", "Primero revisa los detalles del material")
+              }
             >
-              {t("materials_agregar", "Agregar")}
-            </Button>
+              {/* span necesario para que el Tooltip funcione con el boton deshabilitado */}
+              <span style={{ flex: 1, display: "flex" }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={m.handleAdd}
+                  disabled={!m.detailViewed}
+                  aria-label={`${t("materials_agregar", "Agregar")} ${m.selectedMaterial?.codigo || ''}`}
+                  sx={{ flex: 1, textTransform: "none" }}
+                >
+                  {t("materials_agregar", "Agregar")}
+                </Button>
+              </span>
+            </Tooltip>
           </Stack>
         </Paper>
       ) : (
@@ -734,9 +779,11 @@ function CommentDialog({ open, onClose, codigo, comment, onCommentChange, onSave
         <Typography variant="subtitle1" component="span" fontWeight={600} color="text.primary">
           {t("materials_nota_titulo", "Nota para el material")}
         </Typography>
-        <IconButton size="small" onClick={onClose} aria-label={t("common_cerrar", "Cerrar")}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        <Tooltip title={t("common_cerrar", "Cerrar")}>
+          <IconButton size="small" onClick={onClose} aria-label={t("common_cerrar", "Cerrar")}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </DialogTitle>
 
       <DialogContent>

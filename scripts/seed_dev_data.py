@@ -661,7 +661,7 @@ def seed_solicitudes(conn_spm: sqlite3.Connection, conn_sap: sqlite3.Connection)
                 """, (
                     usuario[0], centro_codigo, sector, justificacion,
                     f"CC-{centro_codigo}-{random.randint(1000, 9999)}",
-                    random.choice(['AV001', 'AV002', 'AV003', None]),
+                    random.choice(['0001', '0012', '0101', '9002', '9003', '9004']),
                     criticidad, fecha_necesidad.strftime('%Y-%m-%d'), data_json,
                     estado, aprobador_id, planner_id, round(total_monto, 2),
                     created_at.strftime('%Y-%m-%d %H:%M:%S'),

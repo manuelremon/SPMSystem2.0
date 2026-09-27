@@ -13,6 +13,10 @@ import '@fontsource-variable/inter'
 import './index.css'
 import { I18nProvider, getTranslation } from './context/i18n'
 import { initErrorTranslation } from './utils/errorTranslation'
+import { installChunkReloadHandler } from './utils/chunkReload'
+
+// Auto-recuperacion ante chunks obsoletos tras un deploy (SW/cache viejo)
+installChunkReloadHandler()
 
 // Initialize error translation so API interceptor can translate backend messages
 initErrorTranslation(getTranslation)

@@ -275,10 +275,19 @@ def puede_aprobar(
     regla = obtener_regla_aprobacion(monto_usd, centro, sector, criticidad)
 
     if not regla:
+        # Sin reglas parametrizadas: el nivel lo garantiza la asignacion por cadena
+        # jerarquica (resolver_aprobador_solicitud); la ruta exige que sea el asignado.
+        if "aprobador_solicitudes" in rol_usuario.replace(" ", "_"):
+            return {
+                "puede_aprobar": True,
+                "posicion_usuario": posicion_usuario,
+                "posicion_requerida": "aprobador asignado",
+                "nivel_aprobacion": 0,
+            }
         return {
             "puede_aprobar": False,
             "posicion_usuario": posicion_usuario,
-            "razon": "No hay regla de aprobacion definida para este monto",
+            "razon": "Se requiere rol 'aprobador_solicitudes'",
         }
 
     # Usar rol_aprobador de la tabla, con fallbacks por backward compatibility
@@ -892,6 +901,86 @@ def desactivar_regla(regla_id: int, deactivated_by: Optional[str] = None) -> Dic
 # =============================================================================
 # Funcion Legacy (Backward Compatibility)
 # =============================================================================
+
+
+# Cadena jerarquica del solicitante (campos de la tabla usuario), de menor a mayor nivel
+_CADENA_APROBACION = ("jefe", "gerente1", "gerente2")
+
+
+def nivel_cadena_por_monto(monto_usd: float) -> str:
+    """Nivel de la cadena que debe aprobar segun monto (umbrales de budget_schemas: L1/L2/ADMIN)."""
+    from backend.core.budget_schemas import NivelAprobacion, determinar_nivel_aprobacion
+
+    nivel = determinar_nivel_aprobacion(int(round(float(monto_usd or 0) * 100)))
+    return {NivelAprobacion.L1: "jefe", NivelAprobacion.L2: "gerente1"}.get(nivel, "gerente2")
+
+
+def _es_aprobador_valido(row, solicitante_id: str) -> bool:
+    if not row or str(row["id_spm"]) == str(solicitante_id):
+        return False
+    if (row["estado_registro"] or "").strip().lower() != "activo":
+        return False
+    rol = (row["rol"] or "").lower().replace(" ", "_")
+    return "aprobador_solicitudes" in rol or "admin" in rol
+
+
+def resolver_aprobador_solicitud(solicitante_id: str, monto_usd: float) -> str:
+    """
+    Aprobador de una solicitud segun la cadena jerarquica del solicitante.
+
+    El monto define el nivel inicial (jefe / gerente1 / gerente2). Si ese nivel no
+    esta cargado, esta inactivo, no tiene rol de aprobador o es el propio
+    solicitante, sube al siguiente nivel. Ultimo recurso: un admin activo.
+    """
+    nivel = nivel_cadena_por_monto(monto_usd)
+    campos = _CADENA_APROBACION[_CADENA_APROBACION.index(nivel):]
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT jefe, gerente1, gerente2 FROM usuario WHERE id_spm = ?", (str(solicitante_id),)
+        )
+        solicitante = cursor.fetchone()
+        if solicitante:
+            for campo in campos:
+                candidato_id = solicitante[campo]
+                if not candidato_id:
+                    continue
+                cursor.execute(
+                    "SELECT id_spm, rol, estado_registro FROM usuario WHERE id_spm = ?",
+                    (str(candidato_id),),
+                )
+                if _es_aprobador_valido(cursor.fetchone(), solicitante_id):
+                    return str(candidato_id)
+
+        # Sin cadena util (p.ej. el solicitante es el admin): cualquier usuario
+        # con el rol del nivel requerido o superior
+        for campo in campos:
+            cursor.execute(
+                """
+                SELECT id_spm, rol, estado_registro FROM usuario
+                WHERE LOWER(rol) LIKE ? AND id_spm <> ?
+                ORDER BY id_spm
+                """,
+                (f"%{campo}%", str(solicitante_id)),
+            )
+            for row in cursor.fetchall():
+                if _es_aprobador_valido(row, solicitante_id):
+                    return str(row["id_spm"])
+
+        cursor.execute(
+            """
+            SELECT id_spm, rol, estado_registro FROM usuario
+            WHERE LOWER(rol) LIKE '%admin%' AND id_spm <> ?
+            ORDER BY id_spm
+            """,
+            (str(solicitante_id),),
+        )
+        for row in cursor.fetchall():
+            if _es_aprobador_valido(row, solicitante_id):
+                return str(row["id_spm"])
+
+    return "1"
 
 
 def obtener_aprobador_por_monto(monto: float, centro: Optional[str] = None) -> str:

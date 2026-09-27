@@ -109,8 +109,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
   const [loadingOpciones, setLoadingOpciones] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
   const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
   const [infoRequest, setInfoRequest] = useState("");
   const [mostrarMrp, setMostrarMrp] = useState(false);
@@ -511,35 +509,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
     }
   };
 
-  const handleRejectClick = () => {
-    setShowRejectModal(true);
-  };
-
-  const handleConfirmReject = async () => {
-    if (!rejectReason.trim()) {
-      setError("Debe ingresar un motivo de rechazo");
-      return;
-    }
-    setError("");
-    setSaving(true);
-    try {
-      await ensureCsrfToken();
-      // Llamar API de rechazo (esta ruta existe en solicitudes.py)
-      await api.post(`/solicitudes/${solicitud.id}/rechazar`, {
-        motivo: rejectReason.trim()
-      });
-      setShowRejectModal(false);
-      setRejectReason("");
-      onComplete?.();
-      onClose?.();
-    } catch (err) {
-      const mensaje = err.response?.data?.error?.message || err.message || "Error al rechazar";
-      setError(`${mensaje}. Por favor, intente nuevamente.`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleRequestInfoClick = () => {
     setShowRequestInfoModal(true);
   };
@@ -722,7 +691,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
               analisis={analisis || {}}
               solicitud={solicitud}
               onNext={handleNext}
-              onReject={handleRejectClick}
               onRequestInfo={handleRequestInfoClick}
             />
           ) : paso === 2 ? (
@@ -839,50 +807,6 @@ export default function TratarSolicitudModal({ solicitud, isOpen, onClose, onCom
           )}
         </Box>
       </Paper>
-
-      {/* Modal de Rechazo */}
-      <Modal
-        isOpen={showRejectModal}
-        onClose={() => {
-          setShowRejectModal(false);
-          setRejectReason("");
-        }}
-        title={`Rechazar Solicitud #${solicitud?.id}`}
-        size="md"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowRejectModal(false);
-                setRejectReason("");
-              }}
-              type="button"
-              disabled={saving}
-            >
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={handleConfirmReject} type="button" disabled={saving}>
-              {saving ? "Rechazando..." : "Confirmar rechazo"}
-            </Button>
-          </>
-        }
-      >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Motivo del rechazo
-          </Typography>
-          <TextField
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            multiline
-            rows={4}
-            fullWidth
-            placeholder="Explique por qué se rechaza esta solicitud..."
-            size="small"
-          />
-        </Box>
-      </Modal>
 
       {/* Modal de Solicitud de Información */}
       <Modal

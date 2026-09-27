@@ -38,7 +38,6 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import Tooltip from "@mui/material/Tooltip";
 
 // Services
-import { exportToXLSX } from "../../services/export";
 
 const initialForm = {
   centro: "",
@@ -262,24 +261,7 @@ export default function AdminPresupuestos() {
   const handleDelete = async (id) => {
     setSubmitting(true);
     try {
-      
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredPresupuestos,
-        "presupuestos",
-        "Presupuestos"
-      );
-      setSuccess("Presupuestos exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar presupuestos");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-const [centro, sector] = id.split("|");
+      const [centro, sector] = id.split("|");
       await admin.deletePresupuesto(centro, sector);
       setSuccess(t("crud_record_deleted", "Presupuesto eliminado correctamente"));
       setDeletingId(null);

@@ -679,7 +679,7 @@ export default function Aprobaciones() {
         field: "criticidad",
         headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
-        minWidth: 80,
+        minWidth: 110,
         cellRenderer: (params) => {
           const config = getCriticidadConfig(params.value || "Normal");
           return (
@@ -703,7 +703,7 @@ export default function Aprobaciones() {
       },
       {
         field: "items_count",
-        headerName: t('common_items', 'Items'),
+        headerName: t('common_items_header', 'Ítems'),
         flex: 0.4,
         minWidth: 50,
         valueGetter: (params) => params.data.items?.length || 0,
@@ -711,8 +711,10 @@ export default function Aprobaciones() {
       {
         field: "acciones",
         headerName: t('common_acciones', 'Acciones'),
-        flex: 0.7,
-        minWidth: 110,
+        // Ancho fijo: 3 botones (Ver | Aprobar | Rechazar) sin cortarse
+        width: 230,
+        minWidth: 230,
+        suppressSizeToFit: true,
         sortable: false,
         filter: false,
         cellRenderer: (params) => (
@@ -814,7 +816,7 @@ export default function Aprobaciones() {
         field: "criticidad",
         headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
-        minWidth: 80,
+        minWidth: 110,
         cellRenderer: (params) => {
           const config = getCriticidadConfig(params.value || "Normal");
           return (
