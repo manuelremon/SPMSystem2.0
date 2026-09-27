@@ -93,7 +93,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
   {
     id: 'planificacion',
     labelKey: 'nav_planificacion',
-    labelFallback: 'Planificacion',
+    labelFallback: 'Planificación',
     visible: canSeePlanner,
     dataTour: 'nav-planificador',
     activePrefixes: ['/planificador', '/mrp', '/forecast', '/planning/demand', '/operations/production', '/operations/kanban'],
@@ -170,7 +170,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
   {
     id: 'logistica',
     labelKey: 'nav_logistica',
-    labelFallback: 'Logistica',
+    labelFallback: 'Logística',
     visible: canSeePlanner,
     activePrefixes: ['/tms', '/fms', '/operations/customs', '/operations/packaging', '/operations/returns', '/operations/warranty'],
     minWidth: 200,

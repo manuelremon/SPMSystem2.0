@@ -8,7 +8,9 @@ import { equivalencias, materiales } from "../services/spm";
 import { useI18n } from "../context/i18n";
 import { useAuthStore } from "../store/authStore";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
-import { useNavigate } from "react-router-dom";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import { formatNumber } from "../utils/formatters";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 // MUI Components
@@ -20,11 +22,10 @@ import {
   Button,
   IconButton,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Alert,
-  Skeleton,
+  Tooltip,
   Stack,
   Chip,
   Dialog,
@@ -37,11 +38,12 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Backdrop,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
@@ -76,8 +78,6 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
           sx={{
             display: "block",
             fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
             color: "text.secondary",
             mb: 0.5,
           }}
@@ -109,8 +109,6 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
           sx={{
             display: "block",
             fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
             color: "text.secondary",
             mb: 0.5,
           }}
@@ -145,7 +143,7 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
           >
             {selected.descripcion}
           </Typography>
-          <IconButton size="small" onClick={onClear} sx={{ color: "grey.400", "&:hover": { color: "grey.600" } }}>
+          <IconButton size="small" onClick={onClear} aria-label={t("common_limpiar", "Limpiar")} sx={{ color: "grey.400", "&:hover": { color: "grey.600" } }}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -160,8 +158,6 @@ function MaterialSearchField({ label, value, onChange, results, loading, onSelec
         sx={{
           display: "block",
           fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
           color: "text.secondary",
           mb: 0.5,
         }}
@@ -285,12 +281,12 @@ function FormModal({
           py: 2,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
           {isEditing
-            ? t("equivalencias_editar_titulo", "Editar Equivalencia")
-            : t("equivalencias_crear_titulo", "Crear Nueva Equivalencia")}
+            ? t("equivalencias_editar_titulo", "Editar equivalencia")
+            : t("equivalencias_crear_titulo", "Nueva equivalencia")}
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: "grey.400" }}>
+        <IconButton onClick={onClose} size="small" aria-label={t("common_cerrar", "Cerrar")} sx={{ color: "grey.400" }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -314,7 +310,7 @@ function FormModal({
               }}
             >
               <MaterialSearchField
-                label={t("equivalencias_material_original", "Material Original")}
+                label={t("equivalencias_material_original", "Material original")}
                 value={isEditing ? formData.codigo_original : searchOriginal}
                 onChange={setSearchOriginal}
                 results={originalResults}
@@ -326,7 +322,7 @@ function FormModal({
                 color="primary"
               />
               <MaterialSearchField
-                label={t("equivalencias_material_equivalente", "Material Equivalente")}
+                label={t("equivalencias_material_equivalente", "Material equivalente")}
                 value={isEditing ? formData.codigo_equivalente : searchEquivalente}
                 onChange={setSearchEquivalente}
                 results={equivalenteResults}
@@ -346,21 +342,19 @@ function FormModal({
                 sx={{
                   display: "block",
                   fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 1,
                 }}
               >
-                {t("equivalencias_compatibilidad", "Porcentaje de Compatibilidad")} *
+                {t("equivalencias_compatibilidad", "Porcentaje de compatibilidad")} *
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Slider
                   value={formData.compatibilidad_pct}
                   onChange={(e, value) => setFormData((prev) => ({ ...prev, compatibilidad_pct: value }))}
                   min={0}
                   max={100}
-                  sx={{ flex: 1 }}
+                  sx={{ flex: 1, minWidth: 160 }}
                 />
                 <TextField
                   size="small"
@@ -388,20 +382,18 @@ function FormModal({
                 sx={{
                   display: "block",
                   fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                {t("equivalencias_descripcion", "Descripcion")}
+                {t("equivalencias_descripcion", "Descripción")}
               </Typography>
               <TextField
                 size="small"
                 fullWidth
                 value={formData.descripcion}
                 onChange={(e) => setFormData((prev) => ({ ...prev, descripcion: e.target.value }))}
-                placeholder={t("equivalencias_desc_placeholder", "Descripcion de la equivalencia...")}
+                placeholder={t("equivalencias_desc_placeholder", "Descripción de la equivalencia...")}
               />
             </Box>
 
@@ -412,8 +404,6 @@ function FormModal({
                 sx={{
                   display: "block",
                   fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
                 }}
@@ -434,7 +424,7 @@ function FormModal({
         </DialogContent>
 
         <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
-          <Button onClick={onClose} disabled={formLoading} color="inherit">
+          <Button onClick={onClose} disabled={formLoading} color="inherit" sx={{ textTransform: "none" }}>
             {t('common_cancelar', 'Cancelar')}
           </Button>
           <Button
@@ -442,8 +432,9 @@ function FormModal({
             variant="contained"
             disabled={formLoading || (!isEditing && (!formData.codigo_original || !formData.codigo_equivalente))}
             startIcon={formLoading ? <CircularProgress size={16} color="inherit" /> : null}
+            sx={{ textTransform: "none" }}
           >
-            {formLoading ? "Guardando..." : isEditing ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
+            {formLoading ? t("common_guardando", "Guardando...") : isEditing ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
           </Button>
         </DialogActions>
       </form>
@@ -470,21 +461,21 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
           color: "error.main",
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          {t('equiv_eliminar_titulo', 'Eliminar Equivalencia')}
+        <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
+          {t('equiv_eliminar_titulo', 'Eliminar equivalencia')}
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: "grey.400" }}>
+        <IconButton onClick={onClose} size="small" aria-label={t("common_cerrar", "Cerrar")} sx={{ color: "grey.400" }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ py: 3 }}>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Eliminar la equivalencia entre{" "}
+          {t("equiv_eliminar_pregunta", "¿Eliminar la equivalencia entre")}{" "}
           <Box component="strong" sx={{ fontFamily: "monospace", color: "primary.main" }}>
             {item.codigo_original}
           </Box>{" "}
-          y{" "}
+          {t("equiv_y", "y")}{" "}
           <Box component="strong" sx={{ fontFamily: "monospace", color: "secondary.main" }}>
             {item.codigo_equivalente}
           </Box>
@@ -493,7 +484,7 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
-        <Button onClick={onClose} disabled={loading} color="inherit">
+        <Button onClick={onClose} disabled={loading} color="inherit" sx={{ textTransform: "none" }}>
           {t('common_cancelar', 'Cancelar')}
         </Button>
         <Button
@@ -502,8 +493,9 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
           color="error"
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
+          sx={{ textTransform: "none" }}
         >
-          {loading ? "Eliminando..." : t('common_eliminar', 'Eliminar')}
+          {loading ? t("common_eliminando", "Eliminando...") : t('common_eliminar', 'Eliminar')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -516,7 +508,6 @@ function DeleteModal({ open, item, onClose, onConfirm, loading }) {
 export default function CatalogoEquivalencias() {
   const { t } = useI18n();
   const { user } = useAuthStore();
-  const navigate = useNavigate();
 
   const canManage =
     user?.rol?.toLowerCase().includes("admin") ||
@@ -535,6 +526,7 @@ export default function CatalogoEquivalencias() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const [success, setSuccess] = useState("");
   const [pagination, setPagination] = useState({ total: 0, offset: 0, hasMore: false });
 
@@ -578,7 +570,7 @@ export default function CatalogoEquivalencias() {
   const loadEquivalencias = useCallback(
     async (offset = 0) => {
       setLoading(true);
-      setError("");
+      setLoadError(false);
 
       try {
         const res = await equivalencias.listar({
@@ -602,8 +594,9 @@ export default function CatalogoEquivalencias() {
           offset: data.pagination?.offset || 0,
           hasMore: data.pagination?.has_more || false,
         });
-      } catch (err) {
-        setError(err.response?.data?.error?.message || err.message);
+      } catch {
+        // Un único estado de error amigable en lugar de banner + "sin datos"
+        setLoadError(true);
         setResults([]);
       } finally {
         setLoading(false);
@@ -695,7 +688,7 @@ export default function CatalogoEquivalencias() {
     () => [
       {
         field: "codigo_original",
-        headerName: t('equiv_material_original', 'Material Original'),
+        headerName: t('equiv_material_original', 'Material original'),
         flex: 1,
         minWidth: 220,
         cellRenderer: (params) => (
@@ -733,7 +726,7 @@ export default function CatalogoEquivalencias() {
       },
       {
         field: "codigo_equivalente",
-        headerName: t('equiv_material_equivalente', 'Material Equivalente'),
+        headerName: t('equiv_material_equivalente', 'Material equivalente'),
         flex: 1,
         minWidth: 220,
         cellRenderer: (params) => (
@@ -768,14 +761,13 @@ export default function CatalogoEquivalencias() {
           const style = tipoStyles[params.value] || { bgcolor: "grey.100", color: "grey.600", label: params.value || "-" };
           return (
             <Chip
-              label={style.label}
+              label={tipoStyles[params.value] ? t(`equiv_tipo_${params.value.toLowerCase()}`, style.label) : style.label}
               size="small"
               sx={{
                 bgcolor: style.bgcolor,
                 color: style.color,
-                fontWeight: 700,
-                fontSize: "0.625rem",
-                textTransform: "uppercase",
+                fontWeight: 600,
+                fontSize: "0.75rem",
               }}
             />
           );
@@ -787,30 +779,31 @@ export default function CatalogoEquivalencias() {
             {
               field: "acciones",
               headerName: t('common_acciones', 'Acciones'),
-              width: 160,
-              maxWidth: 160,
+              width: 110,
+              maxWidth: 110,
               sortable: false,
               filter: false,
               cellRenderer: (params) => (
                 <Stack direction="row" spacing={0.5}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => openEditModal(params.data)}
-                    sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
-                  >
-                    {t('common_editar', 'Editar')}
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    onClick={() => setDeleteDialog({ open: true, item: params.data })}
-                    sx={{ fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", minWidth: "auto", px: 1 }}
-                  >
-                    {t('common_eliminar', 'Eliminar')}
-                  </Button>
+                  <Tooltip title={t('common_editar', 'Editar')}>
+                    <IconButton
+                      size="small"
+                      aria-label={t('common_editar', 'Editar')}
+                      onClick={() => openEditModal(params.data)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={t('common_eliminar', 'Eliminar')}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label={t('common_eliminar', 'Eliminar')}
+                      onClick={() => setDeleteDialog({ open: true, item: params.data })}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
               ),
               cellStyle: { display: "flex", alignItems: "center" },
@@ -850,7 +843,7 @@ export default function CatalogoEquivalencias() {
         resetForm();
         loadEquivalencias(0);
       } catch (err) {
-        setFormError(err.response?.data?.error?.message || err.message);
+        setFormError(err.response?.data?.error?.message || t("equivalencias_error_guardar", "No se pudo guardar la equivalencia. Intenta nuevamente."));
       } finally {
         setFormLoading(false);
       }
@@ -868,7 +861,8 @@ export default function CatalogoEquivalencias() {
       setDeleteDialog({ open: false, item: null });
       loadEquivalencias(0);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      setError(err.response?.data?.error?.message || t("equivalencias_error_eliminar", "No se pudo eliminar la equivalencia. Intenta nuevamente."));
+      setDeleteDialog({ open: false, item: null });
     } finally {
       setFormLoading(false);
     }
@@ -897,120 +891,87 @@ export default function CatalogoEquivalencias() {
   const hasFilters = searchCodigo || searchDesc || searchTipo;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              sx={{
-                color: "text.disabled",
-                "&:hover": {
-                  color: "text.secondary",
-                  bgcolor: "background.paper",
-                },
-              }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}
-              >
-                {t("equivalencias_titulo", "Catalogo de Materiales Alternativos")}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {t("equivalencias_subtitulo", "Gestiona equivalencias y materiales sustitutos")}
-              </Typography>
-            </Box>
-          </Box>
-          {canManage && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
-              {t('equiv_nueva', 'Nueva Equivalencia')}
-            </Button>
-          )}
-        </Box>
-
+    <PageLayout
+      title={t("equivalencias_titulo", "Catálogo de materiales alternativos")}
+      subtitle={t("equivalencias_subtitulo", "Gestiona equivalencias y materiales sustitutos")}
+      actions={canManage ? (
+        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCreateModal} sx={{ textTransform: "none" }}>
+          {t('equiv_nueva', 'Nueva equivalencia')}
+        </Button>
+      ) : null}
+    >
         {/* Alerts */}
         {error && (
-          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+          <Alert severity="error" onClose={() => setError("")}>
             {error}
           </Alert>
         )}
         {success && (
-          <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2 }}>
+          <Alert severity="success" onClose={() => setSuccess("")}>
             {success}
           </Alert>
         )}
 
         {/* Search Card */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", p: 2.5, mb: 3 }}>
+        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", p: { xs: 2, md: 2.5 } }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
             {/* Codigo SAP */}
-            <Box sx={{ minWidth: 150 }}>
+            <Box sx={{ minWidth: 150, flex: { xs: 1, md: "0 0 auto" } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
                   fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                {t("equivalencias_codigo", "Codigo SAP")}
+                {t("equivalencias_codigo", "Código SAP")}
               </Typography>
               <TextField
                 size="small"
                 fullWidth
                 value={searchCodigo}
                 onChange={(e) => setSearchCodigo(e.target.value)}
-                placeholder="Ej: 100012345"
+                placeholder={t('materials_catalogo_codigo_example', 'Ej: 100012345')}
                 InputProps={{ sx: { fontFamily: "monospace" } }}
               />
             </Box>
 
             {/* Descripcion */}
-            <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
                   fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                {t("equivalencias_descripcion", "Descripcion")}
+                {t("equivalencias_descripcion", "Descripción")}
               </Typography>
               <TextField
                 size="small"
                 fullWidth
                 value={searchDesc}
                 onChange={(e) => setSearchDesc(e.target.value)}
-                placeholder={t("equivalencias_buscar_desc", "Buscar por descripcion...")}
+                placeholder={t("equivalencias_buscar_desc", "Buscar por descripción...")}
               />
             </Box>
 
             {/* Tipo Equivalencia */}
-            <Box sx={{ minWidth: 180 }}>
+            <Box sx={{ minWidth: 180, flex: { xs: 1, md: "0 0 auto" } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
                   fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                {t("equivalencias_tipo", "Tipo de Equivalencia")}
+                {t("equivalencias_tipo", "Tipo de equivalencia")}
               </Typography>
               <FormControl size="small" fullWidth>
                 <Select
@@ -1032,7 +993,7 @@ export default function CatalogoEquivalencias() {
             {!loading && hasFilters && (
               <Stack direction="row" spacing={1} alignItems="center">
                 <Chip
-                  label={`${pagination.total} ${t("common_resultados", "resultados")}`}
+                  label={`${formatNumber(pagination.total)} ${t("common_resultados", "resultados")}`}
                   size="small"
                   sx={{
                     bgcolor: pagination.total > 0 ? "primary.lighter" : "grey.100",
@@ -1046,6 +1007,7 @@ export default function CatalogoEquivalencias() {
                   color="error"
                   startIcon={<ClearIcon />}
                   onClick={clearFilters}
+                  sx={{ textTransform: "none" }}
                 >
                   {t("common_limpiar", "Limpiar")}
                 </Button>
@@ -1056,7 +1018,17 @@ export default function CatalogoEquivalencias() {
 
         {/* DataGrid Card */}
         <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", height: 550 }}>
-          {results.length === 0 && !loading ? (
+          {loadError && !loading ? (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+              <EmptyState
+                icon={<ErrorOutlineIcon sx={{ fontSize: 32, color: "error.main" }} />}
+                title={t("equivalencias_error_carga", "No pudimos cargar las equivalencias")}
+                description={t("equivalencias_error_carga_desc", "Ocurrió un error al consultar la información. Intenta nuevamente en unos minutos.")}
+                action={t("common_reintentar", "Reintentar")}
+                onAction={() => loadEquivalencias(0)}
+              />
+            </Box>
+          ) : results.length === 0 && !loading ? (
             <Box
               sx={{
                 display: "flex",
@@ -1070,11 +1042,11 @@ export default function CatalogoEquivalencias() {
               <SwapHorizIcon sx={{ fontSize: 48, color: "grey.300", mb: 2 }} />
               <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mb: 2 }}>
                 {hasFilters
-                  ? t("equivalencias_sin_resultados", "No se encontraron equivalencias con los criterios de busqueda")
+                  ? t("equivalencias_sin_resultados", "No se encontraron equivalencias con los criterios de búsqueda")
                   : t("equivalencias_vacio", "No hay equivalencias registradas")}
               </Typography>
               {canManage && !hasFilters && (
-                <Button variant="outlined" onClick={openCreateModal}>
+                <Button variant="outlined" size="small" onClick={openCreateModal} sx={{ textTransform: "none" }}>
                   {t('equiv_crear_primera', 'Crear la primera equivalencia')}
                 </Button>
               )}
@@ -1142,7 +1114,6 @@ export default function CatalogoEquivalencias() {
           onConfirm={handleDelete}
           loading={formLoading}
         />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

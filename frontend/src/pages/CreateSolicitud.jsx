@@ -9,6 +9,7 @@ import { solicitudes } from '../services/spm';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useI18n } from '../context/i18n';
+import PageLayout from '../components/ui/PageLayout';
 
 // MUI Components
 import Box from '@mui/material/Box';
@@ -16,7 +17,6 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
@@ -28,7 +28,6 @@ import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 
 // MUI Icons
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CloseIcon from '@mui/icons-material/Close';
@@ -136,7 +135,8 @@ export default function CreateSolicitud() {
         }
         return next;
       });
-    } catch (err) {
+    } catch {
+      // Sin datos del usuario se deja el formulario sin preselección
     }
   };
 
@@ -232,15 +232,12 @@ export default function CreateSolicitud() {
   // Loading skeleton
   if (loadingCatalogos) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 3 }} aria-busy="true" aria-label={t('create_loading', 'Cargando formulario de solicitud')}>
-        <Box sx={{ maxWidth: 1024, mx: 'auto' }}>
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-            <Skeleton variant="circular" width={40} height={40} />
-            <Box>
-              <Skeleton variant="text" width={200} height={32} />
-              <Skeleton variant="text" width={300} height={20} />
-            </Box>
-          </Stack>
+      <PageLayout
+        maxWidth={1100}
+        title={t('create_title', 'Crear nueva solicitud')}
+        subtitle={t('create_subtitle', 'Ingresa los datos de la solicitud de materiales')}
+      >
+        <Box aria-busy="true" aria-label={t('create_loading', 'Cargando formulario de solicitud')}>
           <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
             <Box sx={{ p: 3 }}>
               <Skeleton variant="text" width={150} height={24} sx={{ mb: 2 }} />
@@ -261,56 +258,30 @@ export default function CreateSolicitud() {
             </Box>
           </Paper>
         </Box>
-      </Box>
+      </PageLayout>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ maxWidth: 1024, mx: 'auto', px: 3, py: 3 }}>
-        {/* Header */}
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            aria-label={t('common_volver', 'Volver')}
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                bgcolor: 'background.paper',
-                borderColor: 'divider',
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {t('create_title', 'Crear nueva solicitud')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('create_subtitle', 'Ingresa los datos de la solicitud de materiales')}
-            </Typography>
-          </Box>
-        </Stack>
-
+    <PageLayout
+      maxWidth={1100}
+      title={t('create_title', 'Crear nueva solicitud')}
+      subtitle={t('create_subtitle', 'Ingresa los datos de la solicitud de materiales')}
+    >
         {/* Error Alert */}
-        <Box aria-live="polite">
-          {error && (
-            <Alert
-              severity="error"
-              onClose={() => setError('')}
-              sx={{ mb: 3 }}
-            >
+        {error && (
+          <Box aria-live="polite">
+            <Alert severity="error" onClose={() => setError('')}>
               {error}
             </Alert>
-          )}
-        </Box>
+          </Box>
+        )}
 
         {/* Form Card */}
         <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
           <Box component="form" onSubmit={onSubmit} aria-label={t('create_form_label', 'Formulario de nueva solicitud')}>
             {/* Section 1: Location */}
-            <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
                 component="h2"
@@ -380,7 +351,7 @@ export default function CreateSolicitud() {
             </Box>
 
             {/* Section 2: Details */}
-            <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
                 component="h2"
@@ -398,7 +369,7 @@ export default function CreateSolicitud() {
                   value={form.centro_costos}
                   onChange={onChange}
                   required
-                  placeholder="Ej: CC001"
+                  placeholder={t('create_centro_costos_placeholder', 'Ej.: CC001')}
                 />
 
                 <FormControl fullWidth size="small">
@@ -434,14 +405,14 @@ export default function CreateSolicitud() {
                   sx={{ mt: 2 }}
                 >
                   {form.criticidad === 'Critica'
-                    ? 'Las solicitudes críticas tienen prioridad máxima y serán notificadas inmediatamente.'
-                    : 'Las solicitudes de alta prioridad serán procesadas con preferencia.'}
+                    ? t('create_critica_aviso', 'Las solicitudes críticas tienen prioridad máxima y se notifican de inmediato.')
+                    : t('create_alta_aviso', 'Las solicitudes de prioridad alta se procesan con preferencia.')}
                 </Alert>
               )}
             </Box>
 
             {/* Section 3: Additional Info */}
-            <Box sx={{ px: 3, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 2.5, borderBottom: 1, borderColor: 'divider' }}>
               <Typography
                 variant="overline"
                 component="h2"
@@ -544,17 +515,20 @@ export default function CreateSolicitud() {
             {/* Actions */}
             <Box
               sx={{
-                px: 3,
+                px: { xs: 2, sm: 3 },
                 py: 2,
                 bgcolor: 'grey.50',
                 display: 'flex',
+                flexDirection: { xs: 'column-reverse', sm: 'row' },
                 justifyContent: 'flex-end',
-                gap: 2,
+                gap: { xs: 1.5, sm: 2 },
+                '& .MuiButton-root': { textTransform: 'none', minHeight: 40 },
               }}
             >
               <Button
                 variant="outlined"
                 onClick={handleCancel}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 {t('common_cancelar', 'Cancelar')}
               </Button>
@@ -563,6 +537,7 @@ export default function CreateSolicitud() {
                 variant="contained"
                 disabled={submitting}
                 startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 {submitting
                   ? t('create_submitting', 'Creando...')
@@ -571,7 +546,6 @@ export default function CreateSolicitud() {
             </Box>
           </Box>
         </Paper>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

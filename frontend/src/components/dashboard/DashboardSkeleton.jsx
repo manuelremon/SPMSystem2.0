@@ -108,13 +108,13 @@ export const DashboardSkeleton = () => {
 
             {/* 4. Second Row (Charts/Details) */}
             <Grid container spacing={3}>
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                     <Paper elevation={0} sx={{ p: 2, height: 400, border: 1, borderColor: 'divider' }}>
                         <Skeleton variant="text" width={200} height={32} sx={{ mb: 2 }} />
                         <Skeleton variant="rounded" width="100%" height={300} />
                     </Paper>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <Paper elevation={0} sx={{ p: 2, height: 400, border: 1, borderColor: 'divider' }}>
                         <Skeleton variant="text" width={150} height={32} sx={{ mb: 2 }} />
                         <Stack spacing={2}>

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import api from "../../../services/api";
+import { formatNumber } from "../../../utils/formatters";
 
 export function useAdminDatabase() {
   // Estado general
@@ -377,8 +378,9 @@ export function useAdminDatabase() {
 
 // Helper para formatear bytes
 export function formatSize(mb) {
-  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
-  return `${mb.toFixed(2)} MB`;
+  const value = Number(mb) || 0;
+  if (value >= 1024) return `${formatNumber(value / 1024, 2)} GB`;
+  return `${formatNumber(value, 2)} MB`;
 }
 
 // Helper para obtener tipo de input segun tipo de columna

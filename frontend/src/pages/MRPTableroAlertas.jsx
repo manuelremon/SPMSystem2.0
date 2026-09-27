@@ -4,14 +4,14 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import useToast from "../hooks/useToast";
 import api from "../services/api";
-import { exportToExcel } from "../utils/formatters";
+import { formatNumber } from "../utils/formatters";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
-import { SPMGauge } from "../components/ui/SPMChartJS";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -19,27 +19,18 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-import Alert from "@mui/material/Alert";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import ListItemText from "@mui/material/ListItemText";
 import Slider from "@mui/material/Slider";
 import Menu from "@mui/material/Menu";
 import Divider from "@mui/material/Divider";
-import CircularProgress from "@mui/material/CircularProgress";
+import LinearProgress from "@mui/material/LinearProgress";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DownloadIcon from "@mui/icons-material/Download";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CheckIcon from "@mui/icons-material/Check";
 import FilterListOffIcon from "@mui/icons-material/FilterListOff";
 
 
@@ -47,24 +38,34 @@ import FilterListOffIcon from "@mui/icons-material/FilterListOff";
    Constants
 ───────────────────────────────────────────────────────────── */
 const ESTADOS_OPTIONS = [
-  { value: "quiebre", label: "Quiebre de Stock" },
-  { value: "bajo punto", label: "Bajo Punto de Pedido" },
-  { value: "bajo stock", label: "Bajo Stock de Seguridad" },
-  { value: "exceso", label: "Exceso/Sobrestock" },
+  { value: "quiebre", label: "Quiebre de stock" },
+  { value: "bajo punto", label: "Bajo punto de pedido" },
+  { value: "bajo stock", label: "Bajo stock de seguridad" },
+  { value: "exceso", label: "Exceso / sobrestock" },
   { value: "normal", label: "Normal" },
 ];
 
+const numFormatter = (params) => formatNumber(Math.round(params.value || 0));
+
+/** "SOBRESTOCK CRÍTICO" -> "Sobrestock crítico" */
+function toSentenceCase(value) {
+  if (!value || typeof value !== "string") return value;
+  const lower = value.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
 const estadoColors = {
-  danger: { color: "error.dark", bg: "error.lighter" },
-  warning: { color: "warning.dark", bg: "warning.lighter" },
-  success: { color: "success.dark", bg: "success.lighter" },
-  info: { color: "info.dark", bg: "info.lighter" },
+  danger: { color: "var(--danger)" },
+  warning: { color: "var(--warning)" },
+  success: { color: "var(--success)" },
+  info: { color: "var(--info)" },
 };
 
 /* ─────────────────────────────────────────────────────────────
    Multi-Select Dropdown Component
 ───────────────────────────────────────────────────────────── */
 function MultiSelect({ label, options, selected, onChange, keyField = "codigo", labelField = "nombre" }) {
+  const { t } = useI18n();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -88,21 +89,18 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
 
   const displayText =
     selected.length === 0
-      ? "Ninguno"
+      ? t("mrp_ninguno", "Ninguno")
       : selected.length === 1
       ? selected[0]
-      : `${selected.length} seleccionados`;
+      : `${selected.length} ${t("mrp_seleccionados", "seleccionados")}`;
 
   return (
-    <Box sx={{ minWidth: 150 }}>
+    <Box sx={{ minWidth: { xs: "100%", sm: 150 } }}>
       <Typography
         variant="caption"
         sx={{
           display: "block",
-          fontSize: "var(--text-2xs)",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
+          fontWeight: 600,
           color: "text.secondary",
           mb: 0.5,
         }}
@@ -158,7 +156,7 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
             sx={{ p: 0, mr: 1 }}
           />
           <ListItemText
-            primary="Seleccionar todos"
+            primary={t("common_seleccionar_todos", "Seleccionar todos")}
             primaryTypographyProps={{
               fontSize: "var(--text-sm)",
               fontWeight: 600,
@@ -199,69 +197,54 @@ function MultiSelect({ label, options, selected, onChange, keyField = "codigo", 
 /* ─────────────────────────────────────────────────────────────
    Summary Card Component
 ───────────────────────────────────────────────────────────── */
-function SummaryCard({ titulo, valor, color, pct, showChart, total }) {
-  const colorMap = {
-    "var(--primary-dark)": "primary.main",
-    "var(--danger)": "error.dark",
-    "var(--info)": "secondary.main",
-    "var(--warning)": "warning.dark",
-    "var(--warning-light)": "warning.main",
-    "var(--success)": "success.dark",
-  };
-
-  const muiColor = colorMap[color] || "text.primary";
-
+function SummaryCard({ titulo, valor, color, pct, showChart }) {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
-        flex: 1,
-        textAlign: "center",
-        py: 1.5,
-        px: 1,
-        borderRight: 1,
+        flex: { xs: "1 1 45%", sm: "1 1 30%", md: 1 },
+        minWidth: 0,
+        py: 2,
+        px: 2,
+        borderRight: { md: 1 },
+        borderBottom: { xs: 1, md: 0 },
         borderColor: "divider",
         "&:last-child": {
           borderRight: 0,
         },
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
+        gap: 0.5,
       }}
     >
-      <Typography
-        sx={{
-          fontSize: "1.875rem",
-          fontWeight: 700,
-          color: muiColor,
-        }}
-      >
-        {valor}
-      </Typography>
-      <Typography
-        sx={{
-          fontSize: "var(--text-xs)",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          color: "text.secondary",
-          letterSpacing: "0.05em",
-          mb: 0.5,
-        }}
-      >
+      <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
         {titulo}
       </Typography>
-      {showChart && (
-        <Box sx={{ width: 60, height: 40, mt: 0.5 }}>
-          <SPMGauge
-            value={pct}
-            max={100}
-            height={40}
-            width={60}
-            color={color}
-            unit="%"
-            showText={true}
+      <Typography sx={{ fontSize: "1.75rem", fontWeight: 700, lineHeight: 1.2, color }}>
+        {formatNumber(valor)}
+      </Typography>
+      {showChart ? (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(100, Math.max(0, pct))}
+            aria-label={titulo}
+            sx={{
+              flex: 1,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: "var(--bg-soft)",
+              "& .MuiLinearProgress-bar": { backgroundColor: color, borderRadius: 3 },
+            }}
           />
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, minWidth: 36, textAlign: "right" }}>
+            {formatNumber(pct)}%
+          </Typography>
         </Box>
+      ) : (
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {t("mrp_alertas_materiales_analizados", "Materiales analizados")}
+        </Typography>
       )}
     </Box>
   );
@@ -272,7 +255,6 @@ function SummaryCard({ titulo, valor, color, pct, showChart, total }) {
 ───────────────────────────────────────────────────────────── */
 export default function MRPTableroAlertas() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -321,7 +303,8 @@ export default function MRPTableroAlertas() {
             estados: ESTADOS_OPTIONS.map((e) => e.value),
           });
         }
-      } catch (err) {
+      } catch {
+        // Sin catálogos: los filtros quedan vacíos
       }
     };
     fetchCatalogos();
@@ -369,14 +352,14 @@ export default function MRPTableroAlertas() {
         setAlertas(res.data.data || []);
         setResumen(res.data.resumen || {});
       } else {
-        setError(res.data?.error?.message || "Error al cargar alertas");
+        setError(t("mrp_alertas_error_carga", "No se pudieron cargar las alertas MRP. Intenta nuevamente."));
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error de conexion");
+      setError(t("mrp_alertas_error_carga", "No se pudieron cargar las alertas MRP. Intenta nuevamente."));
     } finally {
       setLoading(false);
     }
-  }, [filtros, catalogos]);
+  }, [filtros, catalogos, t]);
 
   useEffect(() => {
     fetchAlertas();
@@ -393,33 +376,6 @@ export default function MRPTableroAlertas() {
     );
   }, [alertas, searchTerm]);
 
-  // Exportar a XLSX
-  const handleExportXLSX = useCallback(() => {
-    if (filteredAlertas.length === 0) return;
-    setExporting(true);
-
-    const dataToExport = filteredAlertas.map((row) => ({
-      Material: row.codigo || "",
-      Descripcion: row.descripcion || "",
-      "Demanda Est. Anual": Math.round(row.demanda_estimada_anual || 0),
-      "Cons. Prom. Anual": Math.round(row.consumo_promedio_anual || 0),
-      "Stock Seguridad": row.stock_seguridad || 0,
-      "Punto Pedido": row.punto_pedido || 0,
-      "Stock Maximo": row.stock_maximo || 0,
-      "Stock Actual": row.stock_actual || 0,
-      "Pedidos en Curso": row.pedidos_en_curso || 0,
-      "Rotacion %": Math.round(row.rotacion_pct || 0),
-      Estado: row.estado || "",
-      Sugerencia: row.sugerencia || "",
-    }));
-
-    try {
-      exportToExcel(dataToExport, `alertas_mrp_${new Date().toISOString().split("T")[0]}.xls`);
-    } finally {
-      setExporting(false);
-    }
-  }, [filteredAlertas]);
-
   // Exportar a PDF
   const handleExportPDF = useCallback(() => {
     if (filteredAlertas.length === 0) return;
@@ -427,7 +383,7 @@ export default function MRPTableroAlertas() {
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast.warning("Por favor permite ventanas emergentes para exportar a PDF");
+      toast.warning(t("mrp_alertas_permitir_popups", "Permite las ventanas emergentes para exportar a PDF"));
       setExporting(false);
       return;
     }
@@ -448,9 +404,9 @@ export default function MRPTableroAlertas() {
 
     const cardsData = [
       { titulo: "Total", valor: resumen.total || 0, color: pdfColors.primaryDark },
-      { titulo: "Quiebre de Stock", valor: resumen.quiebre_stock || 0, color: pdfColors.danger },
-      { titulo: "Bajo Stock Seg.", valor: resumen.bajo_stock_seguridad || 0, color: pdfColors.info },
-      { titulo: "Bajo Punto Pedido", valor: resumen.bajo_punto_pedido || 0, color: pdfColors.warning },
+      { titulo: "Quiebre de stock", valor: resumen.quiebre_stock || 0, color: pdfColors.danger },
+      { titulo: "Bajo stock de seguridad", valor: resumen.bajo_stock_seguridad || 0, color: pdfColors.info },
+      { titulo: "Bajo punto de pedido", valor: resumen.bajo_punto_pedido || 0, color: pdfColors.warning },
       { titulo: "Sobrestock", valor: resumen.sobrestock || 0, color: pdfColors.warningLight },
       { titulo: "Normal", valor: resumen.normal || 0, color: pdfColors.success },
     ];
@@ -468,14 +424,14 @@ export default function MRPTableroAlertas() {
 
     const headers = [
       "Material",
-      "Descripcion",
+      "Descripción",
       "Demanda",
-      "Cons. Prom.",
+      "Cons. prom.",
       "SS",
       "PP",
       "SM",
       "Stock",
-      "Ped. Curso",
+      "Ped. curso",
       "Rot. %",
       "Estado",
       "Sugerencia",
@@ -524,7 +480,7 @@ export default function MRPTableroAlertas() {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Tablero de Alertas MRP</title>
+        <title>Tablero de alertas MRP</title>
         <style>
           @page { size: landscape; margin: 10mm; }
           @media print {
@@ -539,8 +495,8 @@ export default function MRPTableroAlertas() {
         </style>
       </head>
       <body>
-        <h1>Tablero de Alertas MRP</h1>
-        <div class="fecha">Fecha de exportacion: ${new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+        <h1>Tablero de alertas MRP</h1>
+        <div class="fecha">Fecha de exportación: ${new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
         <div class="cards-container">${cardsHtml}</div>
         <table>
           <thead><tr>${headerCells}</tr></thead>
@@ -554,65 +510,76 @@ export default function MRPTableroAlertas() {
     printWindow.document.write(html);
     printWindow.document.close();
     setExporting(false);
-  }, [filteredAlertas, resumen]);
+  }, [filteredAlertas, resumen, toast, t]);
 
   // Columnas del DataGrid - AG Grid format
   const columnDefs = useMemo(
     () => [
       {
         field: "codigo",
-        headerName: "Material",
+        headerName: t("mrp_col_material", "Material"),
         flex: 0.7,
-        minWidth: 100,
+        minWidth: 120,
       },
       {
         field: "descripcion",
-        headerName: "Descripcion",
+        headerName: t("mrp_col_descripcion", "Descripción"),
         flex: 1.5,
-        minWidth: 200,
+        minWidth: 220,
+        tooltipField: "descripcion",
       },
       {
         field: "demanda_estimada_anual",
-        headerName: "Demanda",
+        headerName: t("mrp_col_demanda", "Demanda"),
+        headerTooltip: t("mrp_col_demanda_tooltip", "Demanda estimada anual"),
         flex: 0.5,
-        minWidth: 70,
-        headerTooltip: "Demanda Estimada Anual",
-        valueFormatter: (params) => Math.round(params.value || 0).toLocaleString("es-AR"),
+        minWidth: 110,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "consumo_promedio_anual",
-        headerName: "Cons. Prom.",
-        flex: 0.6,
-        minWidth: 80,
-        valueFormatter: (params) => Math.round(params.value || 0).toLocaleString("es-AR"),
+        headerName: t("mrp_col_consumo", "Consumo"),
+        headerTooltip: t("mrp_col_consumo_tooltip", "Consumo promedio anual"),
+        flex: 0.5,
+        minWidth: 110,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "stock_seguridad",
-        headerName: "SS",
+        headerName: t("mrp_col_ss", "SS"),
+        headerTooltip: t("mrp_col_ss_tooltip", "Stock de seguridad"),
         flex: 0.4,
-        minWidth: 50,
-        headerTooltip: "Stock de Seguridad",
+        minWidth: 80,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "punto_pedido",
-        headerName: "PP",
+        headerName: t("mrp_col_pp", "PP"),
+        headerTooltip: t("mrp_col_pp_tooltip", "Punto de pedido"),
         flex: 0.4,
-        minWidth: 50,
-        headerTooltip: "Punto de Pedido",
+        minWidth: 80,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "stock_maximo",
-        headerName: "SM",
+        headerName: t("mrp_col_sm", "SM"),
+        headerTooltip: t("mrp_col_sm_tooltip", "Stock máximo"),
         flex: 0.4,
-        minWidth: 50,
-        headerTooltip: "Stock Maximo",
+        minWidth: 80,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "stock_actual",
-        headerName: "Stock",
+        headerName: t("mrp_col_stock", "Stock"),
+        headerTooltip: t("mrp_col_stock_tooltip", "Stock actual"),
         flex: 0.4,
-        minWidth: 60,
-        headerTooltip: "Stock HOY",
+        minWidth: 90,
+        type: "rightAligned",
         cellRenderer: (params) => {
           const stock = params.value || 0;
           const pp = params.data.punto_pedido || 0;
@@ -620,60 +587,62 @@ export default function MRPTableroAlertas() {
           if (stock <= 0) color = "error.main";
           else if (stock < pp) color = "warning.main";
           return (
-            <Typography sx={{ fontWeight: 600, color }}>
-              {stock}
+            <Typography component="span" sx={{ fontWeight: 600, color, fontSize: "inherit" }}>
+              {formatNumber(stock)}
             </Typography>
           );
         },
       },
       {
         field: "pedidos_en_curso",
-        headerName: "Ped. Curso",
+        headerName: t("mrp_col_pedidos", "En curso"),
+        headerTooltip: t("mrp_col_pedidos_tooltip", "Pedidos en curso"),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 100,
+        type: "rightAligned",
+        valueFormatter: numFormatter,
       },
       {
         field: "rotacion_pct",
-        headerName: "Rotacion",
+        headerName: t("mrp_col_rotacion", "Rotación"),
+        headerTooltip: t("mrp_col_rotacion_tooltip", "Rotación anual (%)"),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 110,
+        type: "rightAligned",
         cellRenderer: (params) => {
           const rot = Math.round(params.value || 0);
           let color = "error.main";
           if (rot > 300) color = "success.main";
           else if (rot > 100) color = "warning.main";
           return (
-            <Typography sx={{ fontWeight: 600, color }}>
-              {rot}%
+            <Typography component="span" sx={{ fontWeight: 600, color, fontSize: "inherit" }}>
+              {formatNumber(rot)}%
             </Typography>
           );
         },
       },
       {
         field: "estado",
-        headerName: "Estado",
-        flex: 0.6,
-        minWidth: 120,
+        headerName: t("mrp_col_estado", "Estado"),
+        flex: 0.8,
+        minWidth: 180,
+        valueFormatter: (params) => toSentenceCase(params.value) || "-",
         cellRenderer: (params) => {
           const clase = params.data.estado_clase || "info";
           const colors = estadoColors[clase] || estadoColors.info;
           return (
-            <Typography
-              sx={{
-                fontSize: "var(--text-xs)",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                color: colors.color,
-              }}
-            >
-              {params.value || "-"}
-            </Typography>
+            <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+              <Box component="span" sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: colors.color, flexShrink: 0 }} />
+              <Typography component="span" sx={{ fontSize: "var(--text-xs)", fontWeight: 600, color: colors.color }}>
+                {toSentenceCase(params.value) || "-"}
+              </Typography>
+            </Box>
           );
         },
       },
       {
         field: "sugerencia",
-        headerName: "Sugerencia",
+        headerName: t("mrp_col_sugerencia", "Sugerencia"),
         flex: 1.5,
         minWidth: 250,
         wrapText: true,
@@ -682,113 +651,44 @@ export default function MRPTableroAlertas() {
         cellStyle: { whiteSpace: "normal", lineHeight: "1.4", paddingTop: 4, paddingBottom: 4 },
       },
     ],
-    []
+    [t]
   );
 
   // Summary cards data
   const summaryCards = [
-    { titulo: "Total", valor: resumen.total || 0, color: "var(--primary-dark)", showChart: false },
-    { titulo: "Quiebre de Stock", valor: resumen.quiebre_stock || 0, color: "var(--danger)", showChart: true },
-    { titulo: "Bajo Stock Seg.", valor: resumen.bajo_stock_seguridad || 0, color: "var(--info)", showChart: true },
-    { titulo: "Bajo Punto Pedido", valor: resumen.bajo_punto_pedido || 0, color: "var(--warning)", showChart: true },
-    { titulo: "Sobrestock", valor: resumen.sobrestock || 0, color: "var(--warning-light)", showChart: true },
-    { titulo: "Normal", valor: resumen.normal || 0, color: "var(--success)", showChart: true },
+    { titulo: t("mrp_alertas_card_total", "Total"), valor: resumen.total || 0, color: "var(--primary)", showChart: false },
+    { titulo: t("mrp_alertas_card_quiebre", "Quiebre de stock"), valor: resumen.quiebre_stock || 0, color: "var(--danger)", showChart: true },
+    { titulo: t("mrp_alertas_card_bajo_ss", "Bajo stock de seguridad"), valor: resumen.bajo_stock_seguridad || 0, color: "var(--info)", showChart: true },
+    { titulo: t("mrp_alertas_card_bajo_pp", "Bajo punto de pedido"), valor: resumen.bajo_punto_pedido || 0, color: "var(--warning)", showChart: true },
+    { titulo: t("mrp_alertas_card_sobrestock", "Sobrestock"), valor: resumen.sobrestock || 0, color: "var(--warning)", showChart: true },
+    { titulo: t("mrp_alertas_card_normal", "Normal"), valor: resumen.normal || 0, color: "var(--success)", showChart: true },
   ];
 
   const total = resumen.total || 1;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-        {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 3 }}
+    <PageLayout
+      title={t("mrp_alertas_titulo", "Tablero de alertas MRP")}
+      actions={
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={handleExportPDF}
+          disabled={loading || exporting || filteredAlertas.length === 0}
+          startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+          sx={{ textTransform: "none" }}
         >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              sx={{
-                color: "text.secondary",
-                border: 1,
-                borderColor: "transparent",
-                "&:hover": {
-                  color: "text.primary",
-                  bgcolor: "background.paper",
-                  borderColor: "divider",
-                },
-              }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                color: "text.primary",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {t("mrp_alertas_titulo", "Tablero de Alertas MRP")}
-            </Typography>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={handleExportXLSX}
-              disabled={loading || exporting || filteredAlertas.length === 0}
-              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                color: "success.dark",
-                borderColor: "success.light",
-                "&:hover": {
-                  bgcolor: "success.lighter",
-                  borderColor: "success.light",
-                },
-                "&:disabled": {
-                  opacity: 0.5,
-                },
-              }}
-            >
-              XLSX
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={handleExportPDF}
-              disabled={loading || exporting || filteredAlertas.length === 0}
-              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                color: "error.dark",
-                borderColor: "error.light",
-                "&:hover": {
-                  bgcolor: "error.lighter",
-                  borderColor: "error.light",
-                },
-                "&:disabled": {
-                  opacity: 0.5,
-                },
-              }}
-            >
-              PDF
-            </Button>
-          </Stack>
-        </Stack>
+          {t("mrp_alertas_exportar_pdf", "Exportar PDF")}
+        </Button>
+      }
+    >
 
         {/* Summary Cards */}
         <Paper
           elevation={0}
           sx={{
             display: "flex",
-            mb: 3,
+            flexWrap: { xs: "wrap", md: "nowrap" },
             overflow: "hidden",
             border: 1,
             borderColor: "divider",
@@ -802,7 +702,6 @@ export default function MRPTableroAlertas() {
               color={card.color}
               showChart={card.showChart}
               pct={card.showChart ? Math.round((card.valor / total) * 100) : 0}
-              total={total}
             />
           ))}
         </Paper>
@@ -812,7 +711,6 @@ export default function MRPTableroAlertas() {
           elevation={0}
           sx={{
             p: 2,
-            mb: 3,
             border: 1,
             borderColor: "divider",
           }}
@@ -821,27 +719,24 @@ export default function MRPTableroAlertas() {
             direction="row"
             flexWrap="wrap"
             alignItems="flex-end"
-            spacing={2}
+            gap={2}
           >
             {/* Date Range Slider */}
-            <Box sx={{ minWidth: 300 }}>
+            <Box sx={{ width: { xs: "100%", sm: 300 } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontSize: "var(--text-2xs)",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontWeight: 600,
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                Desde{" "}
+                {t("mrp_rango_desde", "Desde")}{" "}
                 <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
                   {sliderAFecha(rangoFechasLocal[0])}
                 </Box>{" "}
-                hasta{" "}
+                {t("mrp_rango_hasta", "hasta")}{" "}
                 <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>
                   {sliderAFecha(rangoFechasLocal[1])}
                 </Box>
@@ -861,20 +756,20 @@ export default function MRPTableroAlertas() {
               />
               <Stack direction="row" justifyContent="space-between">
                 <Typography sx={{ fontSize: "var(--text-2xs)", color: "text.disabled" }}>
-                  Hace 1 ano
+                  {t("mrp_hace_un_anio", "Hace 1 año")}
                 </Typography>
                 <Typography sx={{ fontSize: "var(--text-2xs)", color: "text.disabled" }}>
-                  Hoy
+                  {t("mrp_hoy", "Hoy")}
                 </Typography>
               </Stack>
             </Box>
 
             {/* Separator */}
-            <Divider orientation="vertical" flexItem sx={{ height: 48, my: "auto" }} />
+            <Divider orientation="vertical" flexItem sx={{ height: 48, my: "auto", display: { xs: "none", md: "block" } }} />
 
             {/* Centro */}
             <MultiSelect
-              label="Centro"
+              label={t("mrp_filtro_centro", "Centro")}
               options={catalogos.centros || []}
               selected={filtros.centros}
               onChange={(val) => setFiltros((prev) => ({ ...prev, centros: val }))}
@@ -884,7 +779,7 @@ export default function MRPTableroAlertas() {
 
             {/* Almacen */}
             <MultiSelect
-              label="Almacen"
+              label={t("mrp_filtro_almacen", "Almacén")}
               options={catalogos.almacenes || []}
               selected={filtros.almacenes}
               onChange={(val) => setFiltros((prev) => ({ ...prev, almacenes: val }))}
@@ -894,7 +789,7 @@ export default function MRPTableroAlertas() {
 
             {/* Sector */}
             <MultiSelect
-              label="Sector"
+              label={t("mrp_filtro_sector", "Sector")}
               options={catalogos.sectores || []}
               selected={filtros.sectores}
               onChange={(val) => setFiltros((prev) => ({ ...prev, sectores: val }))}
@@ -904,7 +799,7 @@ export default function MRPTableroAlertas() {
 
             {/* Estado */}
             <MultiSelect
-              label="Estado"
+              label={t("mrp_filtro_estado", "Estado")}
               options={ESTADOS_OPTIONS}
               selected={filtros.estados}
               onChange={(val) => setFiltros((prev) => ({ ...prev, estados: val }))}
@@ -913,26 +808,24 @@ export default function MRPTableroAlertas() {
             />
 
             {/* Search */}
-            <Box sx={{ minWidth: 140 }}>
+            <Box sx={{ minWidth: { xs: "100%", sm: 180 } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontSize: "var(--text-2xs)",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontWeight: 600,
                   color: "text.secondary",
                   mb: 0.5,
                 }}
               >
-                Buscar
+                {t("mrp_buscar", "Buscar")}
               </Typography>
               <TextField
                 size="small"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Codigo..."
+                placeholder={t("mrp_alertas_buscar_placeholder", "Código o descripción...")}
+                fullWidth
                 sx={{
                   "& .MuiInputBase-root": {
                     fontSize: "var(--text-sm)",
@@ -952,6 +845,7 @@ export default function MRPTableroAlertas() {
               onClick={handleLimpiarFiltros}
               startIcon={<FilterListOffIcon sx={{ fontSize: 16 }} />}
               sx={{
+                textTransform: "none",
                 fontSize: "var(--text-sm)",
                 fontWeight: 500,
                 color: "text.secondary",
@@ -962,23 +856,12 @@ export default function MRPTableroAlertas() {
                 },
               }}
             >
-              Limpiar Filtros
+              {t("mrp_limpiar_filtros", "Limpiar filtros")}
             </Button>
           </Stack>
         </Paper>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert
-            severity="error"
-            onClose={() => setError(null)}
-            sx={{ mb: 2 }}
-          >
-            {error}
-          </Alert>
-        )}
-
-        {/* AG Grid */}
+        {/* Tabla (o un unico mensaje de error si la carga falla) */}
         <Paper
           elevation={0}
           sx={{
@@ -987,20 +870,27 @@ export default function MRPTableroAlertas() {
             borderColor: "divider",
           }}
         >
-          <SPMAgGrid
-            rowData={filteredAlertas}
-            columnDefs={columnDefs}
-            loading={loading}
-            height={600}
-            paginationPageSize={50}
-            paginationPageSizeSelector={[20, 50, 100]}
-            enableQuickFilter={true}
-            exportFileName="alertas_mrp"
-            emptyMessage="No hay alertas para mostrar"
-            getRowId={(params) => params.data.codigo}
-          />
+          {error && !loading ? (
+            <EmptyState
+              title={t("mrp_alertas_error_titulo", "No se pudieron cargar las alertas")}
+              description={error}
+              action={t("mrp_reintentar", "Reintentar")}
+              onAction={fetchAlertas}
+            />
+          ) : (
+            <SPMAgGrid
+              rowData={filteredAlertas}
+              columnDefs={columnDefs}
+              loading={loading}
+              height={600}
+              paginationPageSize={25}
+              enableQuickFilter={true}
+              exportFileName="alertas_mrp"
+              emptyMessage={t("mrp_alertas_vacio", "No hay alertas para mostrar")}
+              getRowId={(params) => params.data.codigo}
+            />
+          )}
         </Paper>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

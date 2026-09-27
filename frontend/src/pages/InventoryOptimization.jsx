@@ -20,7 +20,7 @@ import Chip from '@mui/material/Chip';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import CircularProgress from '@mui/material/CircularProgress';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -29,9 +29,12 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import LinkIcon from '@mui/icons-material/Link';
 import InventoryIcon from '@mui/icons-material/Inventory';
-import IconButton from '@mui/material/IconButton';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import ImbalanceHeatmap from '../components/ImbalanceHeatmap';
+import PageLayout from '../components/ui/PageLayout';
+import MetricCard from '../components/ui/MetricCard';
+import EmptyState from '../components/ui/EmptyState';
+import { formatNumber } from '../utils/formatters';
 
 const TRANSFER_ESTADO_COLORS = {
   proposed: 'default',
@@ -45,10 +48,17 @@ const TRANSFER_ESTADO_COLORS = {
 const TRANSFER_ESTADO_LABELS = {
   proposed: 'Propuesta',
   approved: 'Aprobada',
-  in_transit: 'En Transito',
+  in_transit: 'En tránsito',
   completed: 'Completada',
   received: 'Recibida',
   cancelled: 'Cancelada',
+};
+
+const PRIORIDAD_LABELS = {
+  urgent: 'Urgente',
+  high: 'Alta',
+  normal: 'Normal',
+  low: 'Baja',
 };
 
 const PRIORIDAD_COLORS = {
@@ -74,6 +84,8 @@ export default function InventoryOptimization() {
   const [loadingImbalances, setLoadingImbalances] = useState(true);
   const [loadingTransfers, setLoadingTransfers] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [errorImbalances, setErrorImbalances] = useState(false);
+  const [errorTransfers, setErrorTransfers] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
   const reload = () => setReloadTick((n) => n + 1);
 
@@ -92,11 +104,12 @@ export default function InventoryOptimization() {
     let cancelled = false;
     (async () => {
       setLoadingImbalances(true);
+      setErrorImbalances(false);
       try {
         const res = await api.get('/inventory-optimization/imbalances');
         if (!cancelled && res.data?.ok) setImbalances(res.data.imbalances || res.data.items || []);
       } catch {
-        if (!cancelled) toastRef.current.error(tRef.current('inventory_error_imbalances', 'Error al cargar desbalances'));
+        if (!cancelled) setErrorImbalances(true);
       } finally {
         if (!cancelled) setLoadingImbalances(false);
       }
@@ -108,11 +121,12 @@ export default function InventoryOptimization() {
     let cancelled = false;
     (async () => {
       setLoadingTransfers(true);
+      setErrorTransfers(false);
       try {
         const res = await api.get('/inventory-optimization/transfers');
         if (!cancelled && res.data?.ok) setTransfers(res.data.transfers || res.data.items || []);
       } catch {
-        if (!cancelled) toastRef.current.error(tRef.current('inventory_error_transfers', 'Error al cargar transferencias'));
+        if (!cancelled) setErrorTransfers(true);
       } finally {
         if (!cancelled) setLoadingTransfers(false);
       }
@@ -153,25 +167,25 @@ export default function InventoryOptimization() {
 
   const imbalanceColumns = useMemo(() => [
     { field: 'material_codigo', headerName: t('inventory_material', 'Material'), flex: 1, minWidth: 140 },
-    { field: 'almacen_exceso', headerName: t('inventory_almacen_exceso', 'Almacen Exceso'), width: 140 },
-    { field: 'almacen_deficit', headerName: t('inventory_almacen_deficit', 'Almacen Deficit'), width: 140 },
-    { field: 'qty_exceso', headerName: t('inventory_qty_exceso', 'Cant. Exceso'), width: 120, type: 'numericColumn' },
-    { field: 'qty_deficit', headerName: t('inventory_qty_deficit', 'Cant. Deficit'), width: 120, type: 'numericColumn' },
+    { field: 'almacen_exceso', headerName: t('inventory_almacen_exceso', 'Almacén exceso'), width: 140 },
+    { field: 'almacen_deficit', headerName: t('inventory_almacen_deficit', 'Almacén déficit'), width: 140 },
+    { field: 'qty_exceso', headerName: t('inventory_qty_exceso', 'Cant. exceso'), width: 120, type: 'numericColumn', valueFormatter: (p) => (p.value != null ? formatNumber(p.value) : '') },
+    { field: 'qty_deficit', headerName: t('inventory_qty_deficit', 'Cant. déficit'), width: 120, type: 'numericColumn', valueFormatter: (p) => (p.value != null ? formatNumber(p.value) : '') },
   ], [t]);
 
   const transferColumns = useMemo(() => [
-    { field: 'numero_transferencia', headerName: t('inventory_numero', 'N. Transferencia'), flex: 1, minWidth: 150 },
+    { field: 'numero_transferencia', headerName: t('inventory_numero', 'N.º transferencia'), flex: 1, minWidth: 150 },
     { field: 'material_codigo', headerName: t('inventory_material', 'Material'), width: 140 },
     { field: 'almacen_origen', headerName: t('inventory_origen', 'Origen'), width: 120 },
     { field: 'almacen_destino', headerName: t('inventory_destino', 'Destino'), width: 120 },
-    { field: 'cantidad', headerName: t('inventory_cantidad', 'Cantidad'), width: 100, type: 'numericColumn' },
+    { field: 'cantidad', headerName: t('inventory_cantidad', 'Cantidad'), width: 110, type: 'numericColumn', valueFormatter: (p) => (p.value != null ? formatNumber(p.value) : '') },
     {
       field: 'estado', headerName: t('inventory_estado', 'Estado'), width: 130,
-      cellRenderer: (p) => <Chip size="small" label={TRANSFER_ESTADO_LABELS[p.value] || p.value} color={TRANSFER_ESTADO_COLORS[p.value] || 'default'} />,
+      cellRenderer: (p) => <Chip size="small" label={TRANSFER_ESTADO_LABELS[p.value] ? t(`inventory_estado_${p.value}`, TRANSFER_ESTADO_LABELS[p.value]) : p.value} color={TRANSFER_ESTADO_COLORS[p.value] || 'default'} />,
     },
     {
       field: 'prioridad', headerName: t('inventory_prioridad', 'Prioridad'), width: 110,
-      cellRenderer: (p) => <Chip size="small" label={p.value} color={PRIORIDAD_COLORS[p.value] || 'default'} variant="outlined" />,
+      cellRenderer: (p) => <Chip size="small" label={PRIORIDAD_LABELS[p.value] ? t(`inventory_prioridad_${p.value}`, PRIORIDAD_LABELS[p.value]) : p.value} color={PRIORIDAD_COLORS[p.value] || 'default'} variant="outlined" />,
     },
     {
       field: 'acciones', headerName: t('inventory_acciones', 'Acciones'), width: 200,
@@ -213,82 +227,68 @@ export default function InventoryOptimization() {
     return dataPoints;
   }, [imbalances]);
 
-  const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-        {icon}
-        <Typography variant="caption" color="text.secondary">{label}</Typography>
-      </Stack>
-      <Typography variant="h5" sx={{ fontWeight: 700, color: color || 'text.primary' }}>
-        {value != null ? value : '--'}
-      </Typography>
-    </Paper>
+  const errorState = (
+    <EmptyState
+      icon={<ErrorOutlineIcon sx={{ fontSize: 32, color: 'error.main' }} />}
+      title={t('inventory_error_title', 'No pudimos cargar los datos')}
+      description={t('inventory_error_desc', 'Ocurrió un error al consultar la información. Intenta nuevamente en unos minutos.')}
+      action={t('common_reintentar', 'Reintentar')}
+      onAction={reload}
+    />
   );
 
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-            {t('inventory_title', 'Optimizacion de Inventario')}
-          </Typography>
-        </Box>
-        <Stack direction="row" gap={1}>
-          <Button variant="outlined" startIcon={<LinkIcon />} onClick={() => navigate('/operations/niveles-de-servicio')}>
-            {t('inventory_service_levels', 'Niveles de Servicio')}
-          </Button>
-          <Button variant="contained" startIcon={processing ? <CircularProgress size={16} /> : <SwapHorizIcon />} onClick={handleProposeTransfers} disabled={processing}>
-            {t('inventory_propose', 'Proponer Transferencias')}
-          </Button>
-        </Stack>
-      </Stack>
+  const sinDatos = t('common_sin_datos', 'Sin datos');
 
+  return (
+    <PageLayout
+      title={t('inventory_title', 'Optimización de inventario')}
+      actions={
+        <>
+          <Button variant="outlined" size="small" startIcon={<LinkIcon />} onClick={() => navigate('/operations/niveles-de-servicio')} sx={{ textTransform: 'none' }}>
+            {t('inventory_service_levels', 'Niveles de servicio')}
+          </Button>
+          <Button variant="contained" size="small" startIcon={processing ? <CircularProgress size={16} /> : <SwapHorizIcon />} onClick={handleProposeTransfers} disabled={processing} sx={{ textTransform: 'none' }}>
+            {t('inventory_propose', 'Proponer transferencias')}
+          </Button>
+        </>
+      }
+    >
       {/* KPI Cards */}
       {kpis && (
-        <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-          <KpiCard
-            icon={<LocalShippingIcon fontSize="small" sx={{ color: 'info.main' }} />}
-            label={t('inventory_kpi_pending', 'Transferencias Pendientes')}
-            value={kpis.transferencias_pendientes}
-            color="info.main"
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+          <MetricCard
+            size="lg"
+            variant="info"
+            icon={LocalShippingIcon}
+            label={t('inventory_kpi_pending', 'Transferencias pendientes')}
+            value={kpis.transferencias_pendientes != null ? formatNumber(kpis.transferencias_pendientes) : sinDatos}
           />
-          <KpiCard
-            icon={<WarningAmberIcon fontSize="small" sx={{ color: 'warning.main' }} />}
-            label={t('inventory_kpi_imbalances', 'Desbalances Detectados')}
-            value={kpis.desbalances_detectados}
-            color="warning.main"
+          <MetricCard
+            size="lg"
+            variant="warning"
+            icon={WarningAmberIcon}
+            label={t('inventory_kpi_imbalances', 'Desbalances detectados')}
+            value={kpis.desbalances_detectados != null ? formatNumber(kpis.desbalances_detectados) : sinDatos}
           />
-          <KpiCard
-            icon={<TrendingUpIcon fontSize="small" sx={{ color: 'success.main' }} />}
-            label={t('inventory_kpi_service', 'Nivel Servicio Promedio')}
-            value={kpis.nivel_servicio_promedio != null ? `${Number(kpis.nivel_servicio_promedio).toFixed(1)}%` : null}
-            color="success.main"
+          <MetricCard
+            size="lg"
+            variant="success"
+            icon={TrendingUpIcon}
+            label={t('inventory_kpi_service', 'Nivel de servicio promedio')}
+            value={kpis.nivel_servicio_promedio != null ? `${formatNumber(Number(kpis.nivel_servicio_promedio).toFixed(1))}%` : sinDatos}
           />
-          <KpiCard
-            icon={<InventoryIcon fontSize="small" sx={{ color: 'text.secondary' }} />}
-            label={t('inventory_kpi_monitored', 'Materiales Monitoreados')}
-            value={kpis.materiales_monitoreados}
+          <MetricCard
+            size="lg"
+            icon={InventoryIcon}
+            label={t('inventory_kpi_monitored', 'Materiales monitoreados')}
+            value={kpis.materiales_monitoreados != null ? formatNumber(kpis.materiales_monitoreados) : sinDatos}
           />
-        </Stack>
+        </Box>
       )}
 
       {/* Tabs */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
-        <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t('inventory_tabs', 'Secciones de Inventario')} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+        <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)} aria-label={t('inventory_tabs', 'Secciones de inventario')} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label={t('inventory_tab_imbalances', 'Desbalances')} />
           <Tab label={t('inventory_tab_transfers', 'Transferencias')} />
         </Tabs>
@@ -299,11 +299,12 @@ export default function InventoryOptimization() {
               {/* Heatmap */}
               {heatmapData.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('inventory_heatmap', 'Mapa de Calor de Desbalances')}</Typography>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('inventory_heatmap', 'Mapa de calor de desbalances')}</Typography>
                   <ImbalanceHeatmap data={heatmapData} />
                 </Box>
               )}
               {/* Table */}
+              {errorImbalances ? errorState : (
               <SPMAgGrid
                 columnDefs={imbalanceColumns}
                 rowData={imbalances}
@@ -315,9 +316,11 @@ export default function InventoryOptimization() {
                 exportFileName="desbalances_inventario"
                 emptyMessage={t('inventory_no_imbalances', 'No se detectaron desbalances')}
               />
+              )}
             </Box>
           )}
-          {currentTab === 1 && (
+          {currentTab === 1 && errorTransfers && errorState}
+          {currentTab === 1 && !errorTransfers && (
             <SPMAgGrid
               columnDefs={transferColumns}
               rowData={transfers}
@@ -333,7 +336,6 @@ export default function InventoryOptimization() {
           )}
         </Box>
       </Paper>
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }

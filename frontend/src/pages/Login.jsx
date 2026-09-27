@@ -127,8 +127,8 @@ function ForgotPasswordDialog({ open, handleClose, t }) {
         />
       </DialogContent>
       <DialogActions sx={{ pb: 3, px: 3 }}>
-        <Button onClick={handleClose}>{t("login_cancel", "Cancelar")}</Button>
-        <Button variant="contained" type="submit">
+        <Button onClick={handleClose} sx={{ textTransform: "none" }}>{t("login_cancel", "Cancelar")}</Button>
+        <Button variant="contained" type="submit" sx={{ textTransform: "none" }}>
           {t("login_send_link", "Enviar")}
         </Button>
       </DialogActions>
@@ -216,7 +216,7 @@ export default function Login() {
       navigate(roles.includes("compartidos") ? "/compartidos" : "/dashboard");
     } catch (err) {
       setEmailError(true);
-      setEmailErrorMessage(error || t("login_error_default", "Error en el login"));
+      setEmailErrorMessage(error || t("login_error_default", "No se pudo iniciar sesión"));
     }
   };
 
@@ -229,7 +229,7 @@ export default function Login() {
         sx={{
           minHeight: "100dvh",
           p: { xs: 2, sm: 4 },
-          pb: '80px',
+          gap: 3,
           bgcolor: 'background.default',
           justifyContent: "center",
           alignItems: "center",
@@ -245,7 +245,7 @@ export default function Login() {
             flexDirection: "column",
             alignSelf: "center",
             width: "100%",
-            p: 4,
+            p: { xs: 3, sm: 4 },
             gap: 2,
             m: "auto",
             maxWidth: { sm: "450px" },
@@ -264,7 +264,7 @@ export default function Login() {
               SPM
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Sistema de Planificación de Materiales
+              {t("login_app_name", "Sistema de Planificación de Materiales")}
             </Typography>
           </Box>
 
@@ -355,6 +355,7 @@ export default function Login() {
               fullWidth
               variant="contained"
               disabled={isLoading}
+              sx={{ textTransform: "none" }}
             >
               {isLoading
                 ? t("login_loading", "Ingresando...")
@@ -377,11 +378,12 @@ export default function Login() {
               variant="outlined"
               onClick={() => { /* Google OAuth - pendiente de integración */ }}
               startIcon={<GoogleIcon />}
+              sx={{ textTransform: "none" }}
             >
               {t("login_google", "Iniciar sesión con Google")}
             </Button>
-            <Typography sx={{ textAlign: "center" }}>
-              {t("login_contact_admin", "Contacte al administrador para obtener una cuenta")}
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+              {t("login_contact_admin", "Contacta al administrador para obtener una cuenta")}
             </Typography>
           </Box>
 
@@ -396,23 +398,21 @@ export default function Login() {
             </Link>
           </Box>
         </Card>
-      </Box>
 
-      {/* Footer - Fijo al fondo */}
-      <Box sx={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        textAlign: "center",
-        p: 2,
-        bgcolor: 'background.default',
-        color: 'text.secondary',
-        fontSize: "0.75rem",
-      }}>
-        <Box>© 2025 Sistema SPM. Todos los derechos reservados.</Box>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 0.5 }}>
-          <span>Desarrollado por Manuel Remón - +54 9 299 467 3102 - Neuquén, Argentina</span>
+      {/* Footer - en el flujo de la pagina (no fijo) para que no tape el formulario en mobile */}
+      <Box
+        component="footer"
+        sx={{
+          width: "100%",
+          textAlign: "center",
+          color: 'text.secondary',
+          fontSize: "0.75rem",
+          lineHeight: 1.6,
+        }}
+      >
+        <Box>© 2025 {t("login_footer_rights", "Sistema SPM. Todos los derechos reservados.")}</Box>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", columnGap: 0.5, mt: 0.5 }}>
+          <span>{t("login_footer_author", "Desarrollado por Manuel Remón · +54 9 299 467 3102 · Neuquén, Argentina")}</span>
           <Link
             href="https://wa.me/5492994673102"
             target="_blank"
@@ -426,6 +426,7 @@ export default function Login() {
             </SvgIcon>
           </Link>
         </Box>
+      </Box>
       </Box>
 
       {/* Forgot Password Dialog */}

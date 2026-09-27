@@ -15,17 +15,22 @@ import {
   Clear as ClearIcon,
 } from "@mui/icons-material";
 
-import { PageHeader } from "../components/ui/PageHeader";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import { formatDate } from "../utils/formatters";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import { useRealtime } from "../hooks/useRealtime";
 import { PushNotificationToggle } from "../components/ui/PushNotificationToggle";
 
 const filterOptions = [
-  { value: "all", label: "Todos" }, { value: "solicitud", label: "Solicitudes" },
-  { value: "aprobacion", label: "Aprobaciones" }, { value: "stock", label: "Consultas Stock" },
-  { value: "mensaje", label: "Mensajes" }, { value: "profile", label: "Perfil" },
-  { value: "info", label: "Info" },
+  { value: "all", key: "notif_filtro_todos", label: "Todos" },
+  { value: "solicitud", key: "notif_filtro_solicitudes", label: "Solicitudes" },
+  { value: "aprobacion", key: "notif_filtro_aprobaciones", label: "Aprobaciones" },
+  { value: "stock", key: "notif_filtro_stock", label: "Consultas de stock" },
+  { value: "mensaje", key: "notif_filtro_mensajes", label: "Mensajes" },
+  { value: "profile", key: "notif_filtro_perfil", label: "Perfil" },
+  { value: "info", key: "notif_filtro_info", label: "Información" },
 ];
 
 const notificationConfig = {
@@ -46,17 +51,18 @@ const notificationConfig = {
   stock_consulta_respuesta: { icon: CheckCircleIcon, color: "success.main", bgcolor: "success.lighter" },
 };
 
-function formatTimeAgo(dateStr) {
+function formatTimeAgo(dateStr, t) {
   if (!dateStr) return "";
   const diff = new Date() - new Date(dateStr);
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Ahora";
-  if (mins < 60) return `Hace ${mins} min`;
+  const hace = t("notif_hace", "Hace");
+  if (mins < 1) return t("notif_ahora", "Ahora");
+  if (mins < 60) return `${hace} ${mins} min`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Hace ${hours}h`;
+  if (hours < 24) return `${hace} ${hours} h`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `Hace ${days}d`;
-  return new Date(dateStr).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+  if (days < 7) return `${hace} ${days} d`;
+  return formatDate(dateStr);
 }
 
 export default function Notificaciones() {
@@ -101,21 +107,21 @@ export default function Notificaciones() {
 
   const handleMarkAsRead = useCallback(async (id) => {
     if (await markAsRead(id)) {
-      setMsg(t("notif_marcada_leida", "Notificacion marcada como leida"));
+      setMsg(t("notif_marcada_leida", "Notificación marcada como leída"));
       setTimeout(() => setMsg(""), 2000);
     }
   }, [markAsRead, t]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     if (await markAllAsRead()) {
-      setMsg(t("notif_todas_leidas", "Todas las notificaciones marcadas como leidas"));
+      setMsg(t("notif_todas_leidas", "Todas las notificaciones se marcaron como leídas"));
       setTimeout(() => setMsg(""), 2000);
     }
   }, [markAllAsRead, t]);
 
   const handleDelete = useCallback(async (id) => {
-    if (confirm(t("notif_confirmar_eliminar", "¿Eliminar esta notificacion?")) && await deleteNotification(id)) {
-      setMsg(t("notif_eliminada", "Notificacion eliminada"));
+    if (confirm(t("notif_confirmar_eliminar", "¿Eliminar esta notificación?")) && (await deleteNotification(id))) {
+      setMsg(t("notif_eliminada", "Notificación eliminada"));
       setTimeout(() => setMsg(""), 2000);
     }
   }, [deleteNotification, t]);
@@ -128,12 +134,12 @@ export default function Notificaciones() {
   const renderNotificationList = (notifs) => {
     if (notifs.length === 0) {
       return (
-        <Box textAlign="center" py={6}>
-          <InboxIcon sx={{ fontSize: 48, color: "text.disabled", mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">
-            {activeTab === 0 ? "No tienes notificaciones pendientes" : "No tienes notificaciones leidas"}
-          </Typography>
-        </Box>
+        <EmptyState
+          icon={<InboxIcon sx={{ fontSize: 32, color: "text.disabled" }} />}
+          title={activeTab === 0
+            ? t("notif_vacio_no_leidas", "No tienes notificaciones sin leer")
+            : t("notif_vacio_leidas", "No tienes notificaciones leídas")}
+        />
       );
     }
     return (
@@ -157,14 +163,14 @@ export default function Notificaciones() {
                   secondary={
                     <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
                       <AccessTimeIcon sx={{ fontSize: 14, color: "info.main" }} />
-                      <Typography variant="caption" color="text.disabled">{formatTimeAgo(notif.created_at)}</Typography>
+                      <Typography variant="caption" color="text.disabled">{formatTimeAgo(notif.created_at, t)}</Typography>
                       {notif.solicitud_id && <Typography variant="caption" color="primary.main">#{notif.solicitud_id}</Typography>}
                     </Stack>
                   }
                 />
                 <Stack direction="row" spacing={0.5} ml={1} flexShrink={0} onClick={e => e.stopPropagation()}>
-                  {!notif.leido && <IconButton size="small" color="success" onClick={() => handleMarkAsRead(notif.id)} title="Marcar como leida"><CheckIcon fontSize="small" /></IconButton>}
-                  <IconButton size="small" color="error" onClick={() => handleDelete(notif.id)} title="Eliminar"><DeleteIcon fontSize="small" /></IconButton>
+                  {!notif.leido && <IconButton size="small" color="success" onClick={() => handleMarkAsRead(notif.id)} title={t("notif_marcar_leida", "Marcar como leída")}><CheckIcon fontSize="small" /></IconButton>}
+                  <IconButton size="small" color="error" onClick={() => handleDelete(notif.id)} title={t("common_eliminar", "Eliminar")}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               </ListItem>
             </React.Fragment>
@@ -175,35 +181,39 @@ export default function Notificaciones() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-    <Stack spacing={3}>
-      <PageHeader title={t("notif_title", "NOTIFICACIONES").toUpperCase()} />
+    <PageLayout title={t("notif_title", "Notificaciones")}>
       {connectionError && <Alert severity="error">{connectionError}</Alert>}
       {msg && <Alert severity="success" onClose={() => setMsg("")}>{msg}</Alert>}
 
       <Paper elevation={0} sx={{ border: 1, borderColor: "divider" }}>
         <Box p={2} borderBottom={1} borderColor="divider">
           <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-            <Grid item>
-              <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ minHeight: 40, "& .MuiTab-root": { minHeight: 40, py: 1 } }}>
-                <Tab label={<Stack direction="row" spacing={1}><span>No Leidas</span>{unreadCount > 0 && <Chip label={unreadCount} size="small" color="primary" />}</Stack>} />
-                <Tab label={<Stack direction="row" spacing={1}><span>Leidas</span>{readCount > 0 && <Chip label={readCount} size="small" />}</Stack>} />
+            <Grid sx={{ maxWidth: "100%" }}>
+              <Tabs
+                value={activeTab}
+                onChange={(e, v) => setActiveTab(v)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{ minHeight: 40, "& .MuiTab-root": { minHeight: 40, py: 1, textTransform: "none" } }}
+              >
+                <Tab label={<Stack direction="row" spacing={1} alignItems="center"><span>{t("notif_tab_no_leidas", "Sin leer")}</span>{unreadCount > 0 && <Chip label={unreadCount} size="small" color="primary" />}</Stack>} />
+                <Tab label={<Stack direction="row" spacing={1} alignItems="center"><span>{t("notif_tab_leidas", "Leídas")}</span>{readCount > 0 && <Chip label={readCount} size="small" />}</Stack>} />
               </Tabs>
             </Grid>
-            <Grid item>
-              <Stack direction="row" spacing={2}>
-                <FormControl size="small" sx={{ minWidth: 140 }}>
+            <Grid sx={{ width: { xs: "100%", sm: "auto" } }}>
+              <Stack direction="row" spacing={0} sx={{ gap: 2, flexWrap: "wrap" }}>
+                <FormControl size="small" sx={{ minWidth: 140, flex: { xs: 1, sm: "none" } }}>
                   <Select value={filterType} onChange={(e) => setFilterType(e.target.value)} startAdornment={<InputAdornment position="start"><FilterListIcon fontSize="small" /></InputAdornment>}>
-                    {filterOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
+                    {filterOptions.map(opt => <MenuItem key={opt.value} value={opt.value}>{t(opt.key, opt.label)}</MenuItem>)}
                   </Select>
                 </FormControl>
                 <TextField
                   size="small"
-                  placeholder="Buscar..."
+                  placeholder={t("common_buscar_placeholder", "Buscar...")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  sx={{ width: 200 }}
+                  sx={{ width: { xs: "100%", sm: 200 } }}
                   InputProps={{
                     startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
                     endAdornment: searchTerm && <InputAdornment position="end"><IconButton size="small" onClick={() => setSearchTerm("")}><ClearIcon fontSize="small" /></IconButton></InputAdornment>,
@@ -218,15 +228,13 @@ export default function Notificaciones() {
           {isLoading && notifications.length === 0 ? (
             <Box textAlign="center" py={6}>
               <CircularProgress size={32} sx={{ mb: 2 }} />
-              <Typography color="text.secondary">Cargando...</Typography>
+              <Typography color="text.secondary">{t("common_cargando", "Cargando...")}</Typography>
             </Box>
           ) : (
             renderNotificationList(filteredNotifications)
           )}
         </Box>
       </Paper>
-    </Stack>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

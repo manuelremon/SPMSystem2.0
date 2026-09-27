@@ -19,23 +19,22 @@ import {
 import { useAuthStore } from '../store/authStore'
 import { useI18n } from '../context/i18n'
 import api from '../services/api'
+import PageLayout from '../components/ui/PageLayout'
+import EmptyState from '../components/ui/EmptyState'
+import { formatNumber, formatDateTime } from '../utils/formatters'
 
 function formatFileSize(bytes) {
   if (!bytes) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-}
-
-function formatDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return `${formatNumber(Math.round((bytes / Math.pow(k, i)) * 10) / 10)} ${sizes[i]}`
 }
 
 export default function SharedFiles() {
   const { user } = useAuthStore()
+  // Usuarios con rol solo "compartidos" no tienen otra pantalla a la que volver
+  const soloCompartidos = String(user?.rol || '').toLowerCase().split(/[,;]/).map(r => r.trim()).filter(Boolean).every(r => r === 'compartidos')
   const { t } = useI18n()
 
   const [files, setFiles] = useState([])
@@ -64,11 +63,11 @@ export default function SharedFiles() {
         setCarpetas(res.data.carpetas || [])
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Error al cargar archivos')
+      setError(t('shared_error_load', 'No se pudieron cargar los archivos. Intenta nuevamente.'))
     } finally {
       setLoading(false)
     }
-  }, [currentFolder])
+  }, [currentFolder, t])
 
   useEffect(() => {
     fetchFiles()
@@ -93,7 +92,7 @@ export default function SharedFiles() {
       })
       setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'done', progress: 100 } : f))
     } catch (err) {
-      setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error', error: err.response?.data?.error?.message || 'Error' } : f))
+      setUploadFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error', error: err.response?.data?.error?.message || t('shared_error', 'Error') } : f))
     }
   }
 
@@ -123,18 +122,18 @@ export default function SharedFiles() {
 
     fetchFiles()
     const finalFiles = items.length
-    setSuccess(`${finalFiles} archivo(s) procesado(s)`)
+    setSuccess(`${finalFiles} ${t('shared_files_processed', 'archivo(s) procesado(s)')}`)
     setTimeout(() => { setUploading(false); setUploadFiles([]) }, 2000)
   }
 
   const handleDelete = async (fileId, fileName) => {
-    if (!confirm(`Eliminar "${fileName}"?`)) return
+    if (!confirm(`${t('shared_confirm_delete', '¿Eliminar')} "${fileName}"?`)) return
     try {
       await api.delete(`/shared-files/${fileId}`)
-      setSuccess('Archivo eliminado')
+      setSuccess(t('shared_deleted', 'Archivo eliminado'))
       fetchFiles()
     } catch (err) {
-      setError('Error al eliminar archivo')
+      setError(t('shared_error_delete', 'No se pudo eliminar el archivo'))
     }
   }
 
@@ -175,35 +174,41 @@ export default function SharedFiles() {
     : files.filter(f => !f.carpeta)
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          {t('shared_files_title', 'Archivos Compartidos')}
-        </Typography>
-        <Stack direction="row" spacing={1}>
+    <PageLayout
+      title={t('shared_files_title', 'Archivos compartidos')}
+      backTo={soloCompartidos ? false : undefined}
+      actions={
+        <>
           <Button
             variant="outlined"
+            size="small"
             startIcon={<NewFolderIcon />}
             onClick={() => setNewFolderDialog(true)}
+            sx={{ textTransform: 'none' }}
           >
-            {t('shared_new_folder', 'Nueva Carpeta')}
+            {t('shared_new_folder', 'Nueva carpeta')}
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<FolderOpenIcon />}
+            onClick={() => folderInputRef.current?.click()}
+            sx={{ textTransform: 'none' }}
+          >
+            {t('shared_upload_folder', 'Subir carpeta')}
           </Button>
           <Button
             variant="contained"
+            size="small"
             startIcon={<UploadIcon />}
             onClick={() => fileInputRef.current?.click()}
+            sx={{ textTransform: 'none' }}
           >
-            {t('shared_upload_files', 'Subir Archivos')}
+            {t('shared_upload_files', 'Subir archivos')}
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<FolderOpenIcon />}
-            onClick={() => folderInputRef.current?.click()}
-          >
-            {t('shared_upload_folder', 'Subir Carpeta')}
-          </Button>
-        </Stack>
-      </Stack>
+        </>
+      }
+    >
 
       {/* Hidden file inputs */}
       <input
@@ -217,14 +222,14 @@ export default function SharedFiles() {
         type="file"
         ref={folderInputRef}
         webkitdirectory=""
-        directory=""
+        {...{ directory: "" }}
         multiple
         style={{ display: 'none' }}
         onChange={(e) => { handleUpload(e.target.files); e.target.value = '' }}
       />
 
       {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
+      <Breadcrumbs>
         <Link
           component="button"
           underline="hover"
@@ -243,19 +248,19 @@ export default function SharedFiles() {
       </Breadcrumbs>
 
       {/* Alerts */}
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+      {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+      {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
 
       {/* Upload progress per file */}
       {uploading && uploadFiles.length > 0 && (
-        <Paper variant="outlined" sx={{ mb: 2, p: 2, maxHeight: 200, overflow: 'auto' }}>
+        <Paper variant="outlined" sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('shared_uploading', 'Subiendo...')} ({uploadFiles.filter(f => f.status === 'done').length}/{uploadFiles.length})</Typography>
           {uploadFiles.map((f, i) => (
             <Box key={i} sx={{ mb: 1 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="caption" noWrap sx={{ maxWidth: 300 }}>{f.name}</Typography>
+                <Typography variant="caption" noWrap sx={{ maxWidth: { xs: 200, sm: 300 } }}>{f.name}</Typography>
                 <Typography variant="caption" color={f.status === 'error' ? 'error.main' : f.status === 'done' ? 'success.main' : 'text.secondary'}>
-                  {f.status === 'error' ? 'Error' : f.status === 'done' ? 'Listo' : `${f.progress}%`}
+                  {f.status === 'error' ? t('shared_error', 'Error') : f.status === 'done' ? t('shared_done', 'Listo') : `${f.progress}%`}
                 </Typography>
               </Stack>
               <LinearProgress
@@ -274,13 +279,13 @@ export default function SharedFiles() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        elevation={0}
         sx={{
           border: '2px dashed',
           borderColor: dragOver ? 'primary.main' : 'divider',
           bgcolor: dragOver ? 'action.hover' : 'background.paper',
           borderRadius: 2,
-          p: 4,
-          mb: 3,
+          p: { xs: 3, sm: 4 },
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'all 0.2s'
@@ -289,18 +294,18 @@ export default function SharedFiles() {
       >
         <UploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
         <Typography variant="body1" color="text.secondary">
-          {t('shared_drop_hint', 'Arrastra archivos o carpetas aqui, o haz clic para seleccionar')}
+          {t('shared_drop_hint', 'Arrastra archivos o carpetas aquí, o haz clic para seleccionarlos')}
         </Typography>
         <Typography variant="caption" color="text.disabled">
-          {t('shared_no_restrictions', 'Sin restriccion de formato ni tamanio')}
+          {t('shared_no_restrictions', 'Sin restricción de formato ni de tamaño')}
         </Typography>
       </Paper>
 
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {loading && <LinearProgress />}
 
       {/* Folders (only at root) */}
       {!currentFolder && carpetas.length > 0 && (
-        <Box sx={{ mb: 3 }}>
+        <Box>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
             {t('shared_folders', 'Carpetas')}
           </Typography>
@@ -322,8 +327,8 @@ export default function SharedFiles() {
 
       {/* Back button when in folder */}
       {currentFolder && (
-        <Button startIcon={<BackIcon />} onClick={navigateHome} sx={{ mb: 2 }}>
-          {t('shared_back', 'Volver')}
+        <Button startIcon={<BackIcon />} onClick={navigateHome} sx={{ alignSelf: 'flex-start', textTransform: 'none' }}>
+          {t('shared_back_root', 'Volver a Inicio')}
         </Button>
       )}
 
@@ -333,7 +338,7 @@ export default function SharedFiles() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_name', 'Nombre')}</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_size', 'Tamanio')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_size', 'Tamaño')}</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_type', 'Tipo')}</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_date', 'Fecha')}</TableCell>
               {!currentFolder && <TableCell sx={{ fontWeight: 700 }}>{t('shared_col_folder', 'Carpeta')}</TableCell>}
@@ -343,8 +348,12 @@ export default function SharedFiles() {
           <TableBody>
             {displayFiles.length === 0 && !loading ? (
               <TableRow>
-                <TableCell colSpan={currentFolder ? 5 : 6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                  {t('shared_empty', 'No hay archivos')}
+                <TableCell colSpan={currentFolder ? 5 : 6} sx={{ p: 0, borderBottom: 0 }}>
+                  <EmptyState
+                    icon={<FolderOpenIcon sx={{ fontSize: 32, color: 'text.disabled' }} />}
+                    title={t('shared_empty', 'No hay archivos')}
+                    description={t('shared_empty_desc', 'Sube archivos o carpetas para compartirlos.')}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -353,16 +362,16 @@ export default function SharedFiles() {
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <FileIcon fontSize="small" color="action" />
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: { xs: 180, sm: 300 } }}>
                         {f.nombre_original}
                       </Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell>{formatFileSize(f.tamanio)}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatFileSize(f.tamanio)}</TableCell>
                   <TableCell>
-                    <Chip label={f.mime_type?.split('/')[1] || 'archivo'} size="small" variant="outlined" />
+                    <Chip label={f.mime_type?.split('/')[1] || t('shared_file', 'archivo')} size="small" variant="outlined" />
                   </TableCell>
-                  <TableCell>{formatDate(f.created_at)}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateTime(f.created_at)}</TableCell>
                   {!currentFolder && (
                     <TableCell>
                       {f.carpeta ? (
@@ -397,7 +406,7 @@ export default function SharedFiles() {
 
       {/* New folder dialog */}
       <Dialog open={newFolderDialog} onClose={() => setNewFolderDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('shared_new_folder', 'Nueva Carpeta')}</DialogTitle>
+        <DialogTitle>{t('shared_new_folder', 'Nueva carpeta')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -410,10 +419,10 @@ export default function SharedFiles() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewFolderDialog(false)}>{t('common_cancel', 'Cancelar')}</Button>
-          <Button variant="contained" onClick={handleCreateFolder}>{t('common_create', 'Crear')}</Button>
+          <Button onClick={() => setNewFolderDialog(false)} sx={{ textTransform: 'none' }}>{t('common_cancel', 'Cancelar')}</Button>
+          <Button variant="contained" onClick={handleCreateFolder} sx={{ textTransform: 'none' }}>{t('common_create', 'Crear')}</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageLayout>
   )
 }

@@ -241,7 +241,7 @@ export default function VehicleDetail() {
         <Card>
           <CardContent>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">{t('fms_plate', 'Placa')}</Typography>
                 <Typography variant="body1" fontWeight={500} mb={2}>{v.placa}</Typography>
 
@@ -261,7 +261,7 @@ export default function VehicleDetail() {
                 <Typography variant="body1" mb={2}>{v.vin || '--'}</Typography>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary">{t('fms_capacity_kg', 'Capacidad (kg)')}</Typography>
                 <Typography variant="body1" mb={2}>
                   {v.capacidad_kg ? Number(v.capacidad_kg).toLocaleString() : '--'}
@@ -626,5 +626,5 @@ export default function VehicleDetail() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }

@@ -3,20 +3,27 @@
  * Sprint 45
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { MetricCard } from '../components/ui/MetricCard';
 import { useI18n } from '../context/i18n';
-import { useToast } from '../hooks/useToast';
 import api from '../services/api';
+import { formatCurrency, formatNumber } from '../utils/formatters';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DownloadIcon from '@mui/icons-material/Download';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import PaymentsIcon from '@mui/icons-material/Payments';
+import LooksOneIcon from '@mui/icons-material/LooksOne';
+import LooksTwoIcon from '@mui/icons-material/LooksTwo';
+import Looks3Icon from '@mui/icons-material/Looks3';
+import PercentIcon from '@mui/icons-material/Percent';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import InventoryIcon from '@mui/icons-material/Inventory2Outlined';
 
 // Importar Chart.js components
 import {
@@ -45,10 +52,8 @@ ChartJS.register(
 
 const ABCAnalysis = () => {
   const { t } = useI18n();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [data, setData] = useState([]);
   const [kpis, setKpis] = useState({
     total_valor: 0,
@@ -71,6 +76,7 @@ const ABCAnalysis = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const params = new URLSearchParams();
       if (filters.centro) params.append('centro', filters.centro);
@@ -83,10 +89,10 @@ const ABCAnalysis = () => {
         setData(response.data.data);
         setKpis(response.data.kpis);
       } else {
-        showToast(t('abc_error', 'Error al cargar análisis ABC'), 'error');
+        setLoadError(true);
       }
-    } catch (error) {
-      showToast(t('abc_error', 'Error al cargar análisis ABC'), 'error');
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -98,30 +104,6 @@ const ABCAnalysis = () => {
 
   const handleApplyFilters = () => {
     fetchData();
-  };
-
-  const handleExport = () => {
-    if (!data.length) {
-      showToast(t('abc_empty', 'No hay datos para exportar'), 'warning');
-      return;
-    }
-
-    // Simple CSV export
-    const headers = ['Material', 'Descripción', 'Valor Total', '% Acumulado', 'Clase'];
-    const rows = data.map((row) => [
-      row.material,
-      row.descripcion,
-      row.valor_total,
-      row.pct_acumulado,
-      row.clase,
-    ]);
-
-    const csvContent = [headers, ...rows].map((e) => e.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `abc_analysis_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
   };
 
   // AG-Grid column definitions
@@ -142,12 +124,13 @@ const ABCAnalysis = () => {
         flex: 1,
       },
       {
-        headerName: t('abc_valor_total', 'Valor Total'),
+        headerName: t('abc_valor_total', 'Valor total'),
         field: 'valor_total',
         sortable: true,
         filter: 'agNumberColumnFilter',
-        width: 150,
-        valueFormatter: (params) => params.value?.toLocaleString('es-ES', { minimumFractionDigits: 2 }),
+        width: 170,
+        type: 'rightAligned',
+        valueFormatter: (params) => (params.value != null ? formatCurrency(params.value) : '-'),
       },
       {
         headerName: t('abc_pct_acumulado', '% Acumulado'),
@@ -155,7 +138,8 @@ const ABCAnalysis = () => {
         sortable: true,
         filter: 'agNumberColumnFilter',
         width: 150,
-        valueFormatter: (params) => `${Number(params.value || 0).toFixed(2)}%`,
+        type: 'rightAligned',
+        valueFormatter: (params) => `${formatNumber(Number(params.value || 0).toFixed(2))} %`,
       },
       {
         headerName: t('abc_clase', 'Clase'),
@@ -187,7 +171,7 @@ const ABCAnalysis = () => {
       datasets: [
         {
           type: 'bar',
-          label: t('abc_valor_total', 'Valor Total'),
+          label: t('abc_valor_total', 'Valor total'),
           data: topItems.map((item) => item.valor_total),
           backgroundColor: topItems.map((item) => {
             if (item.clase === 'A') return 'rgba(22, 163, 74, 0.7)';
@@ -259,154 +243,115 @@ const ABCAnalysis = () => {
     },
   };
 
+  const hasData = !loading && !loadError && data.length > 0;
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h5"
-            component="h1"
-            fontWeight={700}
-            textTransform="uppercase"
-            letterSpacing="0.05em"
-            color="text.primary"
-          >
-            {t('abc_title', 'Análisis ABC de Materiales')}
-          </Typography>
-        </Box>
-        <p className="text-gray-600">
-          {t('abc_subtitle', 'Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)')}
-        </p>
-
-        {/* Filters */}
-        <Card className="p-4">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('abc_filter_centro', 'Centro')}
-              </label>
-              <input
-                type="text"
-                value={filters.centro}
-                onChange={(e) => handleFilterChange('centro', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('abc_filter_centro_placeholder', 'Ej: 1000')}
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('abc_filter_sector', 'Sector')}
-              </label>
-              <input
-                type="text"
-                value={filters.sector}
-                onChange={(e) => handleFilterChange('sector', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('abc_filter_sector_placeholder', 'Ej: PROD')}
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('abc_filter_periodo', 'Período (meses)')}
-              </label>
-              <select
-                value={filters.periodo_meses}
-                onChange={(e) => handleFilterChange('periodo_meses', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={6}>6 {t('common_months', 'meses')}</option>
-                <option value={12}>12 {t('common_months', 'meses')}</option>
-                <option value={24}>24 {t('common_months', 'meses')}</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleApplyFilters} disabled={loading}>
-                <RefreshIcon className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                {t('abc_apply_filters', 'Aplicar')}
-              </Button>
-              <Button onClick={handleExport} variant="outline" disabled={!data.length}>
-                <DownloadIcon className="w-4 h-4 mr-2" />
-                {t('abc_export', 'Exportar')}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* KPIs */}
-        {!loading && data.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card className="p-4">
-              <div className="text-sm text-gray-600">{t('abc_total_valor', 'Valor Total')}</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">
-                {kpis.total_valor.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-gray-600">{t('abc_items_a', 'Items Clase A')}</div>
-              <div className="text-2xl font-bold text-green-600 mt-1">{kpis.items_a}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-gray-600">{t('abc_items_b', 'Items Clase B')}</div>
-              <div className="text-2xl font-bold text-yellow-600 mt-1">{kpis.items_b}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-gray-600">{t('abc_items_c', 'Items Clase C')}</div>
-              <div className="text-2xl font-bold text-red-600 mt-1">{kpis.items_c}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-gray-600">{t('abc_pct_valor_a', '% Valor en A')}</div>
-              <div className="text-2xl font-bold text-green-600 mt-1">{Number(kpis.pct_valor_a).toFixed(1)}%</div>
-            </Card>
-          </div>
-        )}
-
-        {/* Pareto Chart */}
-        {!loading && paretoChartData && (
-          <Card className="p-4">
-            <div style={{ height: '400px' }}>
-              <Bar data={paretoChartData} options={paretoChartOptions} />
-            </div>
-          </Card>
-        )}
-
-        {/* Data Table */}
-        <Card className="p-4">
-          <SPMAgGrid
-            rowData={data}
-            columnDefs={columnDefs}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-            }}
-            pagination={true}
-            paginationPageSize={50}
-            loading={loading}
-            height={500}
-            exportFileName="abc-analysis"
+    <PageLayout
+      title={t('abc_title', 'Análisis ABC de materiales')}
+      subtitle={t('abc_subtitle', 'Clasificación de materiales por valor de consumo (A: 80%, B: 15%, C: 5%)')}
+    >
+      {/* Filters */}
+      <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <TextField
+            size="small"
+            label={t('abc_filter_centro', 'Centro')}
+            value={filters.centro}
+            onChange={(e) => handleFilterChange('centro', e.target.value)}
+            placeholder={t('abc_filter_centro_placeholder', 'Ej: 1000')}
+            sx={{ flex: '1 1 180px' }}
           />
-        </Card>
+          <TextField
+            size="small"
+            label={t('abc_filter_sector', 'Sector')}
+            value={filters.sector}
+            onChange={(e) => handleFilterChange('sector', e.target.value)}
+            placeholder={t('abc_filter_sector_placeholder', 'Ej: PROD')}
+            sx={{ flex: '1 1 180px' }}
+          />
+          <TextField
+            select
+            size="small"
+            label={t('abc_filter_periodo', 'Período (meses)')}
+            value={filters.periodo_meses}
+            onChange={(e) => handleFilterChange('periodo_meses', parseInt(e.target.value, 10))}
+            sx={{ flex: '1 1 180px' }}
+          >
+            {[6, 12, 24].map((m) => (
+              <MenuItem key={m} value={m}>
+                {m} {t('common_months', 'meses')}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<RefreshIcon />}
+            onClick={handleApplyFilters}
+            disabled={loading}
+            sx={{ textTransform: 'none' }}
+          >
+            {t('abc_apply_filters', 'Aplicar')}
+          </Button>
+        </Box>
+      </Paper>
 
-        {/* Empty state */}
-        {!loading && data.length === 0 && (
-          <Card className="p-8 text-center">
-            <p className="text-gray-500">{t('abc_empty', 'No hay datos disponibles para el período seleccionado')}</p>
-          </Card>
-        )}
-      </Box>
-    </Box>
+      {loadError ? (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <EmptyState
+            icon={<ErrorOutlineIcon sx={{ color: 'error.main' }} />}
+            title={t('abc_error', 'Error al cargar análisis ABC')}
+            description={t('common_error_reintentar', 'No pudimos cargar la información. Intenta nuevamente en unos minutos.')}
+            action={t('common_reintentar', 'Reintentar')}
+            onAction={fetchData}
+          />
+        </Paper>
+      ) : !loading && data.length === 0 ? (
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <EmptyState
+            icon={<InventoryIcon sx={{ color: 'text.disabled' }} />}
+            title={t('abc_sin_datos', 'No hay datos disponibles para el período seleccionado')}
+          />
+        </Paper>
+      ) : (
+        <>
+          {hasData && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(5, 1fr)' }, gap: 2 }}>
+              <MetricCard size="lg" icon={PaymentsIcon} label={t('abc_total_valor', 'Valor total')} value={formatCurrency(kpis.total_valor)} />
+              <MetricCard size="lg" icon={LooksOneIcon} variant="success" label={t('abc_items_a_label', 'Ítems clase A')} value={formatNumber(kpis.items_a)} />
+              <MetricCard size="lg" icon={LooksTwoIcon} variant="warning" label={t('abc_items_b_label', 'Ítems clase B')} value={formatNumber(kpis.items_b)} />
+              <MetricCard size="lg" icon={Looks3Icon} variant="danger" label={t('abc_items_c_label', 'Ítems clase C')} value={formatNumber(kpis.items_c)} />
+              <MetricCard size="lg" icon={PercentIcon} variant="success" label={t('abc_pct_valor_a', '% valor en A')} value={`${formatNumber(Number(kpis.pct_valor_a || 0).toFixed(1))} %`} />
+            </Box>
+          )}
+
+          {hasData && paretoChartData && (
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ height: 400 }}>
+                <Bar data={paretoChartData} options={paretoChartOptions} />
+              </Box>
+            </Paper>
+          )}
+
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+            <SPMAgGrid
+              rowData={data}
+              columnDefs={columnDefs}
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+              }}
+              pagination={true}
+              paginationPageSize={25}
+              loading={loading}
+              height={500}
+              exportFileName="abc-analysis"
+            />
+          </Paper>
+        </>
+      )}
+    </PageLayout>
   );
 };
 

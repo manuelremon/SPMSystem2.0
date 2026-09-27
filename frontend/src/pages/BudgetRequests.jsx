@@ -28,10 +28,10 @@ import {
   Drawer,
   Stack,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckIcon from "@mui/icons-material/Check";
@@ -40,6 +40,8 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // Shared components
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
 import { nivelLabels } from "../utils/statusStyles";
 
 const DEBOUNCE_MS = 300;
@@ -72,12 +74,24 @@ const exportToCSV = (data, columns, filename) => {
    Constants
 ───────────────────────────────────────────────────────────── */
 const estadoToBadge = {
-  pendiente: "Pendiente",
-  aprobado_l1: "Aprobado L1",
-  aprobado_l2: "Aprobado L2",
-  aprobado: "Aprobada",
-  rechazado: "Rechazada",
+  pendiente: ["bur_estado_pendiente", "Pendiente"],
+  aprobado_l1: ["bur_estado_aprobado_l1", "Aprobado L1"],
+  aprobado_l2: ["bur_estado_aprobado_l2", "Aprobado L2"],
+  aprobado: ["bur_estado_aprobado", "Aprobado"],
+  rechazado: ["bur_estado_rechazado", "Rechazado"],
 };
+
+// Etiquetas de tipos de movimiento del ledger (valores de presupuesto_ledger.tipo_movimiento)
+const TIPO_MOVIMIENTO_LABELS = {
+  consumo_aprobacion: ["bur_mov_consumo_aprobacion", "Consumo por aprobación"],
+  reversion_rechazo: ["bur_mov_reversion_rechazo", "Reversión por rechazo"],
+  ajuste_manual: ["bur_mov_ajuste_manual", "Ajuste manual"],
+  bur_aprobado: ["bur_mov_bur_aprobado", "Incorporación aprobada"],
+  bur_revertido: ["bur_mov_bur_revertido", "Incorporación revertida"],
+};
+
+// Estilo de celda para montos: alineados a la derecha, sin fuente monospace
+const MONTO_CELL_STYLE = { display: "flex", justifyContent: "flex-end", alignItems: "center" };
 
 const getEstadoColor = (estado) => {
   switch (estado) {
@@ -95,10 +109,10 @@ const getEstadoColor = (estado) => {
 };
 
 const getTipoColor = (tipo) => {
-  if (tipo.includes("incorporacion") || tipo.includes("ajuste_positivo")) {
+  if (tipo.includes("incorporacion") || tipo.includes("ajuste_positivo") || tipo === "bur_aprobado" || tipo === "reversion_rechazo") {
     return "success";
   }
-  if (tipo.includes("consumo") || tipo.includes("ajuste_negativo")) {
+  if (tipo.includes("consumo") || tipo.includes("ajuste_negativo") || tipo === "bur_revertido") {
     return "error";
   }
   return "default";
@@ -118,6 +132,7 @@ export default function BudgetRequests() {
 
   // UI states
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [ledgerLoading, setLedgerLoading] = useState(false);
@@ -144,12 +159,13 @@ export default function BudgetRequests() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+    setLoadError(false);
     try {
       const res = await budget.listar({});
       const data = res.data.requests || [];
       setItems(data);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -159,11 +175,12 @@ export default function BudgetRequests() {
   const loadLedger = useCallback(async () => {
     setLedgerLoading(true);
     setError("");
+    setLoadError(false);
     try {
       const res = await budget.getLedger({ limit: 500 });
       setLedgerEntries(res.data.entries || []);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      setLoadError(true);
     } finally {
       setLedgerLoading(false);
     }
@@ -216,7 +233,7 @@ export default function BudgetRequests() {
     if (!rejectDrawer.id) return;
     const motivo = rejectDrawer.motivo.trim();
     if (motivo.length < 5) {
-      setError(t("bur_motivo_required", "Debe proporcionar un motivo (minimo 5 caracteres)"));
+      setError(t("bur_motivo_required", "Debes indicar un motivo (mínimo 5 caracteres)"));
       return;
     }
     setActionLoading(true);
@@ -240,18 +257,18 @@ export default function BudgetRequests() {
     { key: "sector", header: "Sector", exportValue: (row) => row.sector || "" },
     { key: "monto_solicitado_usd", header: "Monto (USD)", exportValue: (row) => row.monto_solicitado_usd || 0 },
     { key: "nivel_aprobacion_requerido", header: "Nivel", exportValue: (row) => nivelLabels[row.nivel_aprobacion_requerido] || row.nivel_aprobacion_requerido },
-    { key: "estado", header: "Estado", exportValue: (row) => estadoToBadge[row.estado] || row.estado },
-  ], []);
+    { key: "estado", header: "Estado", exportValue: (row) => (estadoToBadge[row.estado] ? t(...estadoToBadge[row.estado]) : row.estado) },
+  ], [t]);
 
   const ledgerExportColumns = useMemo(() => [
     { key: "id", header: "ID", exportValue: (row) => row.id },
     { key: "created_at", header: "Fecha", exportValue: (row) => row.created_at || "" },
-    { key: "tipo_movimiento", header: "Tipo", exportValue: (row) => row.tipo_movimiento || "" },
+    { key: "tipo_movimiento", header: "Tipo", exportValue: (row) => (TIPO_MOVIMIENTO_LABELS[row.tipo_movimiento] ? t(...TIPO_MOVIMIENTO_LABELS[row.tipo_movimiento]) : row.tipo_movimiento || "") },
     { key: "centro", header: "Centro", exportValue: (row) => row.centro || "" },
     { key: "sector", header: "Sector", exportValue: (row) => row.sector || "" },
     { key: "monto_usd", header: "Monto (USD)", exportValue: (row) => (row.monto_cents || 0) / 100 },
     { key: "saldo_usd", header: "Saldo (USD)", exportValue: (row) => (row.saldo_posterior_cents || 0) / 100 },
-  ], []);
+  ], [t]);
 
   const handleExport = useCallback(() => {
     if (mainTab === 0) {
@@ -281,9 +298,12 @@ export default function BudgetRequests() {
       minWidth: 120,
       cellRenderer: (params) => {
         const tipo = params.value || "";
+        const etiqueta = TIPO_MOVIMIENTO_LABELS[tipo]
+          ? t(...TIPO_MOVIMIENTO_LABELS[tipo])
+          : tipo.replace(/_/g, " ");
         return (
           <Chip
-            label={tipo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            label={etiqueta}
             size="small"
             color={getTipoColor(tipo)}
             variant="outlined"
@@ -310,7 +330,9 @@ export default function BudgetRequests() {
       field: "monto_cents",
       headerName: t('common_monto', 'Monto'),
       flex: 0.7,
-      minWidth: 110,
+      minWidth: 130,
+      type: "rightAligned",
+      cellStyle: MONTO_CELL_STYLE,
       cellRenderer: (params) => {
         const montoCents = params.value || 0;
         const monto = montoCents / 100;
@@ -319,8 +341,7 @@ export default function BudgetRequests() {
           <Typography
             variant="body2"
             sx={{
-              fontFamily: 'monospace',
-              fontWeight: 700,
+              fontWeight: 600,
               color: isNegative ? 'error.main' : 'success.main',
               textAlign: 'right',
             }}
@@ -334,11 +355,13 @@ export default function BudgetRequests() {
       field: "saldo_posterior_cents",
       headerName: t('common_saldo', 'Saldo'),
       flex: 0.7,
-      minWidth: 110,
+      minWidth: 130,
+      type: "rightAligned",
+      cellStyle: MONTO_CELL_STYLE,
       cellRenderer: (params) => (
         <Typography
           variant="body2"
-          sx={{ fontFamily: 'monospace', fontWeight: 600, textAlign: 'right' }}
+          sx={{ fontWeight: 600, textAlign: 'right' }}
         >
           {formatCurrency((params.value || 0) / 100)}
         </Typography>
@@ -413,13 +436,14 @@ export default function BudgetRequests() {
       field: "monto_solicitado_usd",
       headerName: t('common_monto', 'Monto'),
       flex: 0.7,
-      minWidth: 110,
+      minWidth: 130,
+      type: "rightAligned",
+      cellStyle: MONTO_CELL_STYLE,
       cellRenderer: (params) => (
         <Typography
           variant="body2"
           sx={{
-            fontFamily: 'monospace',
-            fontWeight: 700,
+            fontWeight: 600,
             color: 'success.main',
             textAlign: 'right',
           }}
@@ -449,7 +473,7 @@ export default function BudgetRequests() {
       minWidth: 100,
       cellRenderer: (params) => (
         <Chip
-          label={estadoToBadge[params.value] || params.value}
+          label={estadoToBadge[params.value] ? t(...estadoToBadge[params.value]) : params.value}
           size="small"
           color={getEstadoColor(params.value)}
           sx={{ fontWeight: 600, fontSize: 11 }}
@@ -477,7 +501,7 @@ export default function BudgetRequests() {
       cellRenderer: (params) => {
         const canAct = ["pendiente", "aprobado_l1", "aprobado_l2"].includes(params.data.estado);
         return (
-          <Stack direction="row" spacing={0.5}>
+          <Stack direction="row" spacing={0.5} sx={{ height: '100%', alignItems: 'center' }}>
             <Button
               size="small"
               variant="outlined"
@@ -489,22 +513,26 @@ export default function BudgetRequests() {
             </Button>
             {canAct && (
               <>
-                <IconButton
-                  size="small"
-                  onClick={() => setApproveDrawer({ open: true, id: params.data.id, comentario: "" })}
-                  sx={{ color: 'success.main', '&:hover': { bgcolor: 'success.lighter' } }}
-                  title="Aprobar"
-                >
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => setRejectDrawer({ open: true, id: params.data.id, motivo: "" })}
-                  sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.lighter' } }}
-                  title="Rechazar"
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
+                <Tooltip title={t('common_aprobar', 'Aprobar')}>
+                  <IconButton
+                    size="small"
+                    onClick={() => setApproveDrawer({ open: true, id: params.data.id, comentario: "" })}
+                    sx={{ color: 'success.main', '&:hover': { bgcolor: 'success.lighter' } }}
+                    aria-label={t('common_aprobar', 'Aprobar')}
+                  >
+                    <CheckIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={t('common_rechazar', 'Rechazar')}>
+                  <IconButton
+                    size="small"
+                    onClick={() => setRejectDrawer({ open: true, id: params.data.id, motivo: "" })}
+                    sx={{ color: 'error.main', '&:hover': { bgcolor: 'error.lighter' } }}
+                    aria-label={t('common_rechazar', 'Rechazar')}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </>
             )}
           </Stack>
@@ -519,38 +547,9 @@ export default function BudgetRequests() {
   }, [items, approveDrawer.id]);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: 'text.disabled',
-              '&:hover': {
-                color: 'text.secondary',
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              fontWeight={700}
-              textTransform="uppercase"
-              letterSpacing="0.05em"
-              color="text.primary"
-            >
-              {t("bur_title", "Gestión de Presupuestos")}
-            </Typography>
-          </Box>
-        </Box>
+    <PageLayout
+      title={t("bur_title", "Gestión de presupuestos")}
+      actions={
         <Button
           variant="contained"
           size="small"
@@ -558,10 +557,10 @@ export default function BudgetRequests() {
           onClick={() => navigate("/presupuestos/nueva")}
           sx={{ textTransform: 'none' }}
         >
-          {t("bur_crear", "Incorporar Saldo")}
+          {t("bur_crear", "Incorporar saldo")}
         </Button>
-      </Box>
-
+      }
+    >
       {/* Alerts */}
       {error && (
         <Alert severity="error" onClose={() => setError("")}>
@@ -586,8 +585,6 @@ export default function BudgetRequests() {
           <Tabs
               value={mainTab}
               onChange={(_, v) => setMainTab(v)}
-              variant="scrollable"
-              scrollButtons="auto"
               sx={{
                 minHeight: 48,
                 '& .MuiTab-root': {
@@ -638,7 +635,16 @@ export default function BudgetRequests() {
           </Box>
 
           {/* Historial Tab Content */}
-          {mainTab === 0 && (
+          {loadError && (
+            <EmptyState
+              title={t("bur_error_carga", "No pudimos cargar los datos de presupuesto")}
+              description={t("common_error_carga_desc", "Intenta nuevamente en unos minutos.")}
+              action={t("common_reintentar", "Reintentar")}
+              onAction={handleRefresh}
+            />
+          )}
+
+          {!loadError && mainTab === 0 && (
             <SPMAgGrid
               rowData={ledgerEntries}
               columnDefs={ledgerColumnDefs}
@@ -656,7 +662,7 @@ export default function BudgetRequests() {
           )}
 
           {/* Incorporaciones Tab Content */}
-          {mainTab === 1 && (
+          {!loadError && mainTab === 1 && (
             <SPMAgGrid
               rowData={filteredBur}
               columnDefs={burColumnDefs}
@@ -685,10 +691,10 @@ export default function BudgetRequests() {
         >
           <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {t('bur_aprobar_incorporacion', 'Aprobar Incorporación')}
+              {t('bur_aprobar_incorporacion', 'Aprobar incorporación')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Solicitud #{approveDrawer.id}
+              {t('common_solicitud', 'Solicitud')} #{approveDrawer.id}
             </Typography>
           </Box>
 
@@ -709,11 +715,11 @@ export default function BudgetRequests() {
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Centro</Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>{t('common_centro', 'Centro')}</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedBur.centro}</Typography>
                   </Paper>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
-                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>Sector</Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.disabled', fontSize: 10 }}>{t('common_sector', 'Sector')}</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedBur.sector}</Typography>
                   </Paper>
                   <Paper elevation={0} sx={{ p: 1.5, border: 1, borderColor: 'divider' }}>
@@ -761,7 +767,7 @@ export default function BudgetRequests() {
                   rows={3}
                   value={approveDrawer.comentario}
                   onChange={(e) => setApproveDrawer(prev => ({ ...prev, comentario: e.target.value }))}
-                  placeholder="Anadir un comentario opcional..."
+                  placeholder={t('bur_comentario_placeholder', 'Añade un comentario opcional...')}
                 />
               </Box>
 
@@ -782,7 +788,7 @@ export default function BudgetRequests() {
                   disabled={actionLoading}
                   startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
                 >
-                  {actionLoading ? "Procesando..." : t('bur_confirmar_aprobacion', 'Confirmar Aprobación')}
+                  {actionLoading ? t('common_procesando', 'Procesando...') : t('bur_confirmar_aprobacion', 'Confirmar aprobación')}
                 </Button>
               </Stack>
             </Box>
@@ -800,10 +806,10 @@ export default function BudgetRequests() {
         >
           <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {t('bur_rechazar_incorporacion', 'Rechazar Incorporación')}
+              {t('bur_rechazar_incorporacion', 'Rechazar incorporación')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Solicitud #{rejectDrawer.id}
+              {t('common_solicitud', 'Solicitud')} #{rejectDrawer.id}
             </Typography>
           </Box>
 
@@ -815,7 +821,7 @@ export default function BudgetRequests() {
               sx={{ '& .MuiAlert-message': { flex: 1 } }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('bur_accion_irreversible', 'Acción irreversible')}</Typography>
-              <Typography variant="body2">Una vez rechazada, la solicitud no podra ser aprobada posteriormente.</Typography>
+              <Typography variant="body2">{t('bur_rechazo_irreversible_desc', 'Una vez rechazada, la solicitud no podrá ser aprobada posteriormente.')}</Typography>
             </Alert>
 
             {/* Reason Field */}
@@ -830,12 +836,12 @@ export default function BudgetRequests() {
                 rows={4}
                 value={rejectDrawer.motivo}
                 onChange={(e) => setRejectDrawer(prev => ({ ...prev, motivo: e.target.value }))}
-                placeholder="Explica el motivo del rechazo..."
+                placeholder={t('bur_motivo_placeholder', 'Explica el motivo del rechazo...')}
                 error={rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5}
                 helperText={
                   rejectDrawer.motivo.length > 0 && rejectDrawer.motivo.length < 5
                     ? t('bur_minimo_caracteres', 'Mínimo 5 caracteres requeridos')
-                    : "El solicitante sera notificado con este motivo"
+                    : t('bur_motivo_notificacion', 'El solicitante será notificado con este motivo')
                 }
               />
               <Typography
@@ -868,12 +874,11 @@ export default function BudgetRequests() {
                 disabled={actionLoading || rejectDrawer.motivo.trim().length < 5}
                 startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
               >
-                {actionLoading ? "Procesando..." : t('bur_confirmar_rechazo', 'Confirmar Rechazo')}
+                {actionLoading ? t('common_procesando', 'Procesando...') : t('bur_confirmar_rechazo', 'Confirmar rechazo')}
               </Button>
             </Stack>
           </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

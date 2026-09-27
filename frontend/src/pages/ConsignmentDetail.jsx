@@ -524,7 +524,7 @@ export default function ConsignmentDetail() {
         {activeTab === 3 && (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label={t('consign_field_nombre', 'Nombre del Programa')}
                   value={configForm.nombre}
@@ -534,7 +534,7 @@ export default function ConsignmentDetail() {
                   disabled={!configEditing}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label={t('consign_field_descripcion', 'Descripción')}
                   value={configForm.descripcion}
@@ -546,7 +546,7 @@ export default function ConsignmentDetail() {
                   disabled={!configEditing}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   select
                   label={t('consign_field_estado', 'Estado')}
@@ -561,7 +561,7 @@ export default function ConsignmentDetail() {
                   <MenuItem value="terminated">{t('consign_estado_terminated', 'Terminado')}</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   select
                   label={t('consign_field_periodo', 'Periodo de Reconciliación')}
@@ -575,7 +575,7 @@ export default function ConsignmentDetail() {
                   <MenuItem value="quincenal">{t('consign_periodo_quincenal', 'Quincenal')}</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   label={t('consign_field_margen', 'Porcentaje Margen (%)')}
                   value={configForm.porcentaje_margen}
@@ -586,7 +586,7 @@ export default function ConsignmentDetail() {
                   disabled={!configEditing}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Stack direction="row" spacing={2}>
                   {!configEditing ? (
                     <Button variant="contained" onClick={() => setConfigEditing(true)}>

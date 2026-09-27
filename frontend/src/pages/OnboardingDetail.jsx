@@ -478,7 +478,7 @@ export default function OnboardingDetail() {
         {tabValue === 0 && (
           <Box sx={{ p: 3 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={8}>
+              <Grid size={{ xs: 12, sm: 8 }}>
                 <TextField
                   label={t('onboarding_razon_social', 'Razón Social')}
                   value={editForm.razon_social || ''}
@@ -488,7 +488,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   label={t('onboarding_cuit', 'CUIT')}
                   value={editForm.cuit || ''}
@@ -498,7 +498,7 @@ export default function OnboardingDetail() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label={t('onboarding_rubro', 'Rubro')}
                   value={editForm.rubro || ''}
@@ -508,7 +508,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label={t('onboarding_contacto_nombre', 'Nombre Contacto')}
                   value={editForm.contacto_nombre || ''}
@@ -518,7 +518,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label={t('onboarding_contacto_email', 'Email')}
                   value={editForm.contacto_email || ''}
@@ -529,7 +529,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label={t('onboarding_contacto_telefono', 'Teléfono')}
                   value={editForm.contacto_telefono || ''}
@@ -539,7 +539,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label={t('onboarding_direccion', 'Dirección')}
                   value={editForm.direccion || ''}
@@ -549,7 +549,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   label={t('onboarding_ciudad', 'Ciudad')}
                   value={editForm.ciudad || ''}
@@ -559,7 +559,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   label={t('onboarding_provincia', 'Provincia')}
                   value={editForm.provincia || ''}
@@ -569,7 +569,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   label={t('onboarding_pais', 'País')}
                   value={editForm.pais || ''}
@@ -579,7 +579,7 @@ export default function OnboardingDetail() {
                   disabled={!canEdit}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   label={t('onboarding_sitio_web', 'Sitio Web')}
                   value={editForm.sitio_web || ''}

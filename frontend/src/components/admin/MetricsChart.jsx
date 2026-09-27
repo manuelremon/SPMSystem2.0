@@ -13,8 +13,8 @@ const METRIC_CONFIG = {
   cpu: { colorKey: 'primary', name: 'CPU', unit: '%' },
   memory: { colorKey: 'secondary', name: 'Memoria', unit: '%' },
   latency_p50: { colorKey: 'warning', name: 'Latencia P50', unit: 'ms' },
-  error_rate: { colorKey: 'error', name: 'Tasa de Error', unit: '%' },
-  cache_hit: { colorKey: 'success', name: 'Cache Hit', unit: '%' },
+  error_rate: { colorKey: 'error', name: 'Tasa de error', unit: '%' },
+  cache_hit: { colorKey: 'success', name: 'Aciertos de caché', unit: '%' },
 };
 
 // Mapeo de colorKey a colores SPM
@@ -302,7 +302,7 @@ export function LatencyErrorChart({ data, height = 250 }) {
               },
               {
                 data: chartData.errors,
-                label: t('metrics_error_rate', 'Tasa de Error') + ' (%)',
+                label: t('metrics_error_rate', 'Tasa de error') + ' (%)',
                 borderColor: SPM_COLORS.error,
                 yAxisID: 'y1',
                 pointRadius: 0,

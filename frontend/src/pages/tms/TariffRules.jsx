@@ -239,7 +239,7 @@ export default function TariffRules() {
               autoComplete="off"
             />
             <Grid container spacing={2}>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <TextField
                   label={t('tms_tariff_km', 'Tarifa/km')}
                   type="number"
@@ -250,7 +250,7 @@ export default function TariffRules() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <TextField
                   label={t('tms_tariff_kg', 'Tarifa/kg')}
                   type="number"
@@ -261,7 +261,7 @@ export default function TariffRules() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={4}>
+              <Grid size={4}>
                 <TextField
                   label={t('tms_tariff_m3', 'Tarifa/m3')}
                   type="number"
@@ -274,7 +274,7 @@ export default function TariffRules() {
               </Grid>
             </Grid>
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_tariff_recargo_comb', 'Recargo Combustible (%)')}
                   type="number"
@@ -285,7 +285,7 @@ export default function TariffRules() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_tariff_recargo_seguro', 'Recargo Seguro (%)')}
                   type="number"
@@ -298,7 +298,7 @@ export default function TariffRules() {
               </Grid>
             </Grid>
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_tariff_desde', 'Vigencia Desde')}
                   type="date"
@@ -309,7 +309,7 @@ export default function TariffRules() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_tariff_hasta', 'Vigencia Hasta')}
                   type="date"
@@ -345,5 +345,5 @@ export default function TariffRules() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }

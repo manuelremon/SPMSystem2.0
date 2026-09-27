@@ -280,7 +280,7 @@ export default function WorkOrderDetail() {
         <CardContent>
           <Typography variant="h6" gutterBottom>{t('fms_order_info', 'Informacion de la Orden')}</Typography>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary">{t('fms_col_vehicle', 'Vehiculo')}</Typography>
               <Typography variant="body1" fontWeight={500} mb={2}>
                 {wo.vehicle_placa || `ID: ${wo.vehicle_id}`}
@@ -305,7 +305,7 @@ export default function WorkOrderDetail() {
               <Typography variant="body1" mb={2}>{wo.solucion || '--'}</Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary">{t('fms_assigned_technician', 'Tecnico Asignado')}</Typography>
               <Typography variant="body1" mb={2}>{wo.tecnico_nombre || wo.tecnico_id || '--'}</Typography>
 
@@ -553,5 +553,5 @@ export default function WorkOrderDetail() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }

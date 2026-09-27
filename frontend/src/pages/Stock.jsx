@@ -6,9 +6,10 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
+import PageLayout from "../components/ui/PageLayout";
+import { formatCurrency as fmtCurrency, formatNumber as fmtNumber } from "../utils/formatters";
 
 // MUI Components
 import {
@@ -17,7 +18,6 @@ import {
   Typography,
   TextField,
   Button,
-  IconButton,
   FormControl,
   InputLabel,
   Select,
@@ -33,7 +33,6 @@ import {
 // MUI Icons
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 
@@ -44,22 +43,15 @@ import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 // UTILITIES
 // ============================================================================
 
+// Montos sin decimales ("USD 702.715.204"); "-" si no hay dato
 function formatCurrency(value) {
   if (value == null || isNaN(value)) return "-";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return fmtCurrency(value, 0);
 }
 
 function formatNumber(value) {
   if (value == null || isNaN(value)) return "-";
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
+  return fmtNumber(Math.round(Number(value) * 100) / 100);
 }
 
 // ============================================================================
@@ -128,11 +120,12 @@ function SummaryCard({ label, value, subvalue, variant = "default" }) {
 
 /** Boolean badge cell renderer */
 function BooleanCellRenderer({ value }) {
+  const { t } = useI18n();
   if (value) {
     return (
       <Chip
         icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
-        label="Sí"
+        label={t("common_si", "Sí")}
         size="small"
         sx={{
           height: 22,
@@ -152,7 +145,7 @@ function BooleanCellRenderer({ value }) {
   return (
     <Chip
       icon={<CancelIcon sx={{ fontSize: 14 }} />}
-      label="No"
+      label={t("common_no", "No")}
       size="small"
       sx={{
         height: 22,
@@ -198,7 +191,6 @@ function DaysCellRenderer({ value }) {
 // ============================================================================
 
 export default function Stock() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   // Data state
@@ -225,34 +217,34 @@ export default function Stock() {
   // AG-Grid column definitions
   const columnDefs = useMemo(() => [
     {
-      headerName: "Material",
+      headerName: t("common_material", "Material"),
       field: "material",
       width: 120,
       pinned: "left",
       cellStyle: { fontFamily: "monospace", fontWeight: 500 },
     },
     {
-      headerName: "Descripción",
+      headerName: t("common_descripcion", "Descripción"),
       field: "descripcion",
       flex: 2,
       minWidth: 200,
       tooltipField: "descripcion",
     },
     {
-      headerName: "Centro",
+      headerName: t("common_centro", "Centro"),
       field: "centro",
       width: 100,
     },
     {
-      headerName: "Almacén",
+      headerName: t("common_almacen", "Almacén"),
       field: "almacen",
-      width: 100,
+      width: 110,
     },
     {
-      headerName: "Stock",
+      headerName: t("stock_col_stock", "Stock"),
       field: "stock",
-      width: 120,
-      type: "numericColumn",
+      width: 130,
+      type: "rightAligned",
       valueFormatter: ({ value, data: row }) => {
         const num = formatNumber(value);
         return row?.um ? `${num} ${row.um}` : num;
@@ -260,23 +252,23 @@ export default function Stock() {
       cellStyle: { fontWeight: 500, fontVariantNumeric: "tabular-nums" },
     },
     {
-      headerName: "Valor USD",
+      headerName: t("stock_col_valor", "Valor"),
       field: "stock_valorizado",
-      width: 130,
-      type: "numericColumn",
+      width: 150,
+      type: "rightAligned",
       valueFormatter: ({ value }) => formatCurrency(value),
-      cellStyle: { textAlign: 'right', paddingRight: '16px', fontVariantNumeric: "tabular-nums" },
+      cellStyle: { fontVariantNumeric: "tabular-nums" },
     },
     {
-      headerName: "Inmovilizado",
+      headerName: t("stock_inmovilizado", "Inmovilizado"),
       field: "inmovilizado",
-      width: 120,
+      width: 130,
       cellRenderer: BooleanCellRenderer,
       cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
       filter: true,
     },
     {
-      headerName: "MRP",
+      headerName: t("stock_col_mrp", "MRP"),
       field: "mrp",
       width: 100,
       cellRenderer: BooleanCellRenderer,
@@ -284,14 +276,14 @@ export default function Stock() {
       filter: true,
     },
     {
-      headerName: "Días s/Mov",
+      headerName: t("stock_col_dias_sin_mov", "Días sin mov."),
       field: "dias_sin_movimiento",
-      width: 120,
-      type: "numericColumn",
+      width: 140,
+      type: "rightAligned",
       cellRenderer: DaysCellRenderer,
       filter: "agNumberColumnFilter",
     },
-  ], []);
+  ], [t]);
 
   // Load stock data with server-side pagination
   const loadStock = useCallback(async () => {
@@ -328,18 +320,18 @@ export default function Stock() {
         setTotal(stockRes.data.total);
         setFiltros(stockRes.data.filtros || { centros: [], almacenes: [] });
       } else {
-        setError("Error al cargar stock");
+        setError(t("stock_error_carga", "No se pudo cargar el stock. Inténtalo de nuevo."));
       }
 
       if (resumenRes.data?.ok) {
         setResumen(resumenRes.data.data);
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("stock_error_conexion", "No se pudo conectar con el servidor. Inténtalo de nuevo."));
     } finally {
       setLoading(false);
     }
-  }, [centro, almacen, search, inmovilizado, mrp, page, pageSize, sortCol, sortOrder]);
+  }, [centro, almacen, search, inmovilizado, mrp, page, pageSize, sortCol, sortOrder, t]);
 
   useEffect(() => {
     loadStock();
@@ -374,40 +366,10 @@ export default function Stock() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.5px" }}
-            >
-              {t("stock_masivo_titulo", "Stock Masivo")}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
+    <PageLayout title={t("stock_masivo_titulo", "Stock masivo")}>
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+        <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
       )}
@@ -426,11 +388,11 @@ export default function Stock() {
           }}
         >
           <SummaryCard
-            label={t("stock_total_items", "Items en Stock")}
+            label={t("stock_total_items", "Ítems en stock")}
             value={formatNumber(resumen.total_items)}
           />
           <SummaryCard
-            label={t("stock_valor_total", "Valor Total")}
+            label={t("stock_valor_total", "Valor total")}
             value={formatCurrency(resumen.valor_total)}
             variant="primary"
           />
@@ -441,7 +403,7 @@ export default function Stock() {
             variant="warning"
           />
           <SummaryCard
-            label={t("stock_sin_consumo", "Sin Consumo 365d")}
+            label={t("stock_sin_consumo", "Sin consumo 365 días")}
             value={formatNumber(resumen.sin_consumo_365d)}
             variant="danger"
           />
@@ -450,9 +412,9 @@ export default function Stock() {
             value={formatNumber(resumen.mrp_items)}
           />
           <SummaryCard
-            label={t("stock_unidades", "Stock Total")}
+            label={t("stock_unidades", "Stock total")}
             value={formatNumber(resumen.stock_total)}
-            subvalue="unidades"
+            subvalue={t("stock_unidades_sub", "unidades")}
           />
         </Box>
       )}
@@ -472,7 +434,7 @@ export default function Stock() {
                 letterSpacing: "0.05em",
               }}
             >
-              Filtros
+              {t("common_filtros", "Filtros")}
             </Typography>
           </Stack>
         </Box>
@@ -485,8 +447,8 @@ export default function Stock() {
               size="small"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código o descripción..."
-              sx={{ flex: 1, minWidth: 250, maxWidth: 400 }}
+              placeholder={t("stock_buscar_placeholder", "Busca por código o descripción...")}
+              sx={{ flex: 1, minWidth: { xs: "100%", sm: 250 }, maxWidth: { xs: "100%", sm: 400 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -497,14 +459,14 @@ export default function Stock() {
             />
 
             {/* Centro */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Centro</InputLabel>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 150 } }}>
+              <InputLabel>{t("common_centro", "Centro")}</InputLabel>
               <Select
                 value={centro}
                 onChange={(e) => setCentro(e.target.value)}
-                label="Centro"
+                label={t("common_centro", "Centro")}
               >
-                <MenuItem value="">Todos los centros</MenuItem>
+                <MenuItem value="">{t("stock_todos_centros", "Todos los centros")}</MenuItem>
                 {filtros.centros.map((opt) => (
                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                 ))}
@@ -512,14 +474,14 @@ export default function Stock() {
             </FormControl>
 
             {/* Almacen */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Almacén</InputLabel>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 150 } }}>
+              <InputLabel>{t("common_almacen", "Almacén")}</InputLabel>
               <Select
                 value={almacen}
                 onChange={(e) => setAlmacen(e.target.value)}
-                label="Almacén"
+                label={t("common_almacen", "Almacén")}
               >
-                <MenuItem value="">Todos los almacenes</MenuItem>
+                <MenuItem value="">{t("stock_todos_almacenes", "Todos los almacenes")}</MenuItem>
                 {filtros.almacenes.map((opt) => (
                   <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                 ))}
@@ -527,30 +489,30 @@ export default function Stock() {
             </FormControl>
 
             {/* Inmovilizado */}
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <InputLabel>Inmovilizado</InputLabel>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 130 } }}>
+              <InputLabel>{t("stock_inmovilizado", "Inmovilizado")}</InputLabel>
               <Select
                 value={inmovilizado}
                 onChange={(e) => setInmovilizado(e.target.value)}
-                label="Inmovilizado"
+                label={t("stock_inmovilizado", "Inmovilizado")}
               >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="true">Sí</MenuItem>
-                <MenuItem value="false">No</MenuItem>
+                <MenuItem value="">{t("common_todos", "Todos")}</MenuItem>
+                <MenuItem value="true">{t("common_si", "Sí")}</MenuItem>
+                <MenuItem value="false">{t("common_no", "No")}</MenuItem>
               </Select>
             </FormControl>
 
             {/* MRP */}
-            <FormControl size="small" sx={{ minWidth: 100 }}>
-              <InputLabel>MRP</InputLabel>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 100 } }}>
+              <InputLabel>{t("stock_col_mrp", "MRP")}</InputLabel>
               <Select
                 value={mrp}
                 onChange={(e) => setMrp(e.target.value)}
-                label="MRP"
+                label={t("stock_col_mrp", "MRP")}
               >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="true">Sí</MenuItem>
-                <MenuItem value="false">No</MenuItem>
+                <MenuItem value="">{t("common_todos", "Todos")}</MenuItem>
+                <MenuItem value="true">{t("common_si", "Sí")}</MenuItem>
+                <MenuItem value="false">{t("common_no", "No")}</MenuItem>
               </Select>
             </FormControl>
 
@@ -562,7 +524,7 @@ export default function Stock() {
               disabled={!search && !centro && !almacen && !inmovilizado && !mrp}
               sx={{ textTransform: "none" }}
             >
-              Limpiar filtros
+              {t("common_limpiar_filtros", "Limpiar filtros")}
             </Button>
 
             {/* Spacer */}
@@ -571,7 +533,7 @@ export default function Stock() {
             {/* Counter */}
             <Chip
               size="small"
-              label={`${formatNumber(total)} items`}
+              label={`${formatNumber(total)} ${t("common_items_lower", "ítems")}`}
               sx={{
                 height: 28,
                 bgcolor: "primary.50",
@@ -591,7 +553,7 @@ export default function Stock() {
           pagination={false}
           enableQuickFilter={false}
           exportFileName="stock"
-          emptyMessage="No se encontraron registros de stock"
+          emptyMessage={t("stock_empty", "No se encontraron registros de stock")}
           defaultColDef={{
             sortable: true,
             filter: false,
@@ -603,33 +565,39 @@ export default function Stock() {
         {/* Server-side pagination controls */}
         <Box sx={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: 1.5,
           px: 2, py: 1.5, borderTop: 1, borderColor: "divider", bgcolor: "grey.50",
         }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="body2" color="text.secondary">
-              {t("stock_mostrando", "Mostrando")} {Math.min(page * pageSize + 1, total)}-{Math.min((page + 1) * pageSize, total)} {t("stock_de", "de")} {formatNumber(total)}
+          <Stack direction="row" alignItems="center" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+              {formatNumber(Math.min(page * pageSize + 1, total))}–{formatNumber(Math.min((page + 1) * pageSize, total))} {t("stock_de", "de")} {formatNumber(total)}
             </Typography>
             <Divider orientation="vertical" flexItem />
-            <FormControl size="small" sx={{ minWidth: 80 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ whiteSpace: "nowrap" }}>
+              <Typography variant="body2" color="text.secondary">
+                {t("stock_filas_por_pagina", "Filas por página")}
+              </Typography>
               <Select
                 value={pageSize}
                 onChange={(e) => { setPageSize(e.target.value); setPage(0); }}
                 variant="standard"
-                sx={{ fontSize: "0.875rem" }}
+                size="small"
+                sx={{ fontSize: "0.875rem", minWidth: 60 }}
+                inputProps={{ "aria-label": t("stock_filas_por_pagina", "Filas por página") }}
               >
                 <MenuItem value={50}>50</MenuItem>
                 <MenuItem value={100}>100</MenuItem>
                 <MenuItem value={200}>200</MenuItem>
                 <MenuItem value={500}>500</MenuItem>
               </Select>
-            </FormControl>
-            <Typography variant="body2" color="text.secondary">/ {t("stock_pagina", "página")}</Typography>
+            </Stack>
           </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ ml: { xs: 0, sm: "auto" } }}>
             <Button
               size="small"
               disabled={page === 0 || loading}
               onClick={() => setPage(0)}
+              aria-label={t("common_primera_pagina", "Primera página")}
               sx={{ minWidth: 36, textTransform: "none" }}
             >
               ««
@@ -638,17 +606,19 @@ export default function Stock() {
               size="small"
               disabled={page === 0 || loading}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label={t("common_pagina_anterior", "Página anterior")}
               sx={{ minWidth: 36, textTransform: "none" }}
             >
               «
             </Button>
-            <Typography variant="body2" sx={{ fontWeight: 600, mx: 1 }}>
-              {page + 1} / {totalPages}
+            <Typography variant="body2" sx={{ fontWeight: 600, mx: 1, whiteSpace: "nowrap" }}>
+              {formatNumber(page + 1)} / {formatNumber(totalPages)}
             </Typography>
             <Button
               size="small"
               disabled={page >= totalPages - 1 || loading}
               onClick={() => setPage((p) => p + 1)}
+              aria-label={t("common_pagina_siguiente", "Página siguiente")}
               sx={{ minWidth: 36, textTransform: "none" }}
             >
               »
@@ -657,6 +627,7 @@ export default function Stock() {
               size="small"
               disabled={page >= totalPages - 1 || loading}
               onClick={() => setPage(totalPages - 1)}
+              aria-label={t("common_ultima_pagina", "Última página")}
               sx={{ minWidth: 36, textTransform: "none" }}
             >
               »»
@@ -669,7 +640,6 @@ export default function Stock() {
       {loading && (
         <LinearProgress sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999 }} />
       )}
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }

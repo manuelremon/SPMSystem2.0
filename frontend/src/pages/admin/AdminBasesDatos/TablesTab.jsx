@@ -19,6 +19,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import SearchIcon from "@mui/icons-material/Search";
 import DownloadIcon from "@mui/icons-material/Download";
 import { SPMAgGrid } from "../../../components/ui/SPMAgGrid";
+import { formatNumber } from "../../../utils/formatters";
 import { useI18n } from "../../../context/i18n";
 
 export function TablesTab({
@@ -60,12 +61,8 @@ export function TablesTab({
       flex: 0.4,
       minWidth: 100,
       type: "numericColumn",
-      valueFormatter: (params) => {
-        if (params.value === null || params.value === undefined) return "0";
-        return params.value.toLocaleString();
-      },
+      valueFormatter: (params) => formatNumber(params.value ?? 0),
       cellStyle: {
-        fontFamily: "monospace",
         textAlign: "right",
       },
     },
@@ -103,7 +100,7 @@ export function TablesTab({
             onClick={() => onExportCsv(params.data.name)}
             sx={{ textTransform: "none", fontSize: "0.75rem" }}
           >
-            CSV
+            {t("admin_db_csv", "CSV")}
           </Button>
         </Stack>
       ),
@@ -112,8 +109,8 @@ export function TablesTab({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+      <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" useFlexGap>
+        <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 200 } }}>
           <InputLabel id="db-select-label">
             {t("admin_db_select", "Base de datos")}
           </InputLabel>
@@ -135,6 +132,7 @@ export function TablesTab({
           disabled={loading}
           color="primary"
           title={t("common_refresh", "Actualizar")}
+          aria-label={t("common_refresh", "Actualizar")}
         >
           <RefreshIcon
             sx={{
@@ -156,7 +154,7 @@ export function TablesTab({
         paginationPageSize={25}
         enableQuickFilter={true}
         exportFileName="tablas_bd"
-        emptyMessage={t("common_no_data", "Sin datos")}
+        emptyMessage={t("common_no_data", "No hay datos disponibles")}
       />
     </Box>
   );

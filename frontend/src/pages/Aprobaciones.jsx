@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -14,6 +14,7 @@ import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../u
 import { getCriticidadConfig } from "../utils/styleConfig";
 import StatusBadge from "../components/ui/StatusBadge";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
 
 // MUI Components
 import {
@@ -42,7 +43,6 @@ import {
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -56,6 +56,20 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 const DEBOUNCE_MS = 300;
+
+/* Criticidad: mismo formato visual que StatusBadge (icono + texto coloreado) */
+function CriticidadBadge({ value, t }) {
+  const config = getCriticidadConfig(value || "Normal");
+  const Icon = config.icon;
+  return (
+    <span className="inline-flex items-center gap-1.5" style={{ color: config.color }}>
+      {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+      <span className="text-xs font-semibold">
+        {t(`criticidad_${String(config.label).toLowerCase()}`, config.label)}
+      </span>
+    </span>
+  );
+}
 
 /* ─────────────────────────────────────────────────────────────
    Reject Modal
@@ -154,7 +168,7 @@ function BudgetErrorModal({ open, message, onClose, onRequestBudget, t }) {
           <WarningAmberIcon sx={{ color: "warning.main", fontSize: 20 }} />
         </Box>
         <Typography variant="subtitle1" fontWeight={600} color="warning.dark">
-          {t("aprov_presupuesto_insuficiente", "Presupuesto Insuficiente")}
+          {t("aprov_presupuesto_insuficiente", "Presupuesto insuficiente")}
         </Typography>
       </DialogTitle>
 
@@ -172,7 +186,7 @@ function BudgetErrorModal({ open, message, onClose, onRequestBudget, t }) {
           {t("common_cerrar", "Cerrar")}
         </Button>
         <Button onClick={onRequestBudget} variant="contained" color="primary" size="small">
-          {t("aprov_solicitar_presupuesto", "Solicitar Presupuesto")}
+          {t("aprov_solicitar_presupuesto", "Solicitar presupuesto")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -184,8 +198,6 @@ function BudgetErrorModal({ open, message, onClose, onRequestBudget, t }) {
 ───────────────────────────────────────────────────────────── */
 function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprobar, onRechazar, t }) {
   if (!open || !solicitud) return null;
-
-  const criticidadConfig = getCriticidadConfig(solicitud.criticidad || "Normal");
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -200,7 +212,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
         }}
       >
         <Typography variant="subtitle1" fontWeight={600} color="text.primary">
-          Solicitud #{solicitud.id}
+          {t("common_solicitud", "Solicitud")} #{solicitud.id}
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
           <CloseIcon fontSize="small" />
@@ -219,18 +231,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                 fechaEnvio: solicitud.created_at,
               }}
             />
-            {solicitud.criticidad && (
-              <Chip
-                label={criticidadConfig.label}
-                size="small"
-                sx={{
-                  color: criticidadConfig.color,
-                  bgcolor: criticidadConfig.bg,
-                  fontWeight: 600,
-                  fontSize: "0.75rem",
-                }}
-              />
-            )}
+            {solicitud.criticidad && <CriticidadBadge value={solicitud.criticidad} t={t} />}
           </Box>
 
           {/* Info y Ubicacion */}
@@ -247,7 +248,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   mb: 1.5,
                 }}
               >
-                {t('sol_info_general', 'Información General')}
+                {t('sol_info_general', 'Información general')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -259,13 +260,13 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <CalendarTodayIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Creacion:</strong> {formatDate(solicitud.created_at)}
+                    <strong>{t("common_creacion", "Creación")}:</strong> {formatDate(solicitud.created_at)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <AccessTimeIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Necesidad:</strong> {formatDate(solicitud.fecha_necesidad)}
+                    <strong>{t("common_necesidad", "Necesidad")}:</strong> {formatDate(solicitud.fecha_necesidad)}
                   </Typography>
                 </Box>
               </Stack>
@@ -289,19 +290,19 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <BusinessIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Centro:</strong> {solicitud.centro || "-"}
+                    <strong>{t("common_centro", "Centro")}:</strong> {solicitud.centro || "-"}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <LocationOnIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Sector:</strong> {getSectorNombre(solicitud.sector, sectores)}
+                    <strong>{t("common_sector", "Sector")}:</strong> {getSectorNombre(solicitud.sector, sectores)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarehouseIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Almacen:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
+                    <strong>{t("common_almacen", "Almacén")}:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
                   </Typography>
                 </Box>
               </Stack>
@@ -377,7 +378,7 @@ function DetalleModal({ open, solicitud, sectores, showActions, onClose, onAprob
                   <TableBody>
                     {solicitud.items.map((item, idx) => (
                       <TableRow key={idx} hover>
-                        <TableCell sx={{ fontFamily: "monospace", fontSize: "0.75rem", color: "text.secondary" }}>
+                        <TableCell sx={{ color: "text.secondary" }}>
                           {item.codigo || item.codigo_sap}
                         </TableCell>
                         <TableCell sx={{ color: "text.primary" }}>{item.descripcion}</TableCell>
@@ -458,7 +459,21 @@ export default function Aprobaciones() {
   const [q, setQ] = useState("");
   const debouncedQ = useDebounced(q, DEBOUNCE_MS);
 
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => (searchParams.get("tab") === "historial" ? 1 : 0));
+
+  // Sincroniza la pestaña con ?tab=historial (p.ej. redirección desde /aprobaciones/historial)
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "historial" ? 1 : 0);
+  }, [searchParams]);
+
+  const handleTabChange = useCallback(
+    (_e, newValue) => {
+      setActiveTab(newValue);
+      setSearchParams(newValue === 1 ? { tab: "historial" } : {}, { replace: true });
+    },
+    [setSearchParams]
+  );
   const [detalleModal, setDetalleModal] = useState({ open: false, solicitud: null });
   const [rejectModal, setRejectModal] = useState({ open: false, id: null });
   const [budgetErrorModal, setBudgetErrorModal] = useState({ open: false, message: "" });
@@ -484,7 +499,8 @@ export default function Aprobaciones() {
         const res = await api.get("/catalogos/sectores");
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
-      } catch (err) {
+      } catch {
+        // Sin catálogo de sectores se muestra el identificador
       }
     };
     fetchSectores();
@@ -630,11 +646,7 @@ export default function Aprobaciones() {
         flex: 0.6,
         minWidth: 90,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "solicitante",
@@ -647,14 +659,14 @@ export default function Aprobaciones() {
         field: "centro",
         headerName: t('common_centro', 'Centro'),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 90,
         valueGetter: (params) => params.data.centro || "-",
       },
       {
         field: "almacen_virtual",
         headerName: t('common_almacen', 'Almacén'),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 100,
         cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
       },
       {
@@ -666,46 +678,32 @@ export default function Aprobaciones() {
       },
       {
         field: "fecha_necesidad",
-        headerName: t('sol_f_necesidad', 'F. Necesidad'),
+        headerName: t('sol_f_necesidad_corto', 'F. necesidad'),
         flex: 0.6,
         minWidth: 90,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "criticidad",
         headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
         minWidth: 110,
-        cellRenderer: (params) => {
-          const config = getCriticidadConfig(params.value || "Normal");
-          return (
-            <Typography variant="body2" fontWeight={600} sx={{ color: config.color }}>
-              {config.label}
-            </Typography>
-          );
-        },
+        cellRenderer: (params) => <CriticidadBadge value={params.value} t={t} />,
       },
       {
         field: "total_monto",
         headerName: t('common_monto', 'Monto'),
         flex: 0.7,
-        minWidth: 100,
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
+        minWidth: 140,
+        type: "rightAligned",
+        valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: "items_count",
         headerName: t('common_items_header', 'Ítems'),
         flex: 0.4,
-        minWidth: 50,
+        minWidth: 80,
+        type: "rightAligned",
         valueGetter: (params) => params.data.items?.length || 0,
       },
       {
@@ -786,11 +784,7 @@ export default function Aprobaciones() {
         flex: 0.6,
         minWidth: 90,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "solicitante",
@@ -803,7 +797,7 @@ export default function Aprobaciones() {
         field: "centro",
         headerName: t('common_centro', 'Centro'),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 90,
       },
       {
         field: "sector",
@@ -817,26 +811,15 @@ export default function Aprobaciones() {
         headerName: t('common_criticidad', 'Criticidad'),
         flex: 0.5,
         minWidth: 110,
-        cellRenderer: (params) => {
-          const config = getCriticidadConfig(params.value || "Normal");
-          return (
-            <Typography variant="body2" fontWeight={600} sx={{ color: config.color }}>
-              {config.label}
-            </Typography>
-          );
-        },
+        cellRenderer: (params) => <CriticidadBadge value={params.value} t={t} />,
       },
       {
         field: "total_monto",
         headerName: t('common_monto', 'Monto'),
         flex: 0.7,
-        minWidth: 100,
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
+        minWidth: 140,
+        type: "rightAligned",
+        valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: "status",
@@ -861,7 +844,7 @@ export default function Aprobaciones() {
         field: "acciones",
         headerName: t('common_acciones', 'Acciones'),
         flex: 0.4,
-        minWidth: 60,
+        minWidth: 100,
         sortable: false,
         filter: false,
         cellRenderer: (params) => (
@@ -891,45 +874,12 @@ export default function Aprobaciones() {
   const rowsHistorial = useMemo(() => filteredHistorial.map((item) => ({ ...item, id: item.id })), [filteredHistorial]);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              size="small"
-              sx={{
-                color: "text.secondary",
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                "&:hover": { bgcolor: "grey.100", borderColor: "grey.400" },
-              }}
-            >
-              <ArrowBackIcon fontSize="small" />
-            </IconButton>
-            <Box>
-              <Typography
-                variant="h5"
-                component="h1"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing="0.05em"
-                color="text.primary"
-              >
-                {t("aprov_page_title", "Aprobaciones")}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
+    <PageLayout title={t("aprov_page_title", "Aprobaciones")}>
         {/* Alertas */}
         {error && (
           <Alert
             severity="error"
             onClose={() => setError("")}
-            sx={{ mb: 2 }}
           >
             {error}
           </Alert>
@@ -938,7 +888,6 @@ export default function Aprobaciones() {
           <Alert
             severity="success"
             onClose={() => setSuccess("")}
-            sx={{ mb: 2 }}
           >
             {success}
           </Alert>
@@ -950,7 +899,10 @@ export default function Aprobaciones() {
           <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "grey.50", px: 1 }}>
             <Tabs
               value={activeTab}
-              onChange={(e, newValue) => setActiveTab(newValue)}
+              onChange={handleTabChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
               sx={{
                 "& .MuiTab-root": {
                   textTransform: "none",
@@ -1015,7 +967,7 @@ export default function Aprobaciones() {
               enableQuickFilter={true}
               onRowDoubleClick={(data) => setDetalleModal({ open: true, solicitud: data })}
               exportFileName="aprobaciones_pendientes"
-              emptyMessage={t("aprov_no_items", "No hay solicitudes pendientes de aprobacion")}
+              emptyMessage={t("aprov_no_items", "No hay solicitudes pendientes de aprobación")}
             />
           ) : (
             <SPMAgGrid
@@ -1063,7 +1015,6 @@ export default function Aprobaciones() {
           onRechazar={handleRechazar}
           t={t}
         />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

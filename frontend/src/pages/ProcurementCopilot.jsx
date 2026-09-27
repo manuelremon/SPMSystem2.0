@@ -7,11 +7,11 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 import { formatDateTime } from '../utils/formatters';
+import PageLayout from '../components/ui/PageLayout';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -33,7 +33,6 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Divider from '@mui/material/Divider';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import SendIcon from '@mui/icons-material/Send';
 import SearchIcon from '@mui/icons-material/Search';
@@ -59,11 +58,20 @@ const SUGGESTION_TIPO_COLORS = {
   general: 'default',
 };
 
+const TIPO_LABELS = {
+  general: ['copilot_tipo_general', 'General'],
+  sourcing: ['copilot_tipo_sourcing', 'Abastecimiento'],
+  rfq: ['copilot_tipo_rfq', 'Cotización'],
+  supplier: ['copilot_tipo_supplier', 'Proveedor'],
+  contract: ['copilot_tipo_contract', 'Contrato'],
+  cost_reduction: ['copilot_tipo_cost_reduction', 'Reducción de costos'],
+  risk: ['copilot_tipo_risk', 'Riesgo'],
+};
+
 export default function ProcurementCopilot() {
   const { t } = useI18n();
   const toast = useToast();
-  const navigate = useNavigate();
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   // Conversations
   const [conversations, setConversations] = useState([]);
@@ -85,8 +93,10 @@ export default function ProcurementCopilot() {
   const [materialCodigo, setMaterialCodigo] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
 
+  // Desplaza solo el contenedor de mensajes (nunca la ventana completa)
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
   // Fetch conversations
@@ -146,7 +156,7 @@ export default function ProcurementCopilot() {
   }, [activeConvId, fetchMessages]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) scrollToBottom();
   }, [messages, scrollToBottom]);
 
   // Select conversation
@@ -159,18 +169,18 @@ export default function ProcurementCopilot() {
   const handleNewConversation = useCallback(async () => {
     try {
       const res = await api.post('/copilot/conversations', {
-        titulo: t('copilot_new_conv_title', 'Nueva Conversacion'),
+        titulo: t('copilot_new_conv_title', 'Nueva conversación'),
       });
       if (res.data?.ok) {
         const newConv = res.data.conversation || res.data;
         fetchConversations();
         setActiveConvId(newConv.id);
         setMessages([]);
-        toast.success(t('copilot_conv_created', 'Conversacion creada'));
+        toast.success(t('copilot_conv_created', 'Conversación creada'));
       }
     } catch (err) {
       const errMsg = err.response?.data?.error;
-      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_new_conv', 'Error al crear conversacion'));
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_new_conv', 'Error al crear la conversación'));
     }
   }, [t, toast, fetchConversations]);
 
@@ -221,29 +231,29 @@ export default function ProcurementCopilot() {
   // Quick actions
   const handleQuickAction = useCallback((action) => {
     if (!activeConvId) {
-      toast.warning(t('copilot_select_conv', 'Seleccione o cree una conversacion primero'));
+      toast.warning(t('copilot_select_conv', 'Selecciona o crea una conversación primero'));
       return;
     }
     if (action === 'analyze_material') {
       setAnalyzeOpen(true);
     } else if (action === 'suggest_supplier') {
-      setMessageInput(t('copilot_prompt_supplier', 'Sugiere proveedores para mi proxima compra'));
+      setMessageInput(t('copilot_prompt_supplier', 'Sugiere proveedores para mi próxima compra'));
     } else if (action === 'draft_rfq') {
-      setMessageInput(t('copilot_prompt_rfq', 'Ayudame a crear un borrador de RFQ'));
+      setMessageInput(t('copilot_prompt_rfq', 'Ayúdame a crear un borrador de solicitud de cotización'));
     }
   }, [activeConvId, t, toast]);
 
   // Analyze material
   const handleAnalyzeMaterial = useCallback(async () => {
     if (!materialCodigo.trim()) {
-      toast.warning(t('copilot_material_required', 'Ingrese codigo de material'));
+      toast.warning(t('copilot_material_required', 'Ingresa el código del material'));
       return;
     }
     setAnalyzing(true);
     try {
       const res = await api.post(`/copilot/suggestions/sourcing/${materialCodigo.trim()}`);
       if (res.data?.ok) {
-        toast.success(t('copilot_analysis_started', 'Analisis de sourcing iniciado'));
+        toast.success(t('copilot_analysis_started', 'Análisis de abastecimiento iniciado'));
         setAnalyzeOpen(false);
         setMaterialCodigo('');
         fetchSuggestions();
@@ -273,36 +283,19 @@ export default function ProcurementCopilot() {
       }
     } catch (err) {
       const errMsg = err.response?.data?.error;
-      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_feedback', 'Error al procesar feedback'));
+      toast.error(typeof errMsg === 'string' ? errMsg : errMsg?.message || t('copilot_error_feedback', 'Error al procesar la respuesta'));
     } finally {
       setProcessingFeedback(null);
     }
   }, [t, toast, fetchSuggestions]);
 
+  const tipoLabel = (tipo) => (TIPO_LABELS[tipo] ? t(...TIPO_LABELS[tipo]) : tipo);
+
   const activeConv = conversations.find((c) => c.id === activeConvId);
   const activeSuggestions = suggestions.filter((s) => s.estado === 'active' || s.estado === 'pending');
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            color: "text.disabled",
-            "&:hover": {
-              color: "text.secondary",
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-          {t('copilot_title', 'Procurement Copilot')}
-        </Typography>
-      </Box>
+    <PageLayout title={t('copilot_titulo_pagina', 'Copiloto IA')}>
 
       {/* Main Layout */}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2} sx={{ minHeight: 600 }}>
@@ -326,7 +319,7 @@ export default function ProcurementCopilot() {
               onClick={handleNewConversation}
               size="small"
             >
-              {t('copilot_new_conv', 'Nueva Conversacion')}
+              {t('copilot_new_conv', 'Nueva conversación')}
             </Button>
           </Box>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
@@ -351,12 +344,12 @@ export default function ProcurementCopilot() {
                       primary={
                         <Stack direction="row" alignItems="center" gap={0.5}>
                           <Typography variant="body2" sx={{ fontWeight: activeConvId === conv.id ? 700 : 400, flex: 1 }} noWrap>
-                            {conv.titulo || t('copilot_untitled', 'Sin titulo')}
+                            {conv.titulo || t('copilot_untitled', 'Sin título')}
                           </Typography>
                           {conv.contexto_tipo && (
                             <Chip
                               size="small"
-                              label={conv.contexto_tipo}
+                              label={tipoLabel(conv.contexto_tipo)}
                               color={CONTEXTO_COLORS[conv.contexto_tipo] || 'default'}
                               sx={{ fontSize: '0.65rem', height: 20 }}
                             />
@@ -388,12 +381,12 @@ export default function ProcurementCopilot() {
           {/* Chat Header */}
           <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
             <Typography variant="subtitle2">
-              {activeConv ? activeConv.titulo : t('copilot_select_conv_prompt', 'Seleccione una conversacion')}
+              {activeConv ? activeConv.titulo : t('copilot_select_conv_prompt', 'Selecciona una conversación')}
             </Typography>
           </Box>
 
           {/* Messages */}
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box ref={messagesContainerRef} sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: { md: 520 } }}>
             {msgsLoading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                 <CircularProgress size={24} />
@@ -401,13 +394,13 @@ export default function ProcurementCopilot() {
             ) : !activeConvId ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  {t('copilot_start_hint', 'Cree o seleccione una conversacion para comenzar')}
+                  {t('copilot_start_hint', 'Crea o selecciona una conversación para comenzar')}
                 </Typography>
               </Box>
             ) : messages.length === 0 ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  {t('copilot_empty_conv', 'Envie un mensaje para iniciar la conversacion')}
+                  {t('copilot_empty_conv', 'Envía un mensaje para iniciar la conversación')}
                 </Typography>
               </Box>
             ) : (
@@ -451,7 +444,6 @@ export default function ProcurementCopilot() {
                 );
               })
             )}
-            <div ref={messagesEndRef} />
           </Box>
 
           {/* Quick Actions */}
@@ -464,7 +456,7 @@ export default function ProcurementCopilot() {
                   startIcon={<SearchIcon />}
                   onClick={() => handleQuickAction('analyze_material')}
                 >
-                  {t('copilot_quick_analyze', 'Analizar Material')}
+                  {t('copilot_quick_analyze', 'Analizar material')}
                 </Button>
                 <Button
                   size="small"
@@ -472,7 +464,7 @@ export default function ProcurementCopilot() {
                   startIcon={<GroupIcon />}
                   onClick={() => handleQuickAction('suggest_supplier')}
                 >
-                  {t('copilot_quick_supplier', 'Sugerir Proveedor')}
+                  {t('copilot_quick_supplier', 'Sugerir proveedor')}
                 </Button>
                 <Button
                   size="small"
@@ -480,7 +472,7 @@ export default function ProcurementCopilot() {
                   startIcon={<DescriptionIcon />}
                   onClick={() => handleQuickAction('draft_rfq')}
                 >
-                  {t('copilot_quick_rfq', 'Draft RFQ')}
+                  {t('copilot_quick_rfq', 'Borrador de cotización')}
                 </Button>
               </Stack>
             </Box>
@@ -493,7 +485,7 @@ export default function ProcurementCopilot() {
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={t('copilot_input_placeholder', 'Escriba su mensaje...')}
+                placeholder={t('copilot_input_placeholder', 'Escribe tu mensaje...')}
                 fullWidth
                 size="small"
                 multiline
@@ -518,7 +510,7 @@ export default function ProcurementCopilot() {
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <LightbulbIcon sx={{ color: 'warning.main' }} />
-            <Typography variant="subtitle2">{t('copilot_suggestions', 'Sugerencias Activas')}</Typography>
+            <Typography variant="subtitle2">{t('copilot_suggestions', 'Sugerencias activas')}</Typography>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
             {activeSuggestions.map((sug) => (
@@ -531,7 +523,7 @@ export default function ProcurementCopilot() {
                   <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                     <Chip
                       size="small"
-                      label={sug.tipo || 'general'}
+                      label={tipoLabel(sug.tipo || 'general')}
                       color={SUGGESTION_TIPO_COLORS[sug.tipo] || 'default'}
                     />
                   </Stack>
@@ -581,12 +573,12 @@ export default function ProcurementCopilot() {
         <DialogTitle>
           <Stack direction="row" alignItems="center" gap={1}>
             <SearchIcon color="primary" />
-            <span>{t('copilot_analyze_title', 'Analizar Material')}</span>
+            <span>{t('copilot_analyze_title', 'Analizar material')}</span>
           </Stack>
         </DialogTitle>
         <DialogContent>
           <TextField
-            label={t('copilot_material_code', 'Codigo de Material')}
+            label={t('copilot_material_code', 'Código de material')}
             value={materialCodigo}
             onChange={(e) => setMaterialCodigo(e.target.value)}
             fullWidth
@@ -610,7 +602,6 @@ export default function ProcurementCopilot() {
           </Button>
         </DialogActions>
       </Dialog>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

@@ -290,7 +290,7 @@ export default function AdminCrudTemplate({
             </Stack>
             {!hideDescription && (
               <Typography variant="body2" color="text.secondary">
-                {`${t("crud_manage_catalog", "Gestiona el catalogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
+                {`${t("crud_manage_catalog", "Gestiona el catálogo de")} ${title.toLowerCase()} ${t("common_del_sistema", "del sistema")}`}
               </Typography>
             )}
           </Box>

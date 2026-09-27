@@ -88,11 +88,12 @@ describe('Login', () => {
       expect(screen.getByText('Sistema de Planificación de Materiales')).toBeInTheDocument();
     });
 
-    it('muestra links de recuperar y crear cuenta', () => {
+    it('muestra link de recuperar contraseña y aviso para obtener cuenta', () => {
       renderLogin();
 
       expect(screen.getByText('¿Olvidaste tu contraseña?')).toBeInTheDocument();
-      expect(screen.getByText('Crear cuenta')).toBeInTheDocument();
+      // El registro publico fue retirado: las cuentas las crea el administrador
+      expect(screen.getByText('Contacta al administrador para obtener una cuenta')).toBeInTheDocument();
     });
   });
 
@@ -245,22 +246,6 @@ describe('Login', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Recuperar contraseña')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Modal de registro', () => {
-    it('abre modal al hacer click en crear cuenta', async () => {
-      renderLogin();
-
-      const registerLink = screen.getByText('Crear cuenta');
-      fireEvent.click(registerLink);
-
-      await waitFor(() => {
-        // Dialog title "Crear cuenta" + the link text = multiple matches, use getAllByText
-        const crearCuentaElements = screen.getAllByText(/crear cuenta/i);
-        expect(crearCuentaElements.length).toBeGreaterThanOrEqual(2); // link + dialog title
-        expect(screen.getByPlaceholderText('Juan Pérez')).toBeInTheDocument();
       });
     });
   });

@@ -1,12 +1,10 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
   Typography,
-  TextField,
   Button,
   IconButton,
   FormControl,
@@ -14,32 +12,16 @@ import {
   Select,
   MenuItem,
   Alert,
-  Skeleton,
   Stack,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   Drawer,
   FormControlLabel,
   Checkbox,
-  InputAdornment,
-  Chip,
   CircularProgress,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
-import DeleteIcon from "@mui/icons-material/Delete";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
-import WorkIcon from "@mui/icons-material/Work";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import Tooltip from "@mui/material/Tooltip";
-
-// Services
-import { exportToXLSX } from "../../services/export";
+import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // ============================================================================
 // CONSTANTES
@@ -47,8 +29,8 @@ import { exportToXLSX } from "../../services/export";
 const PUESTOS_OPTIONS = [
   { value: "Planificador", label: "Planificador" },
   { value: "Jefe", label: "Jefe" },
-  { value: "Gerente1", label: "Gerente Nivel 1" },
-  { value: "Gerente2", label: "Gerente Nivel 2" },
+  { value: "Gerente1", label: "Gerente nivel 1" },
+  { value: "Gerente2", label: "Gerente nivel 2" },
   { value: "Director", label: "Director" },
   { value: "Supervisor", label: "Supervisor" },
   { value: "Analista", label: "Analista" },
@@ -58,252 +40,18 @@ const PUESTOS_OPTIONS = [
 const DRAWER_WIDTH = 400;
 
 // ============================================================================
-// COMPONENTES UI
-// ============================================================================
-
-function LoadingSkeleton() {
-  return (
-    <Box>
-      {[...Array(5)].map((_, i) => (
-        <Box
-          key={i}
-          sx={{
-            display: "flex",
-            borderBottom: 1,
-            borderColor: "divider",
-          }}
-        >
-          <Box sx={{ flex: 1, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" width="50%" height={20} />
-          </Box>
-          <Box sx={{ width: 100, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" width="50%" height={20} sx={{ mx: "auto" }} />
-          </Box>
-          <Box sx={{ width: 150, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" width="66%" height={20} sx={{ mx: "auto" }} />
-          </Box>
-          <Box sx={{ width: 50, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} />
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-function EmptyState({ onClear, hasFilters }) {
-  const { t } = useI18n();
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        py: 8,
-        color: "text.secondary",
-      }}
-    >
-      <WorkIcon sx={{ width: 48, height: 48, mb: 1.5, color: "action.disabled" }} />
-      <Typography variant="body2" fontWeight={500}>
-        {t('admin_no_results', 'No se encontraron puestos')}
-      </Typography>
-      {hasFilters && (
-        <Button
-          onClick={onClear}
-          size="small"
-          sx={{ mt: 1, textTransform: "none" }}
-        >
-          {t('admin_clear_search', 'Limpiar busqueda')}
-        </Button>
-      )}
-    </Box>
-  );
-}
-
-function PuestoRow({ puesto, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
-  const { t } = useI18n();
-  const isActivo = puesto.activo === 1 || puesto.activo === true;
-
-  if (isDeleting) {
-    return (
-      <TableRow
-        sx={{
-          bgcolor: "error.lighter",
-          borderLeft: 4,
-          borderLeftColor: "error.main",
-        }}
-      >
-        <TableCell colSpan={4} sx={{ px: 2, py: 1.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "error.dark" }}>
-              <WarningAmberIcon sx={{ width: 20, height: 20 }} />
-              <Typography variant="body2" fontWeight={500}>
-                ¿Eliminar el puesto <strong>{puesto.nombre}</strong>?
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1}>
-              <Button
-                onClick={onCancelDelete}
-                size="small"
-                variant="outlined"
-                sx={{
-                  textTransform: "none",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  borderColor: "divider",
-                  "&:hover": {
-                    bgcolor: "action.hover",
-                    borderColor: "divider",
-                  },
-                }}
-              >
-                {t('common_cancelar', 'Cancelar')}
-              </Button>
-              <Button
-                onClick={onConfirmDelete}
-                size="small"
-                variant="contained"
-                color="error"
-                sx={{
-                  textTransform: "none",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                }}
-              >
-                {t('common_eliminar', 'Eliminar')}
-              </Button>
-            </Stack>
-          </Box>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  return (
-    <TableRow
-      onClick={onEdit}
-      sx={{
-        cursor: "pointer",
-        transition: "background-color 75ms",
-        "&:hover": {
-          bgcolor: "action.hover",
-          "& .delete-button": {
-            opacity: 1,
-          },
-        },
-      }}
-    >
-      <TableCell
-        sx={{
-          px: 1.5,
-          py: 1.25,
-          borderRight: 1,
-          borderRightColor: "divider",
-        }}
-      >
-        <Typography variant="body2" fontWeight={500} color="text.primary" fontSize="var(--text-base)">
-          {puesto.nombre}
-        </Typography>
-      </TableCell>
-      <TableCell
-        align="center"
-        sx={{
-          px: 1.5,
-          py: 1.25,
-          borderRight: 1,
-          borderRightColor: "divider",
-        }}
-      >
-        <Chip
-          size="small"
-          label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
-          sx={{
-            height: 20,
-            fontSize: "var(--text-2xs)",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            bgcolor: isActivo ? "success.lighter" : "action.disabledBackground",
-            color: isActivo ? "success.dark" : "text.secondary",
-            "& .MuiChip-label": {
-              px: 1,
-            },
-          }}
-          icon={
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor: isActivo ? "success.main" : "action.disabled",
-                ml: 0.5,
-              }}
-            />
-          }
-        />
-      </TableCell>
-      <TableCell
-        align="center"
-        sx={{
-          px: 1.5,
-          py: 1.25,
-          borderRight: 1,
-          borderRightColor: "divider",
-        }}
-      >
-        <Typography variant="caption" color="text.secondary">
-          {puesto.created_at || "—"}
-        </Typography>
-      </TableCell>
-      <TableCell align="center" sx={{ px: 1, py: 1.25 }}>
-        <IconButton
-          className="delete-button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          size="small"
-          aria-label={t("aria_delete_puesto", "Eliminar puesto")}
-          sx={{
-            opacity: 0,
-            transition: "all 150ms",
-            color: "action.disabled",
-            "&:hover": {
-              color: "error.main",
-              bgcolor: "error.lighter",
-            },
-          }}
-        >
-          <DeleteIcon sx={{ width: 16, height: 16 }} />
-        </IconButton>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-// ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
 const initialForm = { nombre: "", activo: 1 };
 
 export default function AdminPuestos() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   const [puestos, setPuestos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(initialForm);
@@ -325,12 +73,6 @@ export default function AdminPuestos() {
   useEffect(() => {
     loadPuestos();
   }, [loadPuestos]);
-
-  const filteredPuestos = useMemo(() => {
-    if (!search) return puestos;
-    const term = search.toLowerCase();
-    return puestos.filter((p) => p.nombre?.toLowerCase().includes(term));
-  }, [puestos, search]);
 
   const handleEdit = useCallback((puesto) => {
     setEditingId(puesto.nombre);
@@ -400,275 +142,98 @@ export default function AdminPuestos() {
     [loadPuestos, t]
   );
 
-  
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredPuestos,
-        "puestos",
-        "Puestos"
-      );
-      setSuccess("Puestos exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar puestos");
-    } finally {
-      setExporting(false);
-    }
-  };
 
-return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          bgcolor: "background.paper",
-          borderBottom: 1,
-          borderColor: "divider",
-          boxShadow: 1,
-        }}
-      >
-        <Box sx={{ maxWidth: 1600, mx: "auto", px: 2, py: 1.5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <IconButton
-                onClick={() => navigate("/admin")}
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "nombre",
+        headerName: t("common_nombre", "Nombre"),
+        flex: 1,
+        minWidth: 200,
+        valueFormatter: (params) => params.value || "—",
+      },
+      {
+        field: "activo",
+        headerName: t("common_estado", "Estado"),
+        flex: 0.4,
+        minWidth: 120,
+        valueFormatter: (params) =>
+          params.value === 1 || params.value === true
+            ? t("common_activo", "Activo")
+            : t("common_inactivo", "Inactivo"),
+        cellRenderer: (params) => <ActiveStatus activo={params.value} />,
+      },
+      actionsColumn(t("common_acciones", "Acciones"), (params) => (
+        <RowActions
+          onEdit={() => handleEdit(params.data)}
+          onDelete={() => setDeletingId(params.data.nombre)}
+        />
+      )),
+    ],
+    [t, handleEdit]
+  );
+
+  return (
+    <PageLayout
+      title={t("admin_puestos", "Puestos")}
+      subtitle={t("admin_puestos_subtitle", "Gestión de puestos del sistema")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
+      {error && !drawerOpen && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
+
+      {deletingId && (
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
                 size="small"
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": {
-                    color: "text.primary",
-                    bgcolor: "action.hover",
-                  },
-                }}
+                onClick={() => setDeletingId(null)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
               >
-                <ArrowBackIcon sx={{ width: 20, height: 20 }} />
-              </IconButton>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={700}
-                  color="text.primary"
-                  sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
-                >
-                  {t('admin_puestos', 'Puestos')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('admin_puestos_subtitle', 'Gestion de puestos del sistema')}
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              onClick={handleNew}
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon sx={{ width: 16, height: 16 }} />}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                px: 2,
-              }}
-            >
-              {t('common_nuevo', 'Nuevo')}
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Contenido */}
-      <Box sx={{ maxWidth: 1600, mx: "auto", px: 2, py: 2 }}>
-        {error && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="error" onClose={() => setError("")}>
-              {error}
-            </Alert>
-          </Box>
-        )}
-        {success && (
-          <Box sx={{ mb: 2 }}>
-            <Alert severity="success" onClose={() => setSuccess("")}>
-              {success}
-            </Alert>
-          </Box>
-        )}
-
-        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-          {/* Filtros */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderBottom: 1,
-              borderColor: "divider",
-              bgcolor: "grey.50",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <TextField
-                placeholder="Buscar por nombre..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                {t("common_cancelar", "Cancelar")}
+              </Button>
+              <Button
                 size="small"
-                sx={{
-                  flex: 1,
-                  maxWidth: 400,
-                  "& .MuiOutlinedInput-root": {
-                    height: 36,
-                    fontSize: "0.875rem",
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ width: 16, height: 16, color: "action.disabled" }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${filteredPuestos.length} puestos`}
-                sx={{
-                  height: 24,
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  bgcolor: "grey.200",
-                  color: "text.secondary",
-                }}
-                icon={
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      bgcolor: "action.disabled",
-                      ml: 0.5,
-                    }}
-                  />
-                }
-              />
-            </Box>
-          </Box>
+                variant="contained"
+                color="error"
+                onClick={() => handleDelete(deletingId)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {submitting ? "..." : t("common_eliminar", "Eliminar")}
+              </Button>
+            </Stack>
+          }
+        >
+          {t("admin_puestos_confirm_delete", "¿Eliminar el puesto")} <strong>{deletingId}</strong>?
+        </Alert>
+      )}
 
-          {/* Tabla */}
-          {loading ? (
-            <LoadingSkeleton />
-          ) : filteredPuestos.length === 0 ? (
-            <EmptyState onClear={() => setSearch("")} hasFilters={!!search} />
-          ) : (
-            <Box sx={{ overflowX: "auto" }}>
-              <Table size="small" sx={{ borderCollapse: "collapse" }}>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: "grey.50" }}>
-                    <TableCell
-                      sx={{
-                        px: 1.5,
-                        py: 1.5,
-                        fontSize: "var(--text-xs)",
-                        fontWeight: 600,
-                        color: "text.secondary",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        borderRight: 1,
-                        borderRightColor: "divider",
-                        borderBottom: 2,
-                        borderBottomColor: "divider",
-                      }}
-                    >
-                      {t('common_nombre', 'Nombre')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        px: 1.5,
-                        py: 1.5,
-                        fontSize: "var(--text-xs)",
-                        fontWeight: 600,
-                        color: "text.secondary",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        width: 100,
-                        borderRight: 1,
-                        borderRightColor: "divider",
-                        borderBottom: 2,
-                        borderBottomColor: "divider",
-                      }}
-                    >
-                      {t('common_estado', 'Estado')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        px: 1.5,
-                        py: 1.5,
-                        fontSize: "var(--text-xs)",
-                        fontWeight: 600,
-                        color: "text.secondary",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        width: 150,
-                        borderRight: 1,
-                        borderRightColor: "divider",
-                        borderBottom: 2,
-                        borderBottomColor: "divider",
-                      }}
-                    >
-                      {t('common_creado', 'Creado')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        px: 1,
-                        py: 1.5,
-                        fontSize: "var(--text-xs)",
-                        fontWeight: 600,
-                        color: "text.secondary",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        width: 50,
-                        borderBottom: 2,
-                        borderBottomColor: "divider",
-                      }}
-                    />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredPuestos.map((puesto) => (
-                    <PuestoRow
-                      key={puesto.nombre}
-                      puesto={puesto}
-                      onEdit={() => handleEdit(puesto)}
-                      onDelete={() => setDeletingId(puesto.nombre)}
-                      isDeleting={deletingId === puesto.nombre}
-                      onCancelDelete={() => setDeletingId(null)}
-                      onConfirmDelete={() => handleDelete(puesto.nombre)}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          )}
-
-          {!loading && filteredPuestos.length > 0 && (
-            <Box
-              sx={{
-                px: 2,
-                py: 1.5,
-                borderTop: 1,
-                borderColor: "divider",
-                bgcolor: "grey.50",
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Mostrando {filteredPuestos.length} de {puestos.length} puestos
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Box>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+        <SPMAgGrid
+            searchable
+          rowData={puestos}
+          columnDefs={columnDefs}
+          loading={loading}
+          height={500}
+          enableQuickFilter={true}
+          getRowId={(params) => String(params.data.nombre)}
+          exportFileName="puestos"
+          emptyMessage={t("admin_puestos_empty", "No hay puestos registrados")}
+        />
+      </Paper>
 
       {/* Drawer */}
       <Drawer
@@ -693,11 +258,11 @@ return (
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
-              {editingId ? `${t('common_editar', 'Editar')} Puesto` : `${t('common_nuevo', 'Nuevo')} Puesto`}
+              {editingId ? t("admin_puestos_editar", "Editar puesto") : t("admin_puestos_nuevo", "Nuevo puesto")}
             </Typography>
             {editingId && (
               <Typography variant="caption" color="text.secondary">
-                Puesto: {editingId}
+                {t("admin_puesto_label", "Puesto")}: {editingId}
               </Typography>
             )}
           </Box>
@@ -720,25 +285,25 @@ return (
           )}
 
           <Typography
-            variant="overline"
+            variant="subtitle2"
             color="text.secondary"
-            sx={{ display: "block", mb: 2, letterSpacing: "0.08em" }}
+            sx={{ display: "block", mb: 2 }}
           >
-            {t('admin_datos_puesto', 'Datos del Puesto')}
+            {t('admin_datos_puesto', 'Datos del puesto')}
           </Typography>
 
           <Stack spacing={3}>
             <FormControl fullWidth size="small" required disabled={!!editingId}>
-              <InputLabel id="nombre-label">{t('admin_nombre_puesto', 'Nombre del Puesto')}</InputLabel>
+              <InputLabel id="nombre-label">{t('admin_nombre_puesto', 'Nombre del puesto')}</InputLabel>
               <Select
                 labelId="nombre-label"
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                label={t('admin_nombre_puesto', 'Nombre del Puesto')}
+                label={t('admin_nombre_puesto', 'Nombre del puesto')}
               >
                 <MenuItem value="">
-                  <em>Seleccionar puesto...</em>
+                  <em>{t("admin_puesto_seleccionar", "Selecciona un puesto...")}</em>
                 </MenuItem>
                 {PUESTOS_OPTIONS.map((opt) => (
                   <MenuItem key={opt.value} value={opt.value}>
@@ -812,7 +377,6 @@ return (
           </Button>
         </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

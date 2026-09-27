@@ -28,7 +28,7 @@ export function MaterialsTable({
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, codigo: null, descripcion: '' })
 
   const rows = useMemo(() => {
-    return items.map((it, idx) => ({
+    return items.map((it) => ({
       ...it,
       id: it.codigo,
       subtotal: (it.cantidad || 0) * (it.precio_unitario || 0),
@@ -91,27 +91,25 @@ export function MaterialsTable({
       },
       {
         field: 'precio_unitario',
-        headerName: t('materials_col_precio', 'Precio USD'),
+        headerName: t('materials_col_precio_unitario', 'Precio unitario'),
         flex: 0.18,
-        minWidth: 100,
-        type: 'numericColumn',
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
+        minWidth: 140,
+        type: 'rightAligned',
         valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: 'subtotal',
         headerName: t('materials_col_subtotal', 'Subtotal'),
         flex: 0.18,
-        minWidth: 100,
-        type: 'numericColumn',
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => formatCurrency(params.data?.subtotal || 0),
+        minWidth: 140,
+        type: 'rightAligned',
+        valueFormatter: (params) => formatCurrency(params.data?.subtotal || 0),
       },
       {
         field: 'comentario',
         headerName: t('materials_col_nota', 'Nota'),
         flex: 0.12,
-        minWidth: 60,
+        minWidth: 70,
         sortable: false,
         filter: false,
         cellRenderer: (params) => (
@@ -134,9 +132,9 @@ export function MaterialsTable({
       },
       {
         field: 'acciones',
-        headerName: '',
+        headerName: t('common_acciones', 'Acciones'),
         flex: 0.1,
-        minWidth: 50,
+        minWidth: 100,
         sortable: false,
         filter: false,
         cellRenderer: (params) => (
@@ -181,7 +179,7 @@ export function MaterialsTable({
           setDeleteConfirm({ show: false, codigo: null, descripcion: '' })
         }}
         title={t('materials_confirmar_eliminar', '¿Eliminar material?')}
-        message={`${t('materials_confirmar_eliminar_msg', '¿Esta seguro que desea eliminar el material')} ${deleteConfirm.codigo} - ${deleteConfirm.descripcion}?`}
+        message={`${t('materials_confirmar_eliminar_pregunta', '¿Seguro que quieres eliminar el material')} ${deleteConfirm.codigo} - ${deleteConfirm.descripcion}?`}
         confirmText={t('materials_eliminar', 'Eliminar')}
         cancelText={t('common_cancelar', 'Cancelar')}
         variant="danger"

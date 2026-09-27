@@ -1,51 +1,18 @@
-import React from "react";
-import { useParallax } from "../../hooks/useParallax";
+import { PageTitleBar } from "./PageLayout";
 
-export function PageHeader({
-  title,
-  subtitle, // Deprecated - no longer rendered
-  description, // Deprecated - no longer rendered
-  badge,
-  actions,
-  meta, // Legacy support
-  eyebrow, // Legacy support
-  className = ""
-}) {
-  // Support legacy props
-  const displayBadge = badge || eyebrow;
-  const displayMeta = meta || actions;
-
-  // Parallax effect - light preset (offset: 0.35)
-  const { ref, style, isDisabled } = useParallax({ offset: 0.35 });
-
+/**
+ * Compatibilidad: encabezado de pagina con el estilo canonico (ver PageLayout).
+ * Props legacy (badge/eyebrow/meta/description) se mantienen para no romper usos existentes.
+ */
+export function PageHeader({ title, subtitle, actions, meta, badge, eyebrow, backTo, status }) {
   return (
-    <div
-      ref={ref}
-      className={`relative parallax-element ${className}`}
-      style={isDisabled ? {} : style}
-    >
-      {/* Ambient glow de fondo */}
-      <div className="absolute -top-20 -left-20 w-64 h-64 ambient-orb primary opacity-30" />
-
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          {displayBadge && (
-            <span className="inline-flex items-center px-2.5 py-1 mb-2 text-[10px] font-semibold uppercase tracking-wider text-blue-600 bg-blue-50/70 rounded-full border border-blue-200/50">
-              {displayBadge}
-            </span>
-          )}
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight uppercase">
-            {title}
-          </h1>
-        </div>
-
-        {displayMeta && (
-          <div className="flex items-center gap-3">
-            {displayMeta}
-          </div>
-        )}
-      </div>
-    </div>
+    <PageTitleBar
+      title={title}
+      subtitle={subtitle}
+      actions={actions || meta}
+      status={status || badge || eyebrow}
+      backTo={backTo}
+    />
   );
 }
 

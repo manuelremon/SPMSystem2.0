@@ -19,6 +19,7 @@ import {
   Divider,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { MessageSquare, Wifi, ChevronDown, Bell, Home } from "./ui/Icons";
 import { useRealtimeStore } from "../store/realtimeStore";
@@ -466,6 +467,10 @@ export default function Layout({ children }) {
           tabIndex={-1}
           sx={{
             p: { xs: 1.5, sm: 2, lg: 3 },
+            // Espacio para el boton flotante del asistente (no tapa paginaciones ni acciones)
+            pb: { xs: 10, sm: 11 },
+            bgcolor: "grey.100",
+            minHeight: "calc(100vh - 43px)",
           }}
         >
           {children}
@@ -499,16 +504,7 @@ export default function Layout({ children }) {
         aria-label={t("aria_open_vertex", "Abrir Vertex IA")}
         title={t("tooltip_chat", "Vertex IA - Asistente")}
       >
-        {/* Avatar V */}
-        <Typography
-          component="span"
-          sx={{
-            fontWeight: 'bold',
-            fontSize: isMobile ? '1rem' : '1.125rem',
-          }}
-        >
-          V
-        </Typography>
+        <AutoAwesomeIcon sx={{ fontSize: isMobile ? 22 : 26 }} />
         {/* Badge de alertas */}
         {unshownAlertsCount > 0 && (
           <Box

@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { useNavigate } from "react-router-dom";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import EmptyState from "../../components/ui/EmptyState";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -12,7 +14,6 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Alert from "@mui/material/Alert";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Drawer from "@mui/material/Drawer";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -20,18 +21,8 @@ import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import GroupIcon from "@mui/icons-material/Group";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import Tooltip from "@mui/material/Tooltip";
-import Divider from "@mui/material/Divider";
-import CircularProgress from "@mui/material/CircularProgress";
-
-// Services
-import { exportToXLSX } from "../../services/export";
 
 const parseAsignaciones = (text) => {
   if (!text) return [];
@@ -45,6 +36,19 @@ const parseAsignaciones = (text) => {
     });
 };
 
+/** Convierte el texto de asignaciones en etiquetas legibles ("AA101, Mantenimiento"), sin partes vacías. */
+const asignacionesToLabels = (text) =>
+  (text || "")
+    .split("\n")
+    .map((line) =>
+      line
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .join(", ")
+    )
+    .filter(Boolean);
+
 const initialForm = {
   usuario_id: "",
   nombre: "",
@@ -52,83 +56,10 @@ const initialForm = {
   asignaciones_text: "",
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Skeleton
-───────────────────────────────────────────────────────────── */
-function TableSkeleton({ rows = 5 }) {
-  return (
-    <Box>
-      {[...Array(rows)].map((_, i) => (
-        <Stack
-          key={i}
-          direction="row"
-          spacing={2}
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider",
-            py: 1.5,
-            px: 2,
-          }}
-        >
-          <Skeleton variant="text" width={64} height={24} />
-          <Skeleton variant="text" sx={{ flex: 1 }} height={24} />
-          <Skeleton variant="text" width={80} height={24} />
-          <Skeleton variant="text" width={128} height={24} />
-          <Skeleton variant="text" width={64} height={24} />
-        </Stack>
-      ))}
-    </Box>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Empty State
-───────────────────────────────────────────────────────────── */
-function EmptyState({ message, onAction, actionLabel }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        py: 8,
-        color: "text.secondary",
-      }}
-    >
-      <GroupIcon sx={{ fontSize: 48, mb: 1.5, opacity: 0.5 }} />
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        {message}
-      </Typography>
-      {onAction && (
-        <Button
-          onClick={onAction}
-          size="small"
-          sx={{
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            fontSize: "0.75rem",
-          }}
-        >
-          {actionLabel}
-        </Button>
-      )}
-    </Box>
-  );
-}
-
 /**
- * Tabla de planificadores migrada a SPMAgGrid
+ * Tabla de planificadores (SPMAgGrid)
  */
-function PlanificadoresTable({
-  data,
-  onEdit,
-  onDelete,
-  deletingId,
-  onCancelDelete,
-  onConfirmDelete,
-  submitting,
-}) {
+function PlanificadoresTable({ data, loading, onEdit, onDelete, deletingId }) {
   const { t } = useI18n();
 
   const rows = useMemo(() => {
@@ -140,191 +71,73 @@ function PlanificadoresTable({
     () => [
       {
         field: "usuario_id",
-        headerName: t('admin_usuario_id', 'Usuario ID'),
+        headerName: t("admin_planif_usuario_id", "ID de usuario"),
         flex: 0.25,
-        minWidth: 100,
+        minWidth: 120,
         valueFormatter: (params) => params.value || "-",
       },
       {
         field: "nombre",
-        headerName: t('common_nombre', 'Nombre'),
+        headerName: t("common_nombre", "Nombre"),
         flex: 0.4,
         minWidth: 150,
         valueFormatter: (params) => params.value || "-",
       },
       {
         field: "activo",
-        headerName: t('common_estado', 'Estado'),
+        headerName: t("common_estado", "Estado"),
         flex: 0.25,
-        minWidth: 100,
-        cellRenderer: (params) => (
-          <Chip
-            label={
-              params.data.activo === 1 || params.data.activo === true
-                ? t('common_activo', 'Activo')
-                : t('common_inactivo', 'Inactivo')
-            }
-            size="small"
-            sx={{
-              fontSize: "0.625rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              height: 20,
-              bgcolor:
-                params.data.activo === 1 || params.data.activo === true
-                  ? "success.lighter"
-                  : "grey.200",
-              color:
-                params.data.activo === 1 || params.data.activo === true
-                  ? "success.dark"
-                  : "text.secondary",
-            }}
-          />
-        ),
+        minWidth: 110,
+        cellRenderer: (params) => <ActiveStatus activo={params.value} />,
       },
       {
         field: "asignaciones_text",
-        headerName: t('common_asignaciones', 'Asignaciones'),
-        flex: 0.6,
-        minWidth: 200,
-        cellRenderer: (params) =>
-          params.data?.asignaciones_text ? (
-            <Box
-              component="pre"
-              sx={{
-                whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
-                m: 0,
-                fontSize: "0.75rem",
-              }}
-            >
-              {params.data.asignaciones_text}
+        headerName: t("common_asignaciones", "Asignaciones"),
+        flex: 0.8,
+        minWidth: 220,
+        autoHeight: true,
+        valueFormatter: (params) => asignacionesToLabels(params.value).join(" | "),
+        cellRenderer: (params) => {
+          const labels = asignacionesToLabels(params.data?.asignaciones_text);
+          if (labels.length === 0) {
+            return (
+              <Typography variant="caption" sx={{ color: "text.disabled" }}>
+                {t("admin_planif_sin_asignaciones", "Sin asignaciones")}
+              </Typography>
+            );
+          }
+          return (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, py: 1 }}>
+              {labels.map((label, idx) => (
+                <Chip key={`${label}-${idx}`} label={label} size="small" variant="outlined" />
+              ))}
             </Box>
-          ) : (
-            <Typography variant="caption" sx={{ color: "text.disabled" }}>
-              Sin asignaciones
-            </Typography>
-          ),
+          );
+        },
       },
-      {
-        field: "acciones",
-        headerName: t('common_acciones', 'Acciones'),
-        flex: 0.25,
-        minWidth: 100,
-        sortable: false,
-        filter: false,
-        cellRenderer: (params) => (
-          <Stack direction="row" spacing={0.5} justifyContent="center">
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => onEdit && onEdit(params.data)}
-              disabled={!!deletingId}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                color: "primary.main",
-                fontSize: "0.75rem",
-                minWidth: "auto",
-                px: 1,
-                "&:hover": { bgcolor: "primary.lighter" },
-              }}
-            >
-              {t('common_editar', 'Editar')}
-            </Button>
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => onDelete && onDelete(params.data.usuario_id)}
-              disabled={!!deletingId}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                color: "error.main",
-                fontSize: "0.75rem",
-                minWidth: "auto",
-                px: 1,
-                "&:hover": { bgcolor: "error.lighter" },
-              }}
-            >
-              {t('common_eliminar', 'Eliminar')}
-            </Button>
-          </Stack>
-        ),
-      },
+      actionsColumn(t("common_acciones", "Acciones"), (params) => (
+        <RowActions
+          onEdit={() => onEdit && onEdit(params.data)}
+          onDelete={() => onDelete && onDelete(params.data.usuario_id)}
+          disabled={!!deletingId}
+        />
+      )),
     ],
     [onEdit, onDelete, deletingId, t]
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {/* Si hay eliminación en progreso, mostrar confirmación encima */}
-      {deletingId && (
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: "error.lighter",
-            border: "1px solid",
-            borderColor: "error.light",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Typography variant="body2" sx={{ color: "error.dark" }}>
-            Eliminar al planificador{" "}
-            <strong>
-              {data.find((r) => r.usuario_id === deletingId)?.nombre ||
-                deletingId}
-            </strong>
-            ?
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onCancelDelete}
-              disabled={submitting}
-              sx={{
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontSize: "0.75rem",
-              }}
-            >
-              {t('common_cancelar', 'Cancelar')}
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={() => onConfirmDelete && onConfirmDelete(deletingId)}
-              disabled={submitting}
-              sx={{
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontSize: "0.75rem",
-              }}
-            >
-              {submitting ? "..." : t('common_eliminar', 'Eliminar')}
-            </Button>
-          </Stack>
-        </Box>
-      )}
-
-      {/* Tabla SPMAgGrid */}
-      <SPMAgGrid
-        rowData={rows}
-        columnDefs={columnDefs}
-        height={500}
-        pagination={true}
-        paginationPageSize={10}
-        enableQuickFilter={true}
-        exportFileName="planificadores"
-        emptyMessage={t("common_no_data", "Sin planificadores")}
-      />
-    </Box>
+    <SPMAgGrid
+      rowData={rows}
+      columnDefs={columnDefs}
+      loading={loading}
+      height={520}
+      pagination={true}
+      paginationPageSize={25}
+      enableQuickFilter={true}
+      exportFileName="planificadores"
+      emptyMessage={t("admin_planif_vacio", "Sin planificadores")}
+    />
   );
 }
 
@@ -332,12 +145,10 @@ function PlanificadoresTable({
    Main Component
 ───────────────────────────────────────────────────────────── */
 export default function AdminPlanificadores() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   const [planificadores, setPlanificadores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -468,176 +279,95 @@ export default function AdminPlanificadores() {
     }
   };
 
+  const deletingNombre =
+    planificadores.find((r) => r.usuario_id === deletingId)?.nombre || deletingId;
+
   // ─── Render ───────────────────────────────────────────────
-  
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredPlanificadores,
-        "planificadores",
-        "Planificadores"
-      );
-      setSuccess("Planificadores exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar planificadores");
-    } finally {
-      setExporting(false);
-    }
-  };
+  return (
+    <PageLayout
+      title={t("admin_planificadores", "Planificadores")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
 
-return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-        {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 3 }}
+      {/* Delete Confirmation */}
+      {deletingId && (
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                onClick={() => setDeletingId(null)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {t("common_cancelar", "Cancelar")}
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={() => handleDelete(deletingId)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {submitting ? "..." : t("common_eliminar", "Eliminar")}
+              </Button>
+            </Stack>
+          }
         >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <IconButton
-              onClick={() => navigate("/admin")}
-              size="small"
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  bgcolor: "grey.200",
-                  color: "text.primary",
-                },
-              }}
-            >
-              <ArrowBackIcon fontSize="small" />
-            </IconButton>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                color: "text.primary",
-              }}
-            >
-              {t("admin_planificadores", "Planificadores")}
-            </Typography>
-          </Stack>
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Tooltip title="Descargar XLSX">
-              <span>
-                <IconButton
-                  onClick={handleExport}
-                  disabled={loading || exporting || filteredPlanificadores.length === 0}
-                  size="small"
-                  sx={{
-                    color: "var(--success)",
-                    border: "1px solid var(--success)",
-                    padding: "4px 8px",
-                    "&:hover": {
-                      backgroundColor: "var(--success)",
-                      color: "var(--card)",
-                    },
-                    "&:disabled": {
-                      opacity: 0.5,
-                      cursor: "not-allowed",
-                    },
-                  }}
-                >
-                  {exporting ? (
-                    <CircularProgress size={14} sx={{ color: "var(--success)" }} />
-                  ) : (
-                    <>
-                      <FileDownloadIcon sx={{ fontSize: "1rem", mr: 0.5 }} />
-                      <span style={{ fontSize: "0.75rem", fontWeight: 500 }}>XLSX</span>
-                    </>
-                  )}
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Button
-              variant="contained"
-              onClick={handleNew}
-              size="small"
-              sx={{
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontSize: "0.75rem",
-                px: 2,
-              }}
-            >
-              {t("crud_new", "Nuevo")}
-            </Button>
-          </Box>
-        </Stack>
+          {t("admin_planif_confirm_delete", "¿Eliminar al planificador")} <strong>{deletingNombre}</strong>?
+        </Alert>
+      )}
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            severity="error"
-            onClose={() => setError("")}
-            sx={{ mb: 2 }}
-          >
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert
-            severity="success"
-            onClose={() => setSuccess("")}
-            sx={{ mb: 2 }}
-          >
-            {success}
-          </Alert>
-        )}
+      {/* Search */}
+      <TextField
+        size="small"
+        placeholder={t("admin_planificadores_search_placeholder", "Buscar por ID o nombre...")}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        autoComplete="off"
+        sx={{
+          width: { xs: "100%", sm: 300 },
+          "& .MuiOutlinedInput-root": { bgcolor: "background.paper" },
+        }}
+      />
 
-        {/* Search */}
-        <Box sx={{ mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder={t('admin_planificadores_search_placeholder', 'Buscar por ID o nombre...')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            autoComplete="off"
-            sx={{
-              width: 300,
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "background.paper",
-              },
-            }}
+      {/* Table */}
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+        {!loading && filteredPlanificadores.length === 0 ? (
+          <EmptyState
+            icon={<GroupIcon sx={{ fontSize: 32, color: "text.disabled" }} />}
+            title={
+              searchTerm
+                ? t("admin_planif_sin_resultados", "No se encontraron planificadores")
+                : t("admin_planif_sin_registros", "No hay planificadores registrados")
+            }
+            action={!searchTerm ? t("admin_planif_crear_primero", "Crear el primer planificador") : undefined}
+            onAction={!searchTerm ? handleNew : undefined}
           />
-        </Box>
-
-        {/* Table */}
-        <Paper variant="outlined">
-          {loading ? (
-            <TableSkeleton rows={5} />
-          ) : filteredPlanificadores.length === 0 ? (
-            <EmptyState
-              message={searchTerm ? t('admin_no_results', 'No se encontraron planificadores') : t('admin_no_planificadores', 'No hay planificadores registrados')}
-              onAction={!searchTerm ? handleNew : undefined}
-              actionLabel={t('admin_crear_primer_planificador', 'Crear primer planificador')}
-            />
-          ) : (
-            <PlanificadoresTable
-              data={filteredPlanificadores}
-              onEdit={handleEdit}
-              onDelete={(id) => setDeletingId(id)}
-              deletingId={deletingId}
-              onCancelDelete={() => setDeletingId(null)}
-              onConfirmDelete={handleDelete}
-              submitting={submitting}
-            />
-          )}
-        </Paper>
-
-        {/* Footer */}
-        <Typography
-          variant="caption"
-          sx={{ display: "block", mt: 2, color: "text.disabled" }}
-        >
-          {filteredPlanificadores.length} de {planificadores.length} planificadores
-        </Typography>
-      </Box>
+        ) : (
+          <PlanificadoresTable
+            data={filteredPlanificadores}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={(id) => setDeletingId(id)}
+            deletingId={deletingId}
+          />
+        )}
+      </Paper>
 
       {/* Drawer */}
       <Drawer
@@ -647,7 +377,7 @@ return (
         PaperProps={{
           sx: {
             width: "100%",
-            maxWidth: 400,
+            maxWidth: 448,
           },
         }}
       >
@@ -663,23 +393,18 @@ return (
             bgcolor: "grey.50",
           }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: "text.primary",
-            }}
-          >
-            {editingId ? `${t('common_editar', 'Editar')} Planificador` : `${t('common_nuevo', 'Nuevo')} Planificador`}
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "text.primary" }}>
+            {editingId
+              ? t("admin_planif_editar", "Editar planificador")
+              : t("admin_planif_nuevo", "Nuevo planificador")}
           </Typography>
           <IconButton
             size="small"
             onClick={() => setDrawerOpen(false)}
+            aria-label={t("common_cerrar", "Cerrar")}
             sx={{ color: "text.secondary" }}
           >
-            <CloseIcon fontSize="small" />
+            <CloseIcon />
           </IconButton>
         </Box>
 
@@ -700,7 +425,7 @@ return (
             )}
 
             <TextField
-              label={t('admin_usuario_id', 'Usuario ID')}
+              label={t("admin_planif_usuario_id", "ID de usuario")}
               name="usuario_id"
               value={form.usuario_id}
               onChange={handleChange}
@@ -709,32 +434,18 @@ return (
               size="small"
               fullWidth
               autoComplete="off"
-              InputLabelProps={{
-                sx: {
-                  fontSize: "0.6875rem",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                },
-              }}
+              InputLabelProps={{ shrink: true }}
             />
 
             <TextField
-              label={t('common_nombre', 'Nombre')}
+              label={t("common_nombre", "Nombre")}
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
               size="small"
               fullWidth
               autoComplete="off"
-              InputLabelProps={{
-                sx: {
-                  fontSize: "0.6875rem",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                },
-              }}
+              InputLabelProps={{ shrink: true }}
             />
 
             <FormControlLabel
@@ -749,13 +460,13 @@ return (
               }
               label={
                 <Typography variant="body2" sx={{ color: "text.primary" }}>
-                  {t('common_activo', 'Activo')}
+                  {t("common_activo", "Activo")}
                 </Typography>
               }
             />
 
             <TextField
-              label={t('common_asignaciones', 'Asignaciones')}
+              label={t("common_asignaciones", "Asignaciones")}
               name="asignaciones_text"
               value={form.asignaciones_text}
               onChange={handleChange}
@@ -763,34 +474,16 @@ return (
               fullWidth
               multiline
               rows={5}
-              placeholder="Una por linea: centro, sector, almacen"
+              placeholder={t("admin_planif_asignaciones_ph", "AA101, Mantenimiento, 0001")}
+              helperText={t("admin_planif_asignaciones_help", "Una por línea: centro, sector, almacén")}
               autoComplete="off"
-              InputLabelProps={{
-                sx: {
-                  fontSize: "0.6875rem",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                },
-              }}
+              InputLabelProps={{ shrink: true }}
             />
 
-            <Paper
-              variant="outlined"
+            <Box
               sx={{
-                p: 1.5,
-                bgcolor: "grey.50",
-              }}
-            >
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Formato: centro, sector, almacen_virtual (una por linea)
-              </Typography>
-            </Paper>
-
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
+                display: "flex",
+                gap: 1,
                 pt: 2,
                 borderTop: 1,
                 borderColor: "divider",
@@ -801,31 +494,27 @@ return (
                 onClick={() => setDrawerOpen(false)}
                 disabled={submitting}
                 fullWidth
-                sx={{
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontSize: "0.75rem",
-                }}
+                sx={{ textTransform: "none" }}
               >
-                {t('common_cancelar', 'Cancelar')}
+                {t("common_cancelar", "Cancelar")}
               </Button>
               <Button
                 type="submit"
                 variant="contained"
                 disabled={submitting}
                 fullWidth
-                sx={{
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontSize: "0.75rem",
-                }}
+                sx={{ textTransform: "none" }}
               >
-                {submitting ? t('common_guardando', 'Guardando...') : editingId ? t('common_actualizar', 'Actualizar') : t('common_crear', 'Crear')}
+                {submitting
+                  ? t("common_guardando", "Guardando...")
+                  : editingId
+                  ? t("common_actualizar", "Actualizar")
+                  : t("common_crear", "Crear")}
               </Button>
-            </Stack>
+            </Box>
           </Stack>
         </Box>
       </Drawer>
-    </Box>
+    </PageLayout>
   );
 }

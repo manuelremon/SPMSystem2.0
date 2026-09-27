@@ -4,13 +4,13 @@
  */
 
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { usePlanner, renderSolicitante } from "../hooks/usePlanner";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatCurrency, getSectorNombre } from "../utils/formatters";
 import { getCriticidadConfig } from "../utils/styleConfig";
 import StatusBadge from "../components/ui/StatusBadge";
+import PageLayout from "../components/ui/PageLayout";
 import TratarSolicitudModal from "../components/Planner/TratarSolicitudModal";
 import SolicitudDetalleModal from "../components/Planner/SolicitudDetalleModal";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
@@ -38,11 +38,10 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Alert from "@mui/material/Alert";
-import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import Tooltip from "@mui/material/Tooltip";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SearchIcon from "@mui/icons-material/Search";
@@ -108,14 +107,12 @@ function MultiSelect({ label, options, selected, onChange, keyField, labelField 
       : `${selectedKeys.length} ${t("common_seleccionados", "seleccionados")}`;
 
   return (
-    <Box sx={{ minWidth: 140, flex: 1 }}>
+    <Box sx={{ minWidth: { xs: "calc(50% - 8px)", sm: 140 }, flex: 1 }}>
       <Typography
         variant="caption"
         sx={{
           display: "block",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
+          fontWeight: 600,
           color: "text.secondary",
           mb: 0.5,
           fontSize: "var(--text-2xs)",
@@ -216,7 +213,7 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
         }}
       >
         <Typography variant="h6" fontWeight={700} color="text.primary">
-          {t("planner_rechazar_solicitud", "Rechazar Solicitud")} #{solicitud?.id}
+          {t("planner_rechazar_solicitud_btn", "Rechazar solicitud")} #{solicitud?.id}
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }} aria-label={t("common_cerrar", "Cerrar")}>
           <CloseIcon />
@@ -229,8 +226,6 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
           sx={{
             display: "block",
             fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
             color: "text.secondary",
             mb: 0.75,
           }}
@@ -278,7 +273,7 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
           variant="contained"
           color="error"
         >
-          {t("planner_confirmar_rechazo", "Confirmar Rechazo")}
+          {t("planner_rechazar_guardar", "Confirmar rechazo")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -290,7 +285,6 @@ function RejectModal({ open, solicitud, motivo, onMotivoChange, onClose, onConfi
 ───────────────────────────────────────────────────────────── */
 export default function Planner({ filterMode }) {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const { user } = useAuthStore();
 
   // Modal de detalle
@@ -351,19 +345,34 @@ export default function Planner({ filterMode }) {
   } = usePlanner({ t, filterMode });
 
   // AG Grid column definitions
-  const columnDefs = useMemo(
-    () => [
+  const columnDefs = useMemo(() => {
+    const compactBtnSx = {
+      minWidth: "auto",
+      px: 1,
+      py: 0.25,
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      textTransform: "none",
+      lineHeight: 1.2,
+    };
+    const iaLabels = {
+      Critica: t("planner_ia_critica", "Crítica"),
+      Alta: t("planner_ia_alta", "Alta"),
+      Media: t("planner_ia_media", "Media"),
+      Baja: t("planner_ia_baja", "Baja"),
+    };
+    return [
       {
         field: "id",
-        headerName: "ID",
-        width: 70,
+        headerName: t("common_id", "ID"),
+        width: 75,
         flex: 0,
         pinned: "left",
       },
       {
         field: "acciones",
-        headerName: "Acción",
-        width: 200,
+        headerName: t("common_acciones", "Acciones"),
+        width: 140,
         flex: 0,
         pinned: "left",
         sortable: false,
@@ -380,27 +389,21 @@ export default function Planner({ filterMode }) {
 
           return (
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", height: "100%" }}>
-              <Button
-                size="small"
-                variant="outlined"
-                color="primary"
-                aria-label={`${t("planner_ver", "Ver")} ${t("common_solicitud", "solicitud")} #${row.id}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDetalleModal({ open: true, solicitud: row });
-                }}
-                sx={{
-                  minWidth: "auto",
-                  px: 1,
-                  py: 0.25,
-                  fontSize: "0.7rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  lineHeight: 1.2,
-                }}
-              >
-                {t("planner_ver", "Ver")}
-              </Button>
+              <Tooltip title={t("planner_ver_detalle_tooltip", "Ver detalle de la solicitud")}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  aria-label={`${t("common_ver", "Ver")} ${t("common_solicitud", "solicitud")} #${row.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetalleModal({ open: true, solicitud: row });
+                  }}
+                  sx={compactBtnSx}
+                >
+                  {t("common_ver", "Ver")}
+                </Button>
+              </Tooltip>
               {canTratar && (
                 <Button
                   size="small"
@@ -411,15 +414,7 @@ export default function Planner({ filterMode }) {
                     e.stopPropagation();
                     handleTratar(row);
                   }}
-                  sx={{
-                    minWidth: "auto",
-                    px: 1,
-                    py: 0.25,
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    lineHeight: 1.2,
-                  }}
+                  sx={compactBtnSx}
                 >
                   {t("planner_tratar", "Tratar")}
                 </Button>
@@ -434,15 +429,7 @@ export default function Planner({ filterMode }) {
                     e.stopPropagation();
                     handleTomar(row);
                   }}
-                  sx={{
-                    minWidth: "auto",
-                    px: 1,
-                    py: 0.25,
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    lineHeight: 1.2,
-                  }}
+                  sx={compactBtnSx}
                 >
                   {t("planner_tomar", "Tomar")}
                 </Button>
@@ -453,17 +440,25 @@ export default function Planner({ filterMode }) {
       },
       {
         field: "estado",
-        headerName: "Estado",
-        flex: 0.7,
-        minWidth: 110,
+        headerName: t("common_estado", "Estado"),
+        flex: 0.8,
+        minWidth: 150,
         valueGetter: (params) => params.data.status || params.data.estado || "pendiente",
         valueFormatter: (params) => {
           const map = {
-            draft: "Borrador", submitted: "Enviada", pending: "Pendiente",
-            processing: "En Proceso", in_planning: "En Progreso",
-            in_treatment: "En tratamiento", treated: "Tratado",
-            approved: "Aprobada", completed: "Completada", closed: "Cerrada",
-            rejected: "Rechazada", dispatched: "Despachada", cancelled: "Cancelada",
+            draft: t("status_draft", "Borrador"),
+            submitted: t("status_submitted", "Enviada"),
+            pending: t("status_pending", "Pendiente"),
+            processing: t("status_processing", "En proceso"),
+            in_planning: t("status_in_planning", "En progreso"),
+            in_treatment: t("status_in_treatment", "En tratamiento"),
+            treated: t("status_treated", "Tratado"),
+            approved: t("status_approved", "Aprobada"),
+            completed: t("status_completed", "Completada"),
+            closed: t("status_closed", "Cerrada"),
+            rejected: t("status_rejected", "Rechazada"),
+            dispatched: t("status_dispatched", "Despachada"),
+            cancelled: t("status_cancelled", "Cancelada"),
           };
           return map[params.value] || params.value;
         },
@@ -474,7 +469,6 @@ export default function Planner({ filterMode }) {
           return (
             <StatusBadge
               estado={params.value}
-              showIcon={false}
               tooltipInfo={{ aprobador, planificador: planner, fechaEnvio: data.created_at }}
             />
           );
@@ -482,141 +476,117 @@ export default function Planner({ filterMode }) {
       },
       {
         field: "created_at",
-        headerName: "F. Creación",
+        headerName: t("planner_col_creacion", "Creación"),
+        headerTooltip: t("planner_col_fecha_creacion", "Fecha de creación"),
         flex: 0.5,
-        minWidth: 95,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary" noWrap>
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        minWidth: 110,
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "solicitante",
-        headerName: "Solicitante",
+        headerName: t("common_solicitante", "Solicitante"),
         flex: 0.8,
-        minWidth: 130,
+        minWidth: 140,
         valueGetter: (params) => renderSolicitante(params.data),
       },
       {
         field: "justificacion",
-        headerName: "Asunto",
+        headerName: t("planner_col_asunto", "Asunto"),
         flex: 1.2,
-        minWidth: 150,
-        cellRenderer: (params) => {
-          const texto = params.value || "-";
-          return (
-            <Typography
-              variant="body2"
-              noWrap
-              title={texto}
-              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              {texto}
-            </Typography>
-          );
-        },
+        minWidth: 160,
+        tooltipField: "justificacion",
+        valueFormatter: (params) => params.value || "-",
       },
       {
         field: "items_count",
-        headerName: "Items",
-        width: 70,
+        headerName: t("planner_col_items", "Ítems"),
+        headerTooltip: t("planner_col_items_tooltip", "Cantidad de ítems"),
+        width: 90,
         flex: 0,
+        type: "rightAligned",
         valueGetter: (params) => (params.data.items || []).length,
-        cellRenderer: (params) => (
-          <Chip
-            label={params.value}
-            size="small"
-            variant="outlined"
-            sx={{
-              minWidth: 28,
-              height: 22,
-              fontSize: "0.75rem",
-              fontWeight: 600,
-            }}
-          />
-        ),
       },
       {
         field: "centro",
-        headerName: "Centro",
+        headerName: t("common_centro", "Centro"),
         flex: 0.4,
-        minWidth: 75,
+        minWidth: 100,
       },
       {
         field: "almacen",
-        headerName: "Almacén",
+        headerName: t("common_almacen", "Almacén"),
         flex: 0.4,
-        minWidth: 75,
-        valueGetter: (params) => params.data.almacen || params.data.almacen_codigo || "-",
+        minWidth: 110,
+        valueGetter: (params) => params.data.almacen || params.data.almacen_virtual || params.data.almacen_codigo || "-",
       },
       {
         field: "sector",
-        headerName: "Sector",
+        headerName: t("common_sector", "Sector"),
         flex: 0.5,
-        minWidth: 90,
+        minWidth: 110,
         valueGetter: (params) => getSectorNombre(params.data.sector),
       },
       {
         field: "criticidad",
-        headerName: "Criticidad",
+        headerName: t("common_criticidad", "Criticidad"),
         flex: 0.5,
-        minWidth: 85,
+        minWidth: 120,
         cellRenderer: (params) => {
-          const criticidad = params.value || "Normal";
-          const config = getCriticidadConfig(criticidad);
+          const config = getCriticidadConfig(params.value || "Normal");
+          const Icon = config.icon;
           return (
-            <Typography variant="body2" fontWeight={600} sx={{ color: config.color }}>
-              {config.label}
-            </Typography>
+            <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, height: "100%" }}>
+              {Icon && <Icon className="w-4 h-4 flex-shrink-0" style={{ color: config.color }} />}
+              <Box component="span" sx={{ fontSize: "0.75rem", fontWeight: 600, color: config.color }}>
+                {config.label}
+              </Box>
+            </Box>
           );
         },
       },
       {
         field: "total_monto",
-        headerName: "Monto",
-        flex: 0.5,
-        minWidth: 100,
-        type: "numericColumn",
-        cellStyle: { textAlign: 'right', paddingRight: '12px' },
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
+        headerName: t("common_monto", "Monto"),
+        flex: 0.6,
+        minWidth: 140,
+        type: "rightAligned",
+        valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: "fecha_necesidad",
-        headerName: "F. Necesidad",
+        headerName: t("planner_col_necesidad", "Necesidad"),
+        headerTooltip: t("planner_col_fecha_necesidad", "Fecha de necesidad"),
         flex: 0.5,
-        minWidth: 95,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary" noWrap>
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        minWidth: 115,
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "ai_priority",
-        headerName: "IA",
-        width: 65,
+        headerName: t("planner_col_ia", "IA"),
+        headerTooltip: t("planner_col_ia_tooltip", "Prioridad sugerida por IA"),
+        width: 95,
         flex: 0,
         cellRenderer: (params) => {
           const priority = params.value;
           const score = params.data?.ai_score;
           if (!priority) return null;
-          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
+          const colors = { Critica: "var(--danger-light)", Alta: "var(--warning-light)", Media: "var(--info)", Baja: "var(--neutral)" };
+          const puntaje = score ? `${Math.round(score * 100)}%` : "-";
           return (
-            <Typography variant="body2" fontWeight={700} title={`Score: ${score ? (score * 100).toFixed(0) + '%' : '-'}`}
-              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
-              {priority}
+            <Typography
+              variant="body2"
+              component="span"
+              fontWeight={600}
+              title={`${t("common_puntaje", "Puntaje")}: ${puntaje}`}
+              sx={{ color: colors[priority] || "var(--fg-muted)", fontSize: "0.75rem" }}
+            >
+              {iaLabels[priority] || priority}
             </Typography>
           );
         },
       },
-    ],
-    [handleTratar, handleTomar, user, t]
-  );
+    ];
+  }, [handleTratar, handleTomar, user, t]);
 
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);
 
@@ -624,8 +594,8 @@ export default function Planner({ filterMode }) {
   const tabMapping = ["pendientes", "en_progreso", "finalizadas"];
 
   const getTitle = () => {
-    if (filterMode === "asignadas") return t("nav_asignadas", "Solicitudes Asignadas a Mí");
-    if (filterMode === "no-asignadas") return t("nav_no_asignadas", "Solicitudes Sin Asignar");
+    if (filterMode === "asignadas") return t("nav_asignadas", "Solicitudes asignadas a mí");
+    if (filterMode === "no-asignadas") return t("nav_no_asignadas", "Solicitudes no asignadas a mí");
     return t("planner_title", "Planificador");
   };
 
@@ -635,53 +605,17 @@ export default function Planner({ filterMode }) {
   };
 
   return (
-    <Box sx={{ bgcolor: "grey.100", mx: { xs: -1.5, sm: -2, lg: -3 }, mt: { xs: -1.5, sm: -2, lg: -3 }, mb: { xs: -1.5, sm: -2, lg: -3 }, px: { xs: 1.5, sm: 2, lg: 3 }, pt: { xs: 1.5, sm: 2, lg: 3 }, minHeight: "calc(100vh - 43px)" }}>
-      <Box sx={{ maxWidth: 1800, mx: "auto" }}>
-        {/* Header */}
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            size="small"
-            aria-label={t('common_volver', 'Volver')}
-            sx={{
-              color: "text.secondary",
-              "&:hover": {
-                bgcolor: "background.paper",
-                color: "text.primary",
-              },
-            }}
-          >
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
-          <Typography
-            variant="h6"
-            component="h1"
-            fontWeight={700}
-            textTransform="uppercase"
-            letterSpacing="0.05em"
-            color="text.primary"
-          >
-            {getTitle()}
-          </Typography>
-        </Stack>
-
+    <>
+      <PageLayout title={getTitle()}>
         {/* Alerts */}
-        <Box aria-live="polite">
+        <Box aria-live="polite" sx={{ display: "contents" }}>
           {success && (
-            <Alert
-              severity="success"
-              onClose={clearSuccess}
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="success" onClose={clearSuccess}>
               {success}
             </Alert>
           )}
           {error && (
-            <Alert
-              severity="error"
-              onClose={clearError}
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="error" onClose={clearError}>
               {error}
             </Alert>
           )}
@@ -696,20 +630,22 @@ export default function Planner({ filterMode }) {
             border: 1,
             borderColor: "divider",
             p: 2,
-            mb: 2,
             borderRadius: "8px",
           }}
         >
           {/* Row 1: Search + Date Range + Clear */}
-          <Stack direction="row" alignItems="flex-end" spacing={2} sx={{ mb: 2 }}>
-            <Box sx={{ flex: 1, maxWidth: 280 }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            alignItems={{ xs: "stretch", md: "flex-end" }}
+            spacing={2}
+            sx={{ mb: 2 }}
+          >
+            <Box sx={{ flex: 1, maxWidth: { md: 280 } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontWeight: 600,
                   color: "text.secondary",
                   mb: 0.5,
                   fontSize: "var(--text-2xs)",
@@ -742,16 +678,14 @@ export default function Planner({ filterMode }) {
               />
             </Box>
 
-            <Divider orientation="vertical" flexItem sx={{ height: 48, alignSelf: "center" }} />
+            <Divider orientation="vertical" flexItem sx={{ height: 48, alignSelf: "center", display: { xs: "none", md: "block" } }} />
 
-            <Box sx={{ flex: 1, maxWidth: 320 }}>
+            <Box sx={{ flex: 1, maxWidth: { md: 320 } }}>
               <Typography
                 variant="caption"
                 sx={{
                   display: "block",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontWeight: 600,
                   color: "text.secondary",
                   mb: 0.5,
                   fontSize: "var(--text-2xs)",
@@ -884,6 +818,8 @@ export default function Planner({ filterMode }) {
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons={false}
             sx={{
               bgcolor: "background.paper",
               borderBottom: 1,
@@ -913,7 +849,7 @@ export default function Planner({ filterMode }) {
                       {tab === "pendientes"
                         ? t("planner_tab_pendientes", "Pendientes")
                         : tab === "en_progreso"
-                        ? t("planner_tab_en_progreso", "En Progreso")
+                        ? t("planner_tab_en_progreso", "En progreso")
                         : t("planner_tab_finalizadas", "Finalizadas")}
                     </span>
                     <Chip
@@ -945,34 +881,34 @@ export default function Planner({ filterMode }) {
             exportFileName="planner_solicitudes"
             emptyMessage={t("planner_empty_full", "Sin solicitudes asignadas")}
           />
-        </Paper>  {/* End Tabs + Grid Container */}
+        </Paper>
+      </PageLayout>
 
-        {/* Treatment Modal */}
-        <TratarSolicitudModal
-          solicitud={selectedParaTratar}
-          isOpen={!!selectedParaTratar}
-          onClose={closeTratarModal}
-          onComplete={onTratarComplete}
-        />
+      {/* Treatment Modal */}
+      <TratarSolicitudModal
+        solicitud={selectedParaTratar}
+        isOpen={!!selectedParaTratar}
+        onClose={closeTratarModal}
+        onComplete={onTratarComplete}
+      />
 
-        {/* Reject Modal */}
-        <RejectModal
-          open={rejectModal.open}
-          solicitud={rejectModal.solicitud}
-          motivo={rejectModal.motivo}
-          onMotivoChange={updateRejectMotivo}
-          onClose={closeRejectModal}
-          onConfirm={rechazar}
-          t={t}
-        />
+      {/* Reject Modal */}
+      <RejectModal
+        open={rejectModal.open}
+        solicitud={rejectModal.solicitud}
+        motivo={rejectModal.motivo}
+        onMotivoChange={updateRejectMotivo}
+        onClose={closeRejectModal}
+        onConfirm={rechazar}
+        t={t}
+      />
 
-        {/* Detalle Modal */}
-        <SolicitudDetalleModal
-          isOpen={detalleModal.open}
-          onClose={() => setDetalleModal({ open: false, solicitud: null })}
-          solicitud={detalleModal.solicitud}
-        />
-      </Box>
-    </Box>
+      {/* Detalle Modal */}
+      <SolicitudDetalleModal
+        isOpen={detalleModal.open}
+        onClose={() => setDetalleModal({ open: false, solicitud: null })}
+        solicitud={detalleModal.solicitud}
+      />
+    </>
   );
 }

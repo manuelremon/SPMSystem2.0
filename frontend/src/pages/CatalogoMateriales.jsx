@@ -5,11 +5,13 @@
  */
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { materiales, equivalencias } from "../services/spm";
-import { formatCurrency, formatAlmacen } from "../utils/formatters";
+import { formatCurrency, formatAlmacen, formatDate, formatNumber } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import StatusBadge from "../components/ui/StatusBadge";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   Box,
@@ -18,7 +20,6 @@ import {
   TextField,
   Button,
   IconButton,
-  Alert,
   CircularProgress,
   Stack,
   Chip,
@@ -29,10 +30,9 @@ import {
   List,
   ListItem,
   Autocomplete,
-  InputAdornment,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import InventoryIcon from "@mui/icons-material/Inventory";
@@ -134,17 +134,6 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
 
   if (!open || !material) return null;
 
-  const getStatusColor = (status) => {
-    const colors = {
-      submitted: "warning",
-      approved: "success",
-      processing: "info",
-      dispatched: "info",
-      rejected: "error",
-    };
-    return colors[status] || "default";
-  };
-
   return (
     <Dialog
       open={open}
@@ -166,7 +155,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
           px: 3,
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flexWrap: "wrap" }}>
           <Typography
             variant="subtitle1"
             fontFamily="monospace"
@@ -179,7 +168,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
             {material.descripcion}
           </Typography>
         </Stack>
-        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
+        <IconButton onClick={onClose} size="small" aria-label={t("common_cerrar", "Cerrar")} sx={{ color: "text.secondary" }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -202,7 +191,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                   color="text.secondary"
                   sx={{ mb: 1, display: "block" }}
                 >
-                  {t("catalogo_desc_larga", "Descripcion larga")}
+                  {t("catalogo_desc_larga", "Descripción larga")}
                 </Typography>
                 <Typography variant="body2" color="text.primary">
                   {material.descripcion_larga || material.descripcion || "N/D"}
@@ -238,15 +227,15 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
             >
               <Stack direction="row" spacing={4} sx={{ mb: 2 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">{t('cat_stock_total', 'Stock Total')}</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('cat_stock_total', 'Stock total')}</Typography>
                   <Typography variant="h5" fontWeight={700} color="text.primary">
-                    {detail?.stock_total ?? "N/D"}
+                    {detail?.stock_total != null ? formatNumber(detail.stock_total) : "N/D"}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">{t('cat_pedidos_en_curso', 'Pedidos en Curso')}</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('cat_pedidos_en_curso', 'Pedidos en curso')}</Typography>
                   <Typography variant="h5" fontWeight={700} color="text.primary">
-                    {detail?.pedidos_en_curso ?? "N/D"}
+                    {detail?.pedidos_en_curso != null ? formatNumber(detail.pedidos_en_curso) : "N/D"}
                   </Typography>
                 </Box>
               </Stack>
@@ -271,7 +260,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                         </Typography>
                         {row.lote && <Typography variant="body2" color="text.secondary">/ {t('cat_lote', 'Lote')} {row.lote}</Typography>}
                         <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ ml: "auto" }}>
-                          {t('cat_stock', 'Stock')}: {row.stock}
+                          {t('cat_stock', 'Stock')}: {formatNumber(row.stock)}
                         </Typography>
                       </ListItem>
                     ))}
@@ -282,7 +271,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
 
             {/* MRP Section */}
             <CollapsibleSection
-              title={t("catalogo_mrp", "Parametros MRP")}
+              title={t("catalogo_mrp", "Parámetros MRP")}
               icon={<TrendingUpIcon fontSize="small" />}
               expanded={expandedSections.mrp}
               onToggle={() => toggleSection("mrp")}
@@ -302,16 +291,16 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Seg.</Typography>
-                          <Typography variant="body2" fontWeight={600}>{mrp.stock_seguridad ?? 0}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("catalogo_stock_seg", "Stock seg.")}</Typography>
+                          <Typography variant="body2" fontWeight={600}>{formatNumber(mrp.stock_seguridad ?? 0)}</Typography>
                         </Paper>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Pto. Pedido</Typography>
-                          <Typography variant="body2" fontWeight={600}>{mrp.punto_pedido ?? 0}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("catalogo_pto_pedido", "Pto. de pedido")}</Typography>
+                          <Typography variant="body2" fontWeight={600}>{formatNumber(mrp.punto_pedido ?? 0)}</Typography>
                         </Paper>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Stock Max.</Typography>
-                          <Typography variant="body2" fontWeight={600}>{mrp.stock_maximo ?? 0}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("catalogo_stock_max", "Stock máx.")}</Typography>
+                          <Typography variant="body2" fontWeight={600}>{formatNumber(mrp.stock_maximo ?? 0)}</Typography>
                         </Paper>
                       </Box>
                     </Paper>
@@ -319,14 +308,14 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  {t("catalogo_sin_mrp", "Este material no esta planificado en MRP")}
+                  {t("catalogo_sin_mrp", "Este material no está planificado en MRP")}
                 </Typography>
               )}
             </CollapsibleSection>
 
             {/* Consumo Section */}
             <CollapsibleSection
-              title={t("catalogo_consumo", "Consumo Historico")}
+              title={t("catalogo_consumo", "Consumo histórico")}
               icon={<ScheduleIcon fontSize="small" />}
               expanded={expandedSections.consumo}
               onToggle={() => toggleSection("consumo")}
@@ -343,15 +332,15 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                       </Stack>
                       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, textAlign: "center" }}>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Prom. Anual</Typography>
-                          <Typography variant="body2" fontWeight={600} color="success.main">{c.promedio_anual}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("catalogo_prom_anual", "Prom. anual")}</Typography>
+                          <Typography variant="body2" fontWeight={600} color="success.main">{formatNumber(c.promedio_anual)}</Typography>
                         </Paper>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Total</Typography>
-                          <Typography variant="body2" fontWeight={600}>{c.total}</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("common_total", "Total")}</Typography>
+                          <Typography variant="body2" fontWeight={600}>{formatNumber(c.total)}</Typography>
                         </Paper>
                         <Paper sx={{ p: 1, bgcolor: "grey.50" }} elevation={0}>
-                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>Anos</Typography>
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: "0.625rem" }}>{t("catalogo_anios", "Años")}</Typography>
                           <Typography variant="body2" fontWeight={600}>{c.anio_desde}-{c.anio_hasta}</Typography>
                         </Paper>
                       </Box>
@@ -360,14 +349,14 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  {t("catalogo_sin_consumo", "No hay consumo historico registrado")}
+                  {t("catalogo_sin_consumo", "No hay consumo histórico registrado")}
                 </Typography>
               )}
             </CollapsibleSection>
 
             {/* Solicitudes Section */}
             <CollapsibleSection
-              title={t("catalogo_solicitudes_spm", "Solicitudes SPM Activas")}
+              title={t("catalogo_solicitudes_spm", "Solicitudes SPM activas")}
               icon={<DescriptionIcon fontSize="small" />}
               expanded={expandedSections.solicitudes}
               onToggle={() => toggleSection("solicitudes")}
@@ -387,17 +376,12 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                         <Typography variant="body2" fontWeight={600} color="primary.main">
                           SPM #{sol.id}
                         </Typography>
-                        <Chip
-                          label={sol.estado}
-                          size="small"
-                          color={getStatusColor(sol.estado)}
-                          sx={{ height: 20, fontSize: "0.7rem" }}
-                        />
+                        <StatusBadge estado={sol.estado} />
                       </Stack>
-                      <Typography variant="caption" display="block" color="text.secondary">Solicitante: {sol.solicitante}</Typography>
-                      <Typography variant="caption" display="block" color="text.secondary">Cantidad: {sol.cantidad_solicitada}</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">{t("catalogo_solicitante", "Solicitante")}: {sol.solicitante}</Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">{t("common_cantidad", "Cantidad")}: {formatNumber(sol.cantidad_solicitada)}</Typography>
                       <Typography variant="caption" display="block" color="text.secondary">
-                        Fecha: {new Date(sol.fecha).toLocaleDateString()}
+                        {t("common_fecha", "Fecha")}: {formatDate(sol.fecha)}
                       </Typography>
                     </Paper>
                   ))}
@@ -407,7 +391,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
 
             {/* Equivalencias Section */}
             <CollapsibleSection
-              title={t("catalogo_equivalencias", "Materiales Equivalentes")}
+              title={t("catalogo_equivalencias", "Materiales equivalentes")}
               icon={<SwapHorizIcon fontSize="small" />}
               expanded={expandedSections.equivalencias}
               onToggle={() => toggleSection("equivalencias")}
@@ -433,7 +417,7 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                       <Typography variant="body2" color="text.primary">{eq.descripcion_equivalente}</Typography>
                       {eq.criterio && (
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                          Criterio: {eq.criterio}
+                          {t("catalogo_criterio", "Criterio")}: {eq.criterio}
                         </Typography>
                       )}
                     </Paper>
@@ -453,7 +437,6 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
 ───────────────────────────────────────────────────────────── */
 export default function CatalogoMateriales() {
   const { t } = useI18n();
-  const navigate = useNavigate();
 
   // Search state
   const [searchCodigo, setSearchCodigo] = useState("");
@@ -517,12 +500,13 @@ export default function CatalogoMateriales() {
         const data = res.data?.data || res.data || [];
         setResults(Array.isArray(data) ? data : []);
       })
-      .catch((err) => {
-        setError(err.response?.data?.error?.message || err.message);
+      .catch(() => {
+        // Mensaje amigable: no se exponen errores internos
+        setError(t("catalogo_error_busqueda", "No pudimos completar la búsqueda. Intenta nuevamente en unos minutos."));
         setResults([]);
       })
       .finally(() => setLoading(false));
-  }, [debouncedCodigo, debouncedDesc, debouncedKeyword, searchGrupo, hasSearched]);
+  }, [debouncedCodigo, debouncedDesc, debouncedKeyword, searchGrupo, hasSearched, t]);
 
   // Load material detail
   const loadDetail = useCallback(async (mat) => {
@@ -628,7 +612,7 @@ export default function CatalogoMateriales() {
         cellStyle: { textAlign: 'right' },
         headerClass: 'ag-right-aligned-header',
         cellRenderer: (params) => (
-          <Typography variant="body2" fontFamily="monospace">{formatCurrency(params.value || 0)}</Typography>
+          <Typography variant="body2">{formatCurrency(params.value || 0)}</Typography>
         ),
       },
       {
@@ -648,9 +632,9 @@ export default function CatalogoMateriales() {
               e.stopPropagation();
               loadDetail(params.data);
             }}
-            sx={{ textTransform: "uppercase", fontSize: "0.75rem", fontWeight: 600 }}
+            sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {t('common_detalle', 'Ver Detalle')}
+            {t('common_ver_detalle', 'Ver detalle')}
           </Button>
         ),
       },
@@ -659,36 +643,21 @@ export default function CatalogoMateriales() {
   );
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <Box sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
-        {/* Header */}
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ color: "text.secondary" }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {t("catalogo_materiales_titulo", "Catálogo de Materiales")}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t("catalogo_materiales_subtitulo", "Busca y consulta informacion de materiales SAP")}
-            </Typography>
-          </Box>
-        </Stack>
-
+    <PageLayout
+      title={t("catalogo_materiales_titulo", "Catálogo de materiales")}
+      subtitle={t("catalogo_materiales_subtitulo", "Busca y consulta información de materiales SAP")}
+    >
         {/* Search Card */}
-        <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+        <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
-            <Box sx={{ minWidth: 150 }}>
+            <Box sx={{ minWidth: 150, flex: { xs: 1, md: "0 0 auto" } }}>
               <Typography
                 variant="caption"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing={0.5}
+                fontWeight={600}
                 color="text.secondary"
                 sx={{ mb: 0.75, display: "block" }}
               >
-                {t("catalogo_codigo_sap", "Codigo SAP")}
+                {t("catalogo_codigo_sap", "Código SAP")}
               </Typography>
               <TextField
                 size="small"
@@ -702,32 +671,28 @@ export default function CatalogoMateriales() {
               />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
               <Typography
                 variant="caption"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing={0.5}
+                fontWeight={600}
                 color="text.secondary"
                 sx={{ mb: 0.75, display: "block" }}
               >
-                {t("catalogo_descripcion", "Descripcion")}
+                {t("catalogo_descripcion", "Descripción")}
               </Typography>
               <TextField
                 size="small"
                 value={searchDesc}
                 onChange={(e) => setSearchDesc(e.target.value)}
-                placeholder={t("catalogo_buscar_desc", "Buscar por descripcion...")}
+                placeholder={t("catalogo_buscar_desc", "Buscar por descripción...")}
                 fullWidth
               />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
               <Typography
                 variant="caption"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing={0.5}
+                fontWeight={600}
                 color="text.secondary"
                 sx={{ mb: 0.75, display: "block" }}
               >
@@ -742,16 +707,14 @@ export default function CatalogoMateriales() {
               />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
               <Typography
                 variant="caption"
-                fontWeight={700}
-                textTransform="uppercase"
-                letterSpacing={0.5}
+                fontWeight={600}
                 color="text.secondary"
                 sx={{ mb: 0.75, display: "block" }}
               >
-                {t("catalogo_grupo_articulos", "Grupo de Articulos")}
+                {t("catalogo_grupo_articulos", "Grupo de artículos")}
               </Typography>
               <Autocomplete
                 freeSolo
@@ -789,7 +752,7 @@ export default function CatalogoMateriales() {
               ) : hasSearched ? (
                 <>
                   <Chip
-                    label={`${results.length} ${t("common_resultados", "resultados")}`}
+                    label={`${formatNumber(results.length)} ${t("common_resultados", "resultados")}`}
                     color={results.length > 0 ? "primary" : "default"}
                     variant={results.length > 0 ? "filled" : "outlined"}
                     size="small"
@@ -799,13 +762,13 @@ export default function CatalogoMateriales() {
                     color="error"
                     size="small"
                     onClick={handleClearSearch}
-                    sx={{ fontWeight: 600 }}
+                    sx={{ fontWeight: 600, textTransform: "none" }}
                   >
                     {t("common_limpiar", "Limpiar")}
                   </Button>
                 </>
               ) : (searchCodigo || searchDesc || searchKeyword || searchGrupo) ? (
-                <IconButton onClick={handleClearSearch} size="small" color="error">
+                <IconButton onClick={handleClearSearch} size="small" color="error" aria-label={t("common_limpiar", "Limpiar")}>
                   <CloseIcon />
                 </IconButton>
               ) : null}
@@ -813,34 +776,35 @@ export default function CatalogoMateriales() {
           </Box>
         </Paper>
 
-        {/* Error */}
-        {error && (
-          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
         {/* Results */}
         <Paper
           variant="outlined"
           sx={{
-            height: "calc(100vh - 280px)",
+            height: { xs: 560, md: "calc(100vh - 300px)" },
             minHeight: 500,
           }}
         >
-          {!hasSearched ? (
-            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", color: "text.secondary" }}>
-              <SearchIcon sx={{ fontSize: 40, color: "grey.400" }} />
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                {t("catalogo_instruccion", "Ingresa un codigo SAP, descripcion o palabra clave para buscar materiales")}
-              </Typography>
+          {error ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
+              <EmptyState
+                icon={<ErrorOutlineIcon sx={{ fontSize: 32, color: "error.main" }} />}
+                title={t("catalogo_error_titulo", "No pudimos cargar los materiales")}
+                description={error}
+              />
+            </Stack>
+          ) : !hasSearched ? (
+            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
+              <EmptyState
+                icon={<SearchIcon sx={{ fontSize: 32, color: "var(--fg-muted)" }} />}
+                title={t("catalogo_instruccion", "Ingresa un código SAP, descripción o palabra clave para buscar materiales")}
+              />
             </Stack>
           ) : results.length === 0 && !loading ? (
-            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", color: "text.secondary" }}>
-              <Inventory2Icon sx={{ fontSize: 40, color: "grey.400" }} />
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                {t("catalogo_sin_resultados", "No se encontraron materiales con los criterios de busqueda")}
-              </Typography>
+            <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
+              <EmptyState
+                icon={<Inventory2Icon sx={{ fontSize: 32, color: "var(--fg-muted)" }} />}
+                title={t("catalogo_sin_resultados", "No se encontraron materiales con los criterios de búsqueda")}
+              />
             </Stack>
           ) : (
             <SPMAgGrid
@@ -876,7 +840,6 @@ export default function CatalogoMateriales() {
           onClose={handleCloseModal}
           t={t}
         />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

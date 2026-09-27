@@ -143,9 +143,9 @@ describe('AdminAutoAprobacion', () => {
   it('renders the page title and Nueva Regla button', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('Reglas de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Reglas de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
-    expect(screen.getByText('Nueva Regla')).toBeInTheDocument()
+    expect(screen.getByText('Nueva regla')).toBeInTheDocument()
   })
 
   // --------------------------------------------------------------------------
@@ -202,10 +202,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
   })
 
@@ -218,10 +218,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     // Text fields
@@ -263,16 +263,16 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText('Cancelar'))
 
     await waitFor(() => {
-      expect(screen.queryByText('Nueva Regla de Auto-Aprobaci\u00f3n')).not.toBeInTheDocument()
+      expect(screen.queryByText('Nueva regla de autoaprobaci\u00f3n')).not.toBeInTheDocument()
     })
   })
 
@@ -285,10 +285,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     // The Crear button should be disabled when name is empty
@@ -306,10 +306,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     // Fill in the name
@@ -348,7 +348,7 @@ describe('AdminAutoAprobacion', () => {
     fireEvent.click(editBtn)
 
     await waitFor(() => {
-      expect(screen.getByText('Editar Regla')).toBeInTheDocument()
+      expect(screen.getByText('Editar regla')).toBeInTheDocument()
     })
 
     // Check that the name field is pre-populated
@@ -371,7 +371,7 @@ describe('AdminAutoAprobacion', () => {
     fireEvent.click(editBtn)
 
     await waitFor(() => {
-      expect(screen.getByText('Editar Regla')).toBeInTheDocument()
+      expect(screen.getByText('Editar regla')).toBeInTheDocument()
     })
 
     // Change the name
@@ -487,10 +487,10 @@ describe('AdminAutoAprobacion', () => {
     })
 
     // Open dialog first
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     // Click simulate
@@ -528,10 +528,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText(/Simular \(.*30 d\u00edas\)/))
@@ -566,10 +566,10 @@ describe('AdminAutoAprobacion', () => {
       expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Nueva Regla'))
+    fireEvent.click(screen.getByText('Nueva regla'))
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Regla de Auto-Aprobaci\u00f3n')).toBeInTheDocument()
+      expect(screen.getByText('Nueva regla de autoaprobaci\u00f3n')).toBeInTheDocument()
     })
 
     fireEvent.change(screen.getByLabelText(/Nombre de la regla/), {
@@ -596,7 +596,7 @@ describe('AdminAutoAprobacion', () => {
     expect(within(grid).getByText('Nombre')).toBeInTheDocument()
     expect(within(grid).getByText('Prioridad')).toBeInTheDocument()
     expect(within(grid).getByText('Centro')).toBeInTheDocument()
-    expect(within(grid).getByText('Monto M\u00e1x.')).toBeInTheDocument()
+    expect(within(grid).getByText('Monto m\u00e1x.')).toBeInTheDocument()
     expect(within(grid).getByText('Estado')).toBeInTheDocument()
     expect(within(grid).getByText('Creada')).toBeInTheDocument()
     expect(within(grid).getByText('Acciones')).toBeInTheDocument()

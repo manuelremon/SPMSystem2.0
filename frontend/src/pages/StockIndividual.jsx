@@ -5,10 +5,12 @@
  * (2026-02)
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useMemo } from "react";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import { formatCurrency as fmtCurrency, formatNumber as fmtNumber } from "../utils/formatters";
 
 // MUI Components
 import {
@@ -17,20 +19,16 @@ import {
   Typography,
   TextField,
   Button,
-  IconButton,
   Alert,
   Stack,
   Backdrop,
-  CircularProgress,
   LinearProgress,
   Card,
   Grid,
-  Divider,
 } from "@mui/material";
 
 // MUI Icons
 import SearchIcon from "@mui/icons-material/Search";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import BusinessIcon from "@mui/icons-material/Business";
 
@@ -43,20 +41,13 @@ import { SPMAgGrid } from "../components/ui/SPMAgGrid";
 
 function formatNumber(value) {
   if (value == null || isNaN(value)) return "-";
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
+  return fmtNumber(Math.round(Number(value) * 100) / 100);
 }
 
+// Montos sin decimales ("USD 12.345"); "-" si no hay dato
 function formatCurrency(value) {
   if (value == null || isNaN(value)) return "-";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return fmtCurrency(value, 0);
 }
 
 // ============================================================================
@@ -85,7 +76,7 @@ function SummaryCard({ label, value, icon: Icon }) {
       >
         {Icon && <Icon fontSize="medium" />}
       </Box>
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontWeight: 600 }}>
           {label}
         </Typography>
@@ -102,7 +93,6 @@ function SummaryCard({ label, value, icon: Icon }) {
 // ============================================================================
 
 export default function StockIndividual() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   // State
@@ -118,21 +108,21 @@ export default function StockIndividual() {
   const columnDefs = useMemo(
     () => [
       {
-        headerName: "Centro",
+        headerName: t("common_centro", "Centro"),
         field: "centro",
-        width: 100,
+        width: 110,
         pinned: "left",
       },
       {
-        headerName: "Almacén",
+        headerName: t("common_almacen", "Almacén"),
         field: "almacen",
-        width: 100,
+        width: 110,
       },
       {
-        headerName: "Stock",
+        headerName: t("stock_col_stock", "Stock"),
         field: "stock",
         width: 130,
-        type: "numericColumn",
+        type: "rightAligned",
         valueFormatter: ({ value, data: row }) => {
           const num = formatNumber(value);
           return row?.um ? `${num} ${row.um}` : num;
@@ -140,34 +130,34 @@ export default function StockIndividual() {
         cellStyle: { fontWeight: 500, fontVariantNumeric: "tabular-nums" },
       },
       {
-        headerName: "Valor USD",
+        headerName: t("stock_col_valor", "Valor"),
         field: "stock_valorizado",
-        width: 130,
-        type: "numericColumn",
+        width: 150,
+        type: "rightAligned",
         valueFormatter: ({ value }) => formatCurrency(value),
-        cellStyle: { textAlign: "right", paddingRight: "16px", fontVariantNumeric: "tabular-nums" },
+        cellStyle: { fontVariantNumeric: "tabular-nums" },
       },
       {
-        headerName: "Precio Unitario",
+        headerName: t("stock_col_precio_unitario", "Precio unitario"),
         field: "precio",
-        width: 130,
-        type: "numericColumn",
+        width: 150,
+        type: "rightAligned",
         valueFormatter: ({ value }) => formatCurrency(value),
-        cellStyle: { textAlign: "right", paddingRight: "16px", fontVariantNumeric: "tabular-nums" },
+        cellStyle: { fontVariantNumeric: "tabular-nums" },
       },
       {
-        headerName: "U.M.",
+        headerName: t("stock_col_um", "U. M."),
         field: "um",
-        width: 80,
+        width: 90,
       },
     ],
-    []
+    [t]
   );
 
   // Search material
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
-      setError("Ingresa un código o descripción de material");
+      setError(t("stock_ind_error_vacio", "Ingresa un código o descripción de material"));
       return;
     }
 
@@ -221,16 +211,16 @@ export default function StockIndividual() {
           almacenesUnicos,
         };
       } else {
-        setError("No se encontró stock para este material");
+        setError(t("stock_ind_sin_stock", "No se encontró stock para este material"));
       }
-    } catch (err) {
-      setError("Error al buscar material");
+    } catch {
+      setError(t("stock_ind_error_busqueda", "No se pudo buscar el material. Inténtalo de nuevo."));
     } finally {
       clearInterval(progressInterval);
       setLoadingProgress(100);
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, t]);
 
   // Handle Enter key
   const handleKeyPress = (e) => {
@@ -252,66 +242,36 @@ export default function StockIndividual() {
   }, [stockData]);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.5px" }}
-            >
-              {t("stock_individual_titulo", "Stock Individual")}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
+    <PageLayout title={t("stock_individual_titulo", "Stock individual")}>
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+        <Alert severity="error" onClose={() => setError("")}>
           {error}
         </Alert>
       )}
 
       {/* Search Card */}
       <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={1.5} alignItems="flex-end">
+        <Stack direction="row" spacing={1.5} alignItems="flex-end" useFlexGap sx={{ flexWrap: "wrap" }}>
           <TextField
-            label="Buscar material"
-            placeholder="Ingresa código o descripción..."
+            label={t("stock_ind_buscar_label", "Buscar material")}
+            placeholder={t("stock_ind_buscar_placeholder", "Ingresa código o descripción...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
             InputProps={{
               startAdornment: <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />,
             }}
-            sx={{ flex: 1, minWidth: 300 }}
+            sx={{ flex: 1, minWidth: { xs: "100%", sm: 300 } }}
             size="small"
           />
           <Button
             variant="contained"
             onClick={handleSearch}
             disabled={loading}
-            sx={{ textTransform: "none" }}
+            sx={{ textTransform: "none", width: { xs: "100%", sm: "auto" } }}
           >
-            Buscar
+            {t("common_buscar", "Buscar")}
           </Button>
         </Stack>
       </Paper>
@@ -322,7 +282,7 @@ export default function StockIndividual() {
           <Paper variant="outlined" sx={{ p: 2.5 }}>
             <Box sx={{ mb: 2 }}>
               <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
-                Material Encontrado
+                {t("stock_ind_material_encontrado", "Material encontrado")}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>
                 {selectedMaterial.codigo}
@@ -336,25 +296,25 @@ export default function StockIndividual() {
           {/* Summary Cards */}
           {summary && (
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <SummaryCard
-                  label="Stock Total"
+                  label={t("stock_unidades", "Stock total")}
                   value={formatNumber(summary.totalStock)}
                   icon={WarehouseIcon}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <SummaryCard label="Valor Total" value={formatCurrency(summary.totalValor)} />
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <SummaryCard label={t("stock_valor_total", "Valor total")} value={formatCurrency(summary.totalValor)} />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <SummaryCard
-                  label="Centros"
-                  value={summary.centrosUnicos}
+                  label={t("stock_ind_centros", "Centros")}
+                  value={formatNumber(summary.centrosUnicos)}
                   icon={BusinessIcon}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <SummaryCard label="Almacenes" value={summary.almacenesUnicos} icon={WarehouseIcon} />
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <SummaryCard label={t("stock_ind_almacenes", "Almacenes")} value={formatNumber(summary.almacenesUnicos)} icon={WarehouseIcon} />
               </Grid>
             </Grid>
           )}
@@ -379,7 +339,7 @@ export default function StockIndividual() {
                   letterSpacing: "0.05em",
                 }}
               >
-                Existencias por Centro y Almacén ({stockData.length})
+                {t("stock_ind_existencias", "Existencias por centro y almacén")} ({stockData.length})
               </Typography>
             </Box>
 
@@ -392,7 +352,7 @@ export default function StockIndividual() {
               paginationPageSize={25}
               paginationPageSizeSelector={[10, 25, 50]}
               enableQuickFilter={true}
-              emptyMessage="Sin existencias"
+              emptyMessage={t("stock_ind_sin_existencias", "Sin existencias")}
               defaultColDef={{
                 sortable: true,
                 filter: true,
@@ -401,6 +361,15 @@ export default function StockIndividual() {
             />
           </Paper>
         </>
+      )}
+
+      {!selectedMaterial && !loading && !error && (
+        <Paper variant="outlined">
+          <EmptyState
+            title={t("stock_ind_empty_titulo", "Busca un material")}
+            description={t("stock_ind_empty_desc", "Ingresa un código o una descripción para ver su stock por centro y almacén.")}
+          />
+        </Paper>
       )}
 
       {/* Loading Overlay */}
@@ -419,11 +388,11 @@ export default function StockIndividual() {
             flexDirection: "column",
             alignItems: "center",
             gap: 2,
-            width: "300px",
+            width: { xs: "80%", sm: 300 },
           }}
         >
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            Buscando material...
+            {t("stock_ind_buscando", "Buscando material...")}
           </Typography>
           <Box sx={{ width: "100%" }}>
             <LinearProgress
@@ -444,7 +413,6 @@ export default function StockIndividual() {
           </Typography>
         </Box>
       </Backdrop>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

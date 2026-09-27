@@ -326,7 +326,7 @@ export default function OnboardingList() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} sm={8}>
+            <Grid size={{ xs: 12, sm: 8 }}>
               <TextField
                 label={t('onboarding_razon_social', 'Razón Social')}
                 value={form.razon_social}
@@ -336,7 +336,7 @@ export default function OnboardingList() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 label={t('onboarding_cuit', 'CUIT')}
                 value={form.cuit}
@@ -347,7 +347,7 @@ export default function OnboardingList() {
                 placeholder="20-12345678-9"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label={t('onboarding_rubro', 'Rubro')}
                 value={form.rubro}
@@ -356,7 +356,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label={t('onboarding_contacto_nombre', 'Nombre Contacto')}
                 value={form.contacto_nombre}
@@ -365,7 +365,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label={t('onboarding_contacto_email', 'Email')}
                 value={form.contacto_email}
@@ -375,7 +375,7 @@ export default function OnboardingList() {
                 type="email"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label={t('onboarding_contacto_telefono', 'Teléfono')}
                 value={form.contacto_telefono}
@@ -384,7 +384,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 label={t('onboarding_direccion', 'Dirección')}
                 value={form.direccion}
@@ -393,7 +393,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 label={t('onboarding_ciudad', 'Ciudad')}
                 value={form.ciudad}
@@ -402,7 +402,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 label={t('onboarding_provincia', 'Provincia')}
                 value={form.provincia}
@@ -411,7 +411,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 label={t('onboarding_pais', 'País')}
                 value={form.pais}
@@ -420,7 +420,7 @@ export default function OnboardingList() {
                 size="small"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 label={t('onboarding_sitio_web', 'Sitio Web')}
                 value={form.sitio_web}

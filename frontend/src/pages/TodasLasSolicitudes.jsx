@@ -8,10 +8,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { solicitudes } from "../services/spm";
 import api from "../services/api";
 import { useI18n } from "../context/i18n";
-import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
+import { formatDate, formatCurrency, formatNumber, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import { getCriticidadConfig } from "../utils/styleConfig";
 import StatusBadge from "../components/ui/StatusBadge";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -23,12 +24,11 @@ import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Modal from "@mui/material/Modal";
-import Divider from "@mui/material/Divider";
+import Tooltip from "@mui/material/Tooltip";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -37,6 +37,39 @@ import WarehouseIcon from "@mui/icons-material/Warehouse";
 import TagIcon from "@mui/icons-material/Tag";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+
+/* Criticidad con el mismo markup que StatusBadge */
+function CriticidadBadge({ value, t }) {
+  const c = getCriticidadConfig(value || "Normal");
+  const Icon = c.icon;
+  return (
+    <span className="inline-flex items-center gap-1.5" style={{ color: c.color }}>
+      {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+      <span className="text-xs font-semibold">{t(`criticidad_${String(c.label).toLowerCase()}`, c.label)}</span>
+    </span>
+  );
+}
+
+/* Prioridad IA: normaliza mayúsculas/tildes y usa colores del tema */
+const PRIORIDAD_IA = {
+  critica: { label: "Crítica", color: "error.main" },
+  alta: { label: "Alta", color: "warning.main" },
+  media: { label: "Media", color: "info.main" },
+  baja: { label: "Baja", color: "text.secondary" },
+};
+function PrioridadIA({ value, t }) {
+  if (!value) return null;
+  const raw = String(value);
+  const key = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const cfg = PRIORIDAD_IA[key];
+  const label = cfg ? t(`prioridad_ia_${key}`, cfg.label) : raw.charAt(0).toUpperCase() + raw.slice(1);
+  return (
+    <Box component="span" sx={{ color: cfg?.color || "text.secondary", fontWeight: 600, fontSize: "0.75rem" }}>
+      {label}
+    </Box>
+  );
+}
 
 /**
  * Tabla de items para el modal migrada a SPMAgGrid
@@ -63,45 +96,43 @@ function ModalItemsTable({ items, totalMonto }) {
   const columnDefs = useMemo(() => [
     {
       field: "codigo",
-      headerName: "Código",
+      headerName: t("common_codigo", "Código"),
       flex: 0.25,
-      minWidth: 80,
+      minWidth: 90,
       valueFormatter: (params) => params.data?.codigo || params.data?.codigo_sap || "-",
     },
     {
       field: "descripcion",
-      headerName: "Descripción",
+      headerName: t("common_descripcion", "Descripción"),
       flex: 0.5,
       minWidth: 120,
       valueFormatter: (params) => params.value || "-",
     },
     {
       field: "cantidad",
-      headerName: "Cant.",
+      headerName: t("sol_cant", "Cant."),
       flex: 0.2,
-      minWidth: 60,
-      type: "numericColumn",
-      valueFormatter: (params) => params.value || "0",
+      minWidth: 70,
+      type: "rightAligned",
+      valueFormatter: (params) => formatNumber(params.value || 0),
     },
     {
       field: "precio_unitario",
-      headerName: "Precio",
+      headerName: t("common_precio", "Precio"),
       flex: 0.25,
-      minWidth: 80,
-      type: "numericColumn",
-      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      minWidth: 120,
+      type: "rightAligned",
       valueFormatter: (params) => formatCurrency(params.data?.precio_unitario || 0),
     },
     {
       field: "subtotal",
-      headerName: "Subtotal",
+      headerName: t("sol_subtotal", "Subtotal"),
       flex: 0.25,
-      minWidth: 80,
-      type: "numericColumn",
-      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      minWidth: 120,
+      type: "rightAligned",
       valueFormatter: (params) => formatCurrency(params.data?.subtotal || 0),
     },
-  ], []);
+  ], [t]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -111,7 +142,7 @@ function ModalItemsTable({ items, totalMonto }) {
         height={250}
         pagination={false}
         enableQuickFilter={false}
-        emptyMessage={t("common_no_data", "Sin items")}
+        emptyMessage={t("common_sin_items", "Sin ítems")}
       />
       {/* Total Footer */}
       <Box
@@ -126,12 +157,11 @@ function ModalItemsTable({ items, totalMonto }) {
       >
         <Stack direction="row" spacing={2} sx={{ width: "100%", maxWidth: 300 }}>
           <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, textAlign: "right" }}>
-            Total:
+            {t("common_total", "Total")}:
           </Typography>
           <Typography
             variant="body2"
             sx={{
-              fontFamily: "monospace",
               fontWeight: 700,
               color: "primary.main",
               minWidth: 100,
@@ -149,10 +179,8 @@ function ModalItemsTable({ items, totalMonto }) {
 /* ─────────────────────────────────────────────────────────────
    Detail Modal
 ───────────────────────────────────────────────────────────── */
-function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
+function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
   if (!open || !solicitud) return null;
-
-  const criticidadConfig = getCriticidadConfig(solicitud.criticidad || "Normal");
 
   return (
     <Modal
@@ -166,7 +194,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "100%",
+          width: { xs: "calc(100% - 32px)", sm: "100%" },
           maxWidth: 700,
           maxHeight: "90vh",
           bgcolor: "background.paper",
@@ -195,7 +223,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
             component="h3"
             sx={{ fontWeight: 600, color: "text.primary" }}
           >
-            Solicitud #{solicitud.id}
+            {t("common_solicitud", "Solicitud")} #{solicitud.id}
           </Typography>
           <IconButton
             onClick={onClose}
@@ -219,18 +247,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
                   fechaEnvio: solicitud.created_at,
                 }}
               />
-              {solicitud.criticidad && (
-                <Chip
-                  label={criticidadConfig.label}
-                  size="small"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: "0.75rem",
-                    color: criticidadConfig.color,
-                    bgcolor: criticidadConfig.bg,
-                  }}
-                />
-              )}
+              {solicitud.criticidad && <CriticidadBadge value={solicitud.criticidad} t={t} />}
             </Box>
 
             {/* Info y Ubicación */}
@@ -254,25 +271,25 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
                     mb: 1.5,
                   }}
                 >
-                  Información General
+                  {t("sol_info_general", "Información general")}
                 </Typography>
                 <Stack spacing={1.5}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <TagIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>ID:</strong> {solicitud.id}
+                      <strong>{t("common_id", "ID")}:</strong> {solicitud.id}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <CalendarTodayIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Creación:</strong> {formatDate(solicitud.created_at)}
+                      <strong>{t("common_creacion", "Creación")}:</strong> {formatDate(solicitud.created_at)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <AccessTimeIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Necesidad:</strong> {formatDate(solicitud.fecha_necesidad)}
+                      <strong>{t("common_necesidad", "Necesidad")}:</strong> {formatDate(solicitud.fecha_necesidad)}
                     </Typography>
                   </Box>
                 </Stack>
@@ -291,25 +308,25 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
                     mb: 1.5,
                   }}
                 >
-                  Ubicación
+                  {t("sol_ubicacion", "Ubicación")}
                 </Typography>
                 <Stack spacing={1.5}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <BusinessIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Centro:</strong> {solicitud.centro || "-"}
+                      <strong>{t("common_centro", "Centro")}:</strong> {solicitud.centro || "-"}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <LocationOnIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Sector:</strong> {getSectorNombre(solicitud.sector, sectores)}
+                      <strong>{t("common_sector", "Sector")}:</strong> {getSectorNombre(solicitud.sector, sectores)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <WarehouseIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                     <Typography variant="body2" color="text.secondary">
-                      <strong>Almacén:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
+                      <strong>{t("common_almacen", "Almacén")}:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
                     </Typography>
                   </Box>
                 </Stack>
@@ -337,7 +354,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
                     mb: 1,
                   }}
                 >
-                  Justificación
+                  {t("common_justificacion", "Justificación")}
                 </Typography>
                 <Typography variant="body2" color="text.primary">
                   {solicitud.justificacion}
@@ -359,7 +376,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
                     mb: 1.5,
                   }}
                 >
-                  Materiales ({solicitud.items.length})
+                  {t("sol_materiales", "Materiales")} ({solicitud.items.length})
                 </Typography>
                 <ModalItemsTable items={solicitud.items} totalMonto={solicitud.total_monto} />
               </Box>
@@ -379,6 +396,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
             borderColor: "divider",
             bgcolor: "grey.50",
             flexShrink: 0,
+            flexWrap: "wrap",
           }}
         >
           <Button
@@ -387,7 +405,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
             onClick={onClose}
             sx={{ textTransform: "none" }}
           >
-            Cerrar
+            {t("common_cerrar", "Cerrar")}
           </Button>
           <Button
             variant="contained"
@@ -395,7 +413,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull }) {
             onClick={onViewFull}
             sx={{ textTransform: "none" }}
           >
-            Ver detalle completo
+            {t("sol_ver_detalle", "Ver detalle completo")}
           </Button>
         </Box>
       </Box>
@@ -430,7 +448,8 @@ export default function TodasLasSolicitudes() {
         const res = await api.get("/catalogos/sectores");
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
-      } catch (err) {
+      } catch {
+        // Sin sectores: se muestra el ID tal cual
       }
     };
     fetchSectores();
@@ -467,13 +486,13 @@ export default function TodasLasSolicitudes() {
 
   // Mapeo de tabs a estados (cubre valores en ingles y espanol legacy)
   const tabFilters = [
-    { label: "Todas", key: "todas", filter: () => true },
-    { label: "Borradores", key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
-    { label: "Pendientes", key: "pendientes", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
-    { label: "En Proceso", key: "en_proceso", filter: (e) => ["processing", "in_planning", "in_treatment", "en_planificacion", "en_tratamiento", "en progreso", "en_progreso"].includes(e) },
-    { label: "Aprobadas", key: "completadas", filter: (e) => ["approved", "aprobada", "treated", "tratado"].includes(e) },
-    { label: "Rechazadas", key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
-    { label: "Cerradas", key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
+    { label: t("sol_tab_todas", "Todas"), key: "todas", filter: () => true },
+    { label: t("sol_tab_borradores", "Borradores"), key: "borradores", filter: (e) => ["draft", "borrador"].includes(e) },
+    { label: t("todas_tab_pendientes", "Pendientes"), key: "pendientes", filter: (e) => ["submitted", "enviada", "pendiente", "pendiente_de_aprobacion"].includes(e) },
+    { label: t("todas_tab_en_proceso", "En proceso"), key: "en_proceso", filter: (e) => ["processing", "in_planning", "in_treatment", "en_planificacion", "en_tratamiento", "en progreso", "en_progreso"].includes(e) },
+    { label: t("sol_tab_aprobadas", "Aprobadas"), key: "completadas", filter: (e) => ["approved", "aprobada", "treated", "tratado"].includes(e) },
+    { label: t("sol_tab_rechazadas", "Rechazadas"), key: "rechazadas", filter: (e) => ["rejected", "rechazada", "cancelled", "cancelada"].includes(e) },
+    { label: t("sol_tab_cerradas", "Cerradas"), key: "cerradas", filter: (e) => ["closed", "completed", "cerrada", "completada", "finalizada"].includes(e) },
   ];
 
   // Calcular estadísticas
@@ -520,27 +539,23 @@ export default function TodasLasSolicitudes() {
     () => [
       {
         field: "id",
-        headerName: "ID",
+        headerName: t("common_id", "ID"),
         flex: 0.4,
-        minWidth: 60,
+        minWidth: 70,
       },
       {
         field: "fecha_creacion",
-        headerName: "Fecha",
+        headerName: t("common_fecha", "Fecha"),
         flex: 0.6,
-        minWidth: 90,
+        minWidth: 100,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.875rem" }}>
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "solicitante",
-        headerName: "Solicitante",
+        headerName: t("common_solicitante", "Solicitante"),
         flex: 0.9,
-        minWidth: 120,
+        minWidth: 130,
         valueGetter: (params) => {
           const nombre = params.data.solicitante_nombre || "";
           const apellido = params.data.solicitante_apellido || "";
@@ -549,105 +564,60 @@ export default function TodasLasSolicitudes() {
       },
       {
         field: "justificacion",
-        headerName: "Justificación",
+        headerName: t("common_justificacion", "Justificación"),
         flex: 1.5,
-        minWidth: 150,
-        cellRenderer: (params) => {
-          const texto = params.value || "-";
-          const truncado = texto.length > 30;
-          return (
-            <Typography
-              variant="body2"
-              sx={{
-                color: "text.primary",
-                fontSize: "0.875rem",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-              title={truncado ? texto : undefined}
-            >
-              {truncado ? texto.slice(0, 30) + "..." : texto}
-            </Typography>
-          );
-        },
+        minWidth: 160,
+        valueFormatter: (params) => params.value || "-",
+        tooltipValueGetter: (params) => params.value || "",
       },
       {
         field: "centro",
-        headerName: "Centro",
+        headerName: t("common_centro", "Centro"),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 100,
         valueGetter: (params) => params.data.centro || params.data.centro_id || "-",
       },
       {
         field: "almacen_virtual",
-        headerName: "Almacén",
-        flex: 0.5,
-        minWidth: 70,
+        headerName: t("common_almacen", "Almacén"),
+        flex: 0.6,
+        minWidth: 110,
         cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
       },
       {
         field: "sector",
-        headerName: "Sector",
+        headerName: t("common_sector", "Sector"),
         flex: 0.8,
-        minWidth: 100,
+        minWidth: 110,
         valueGetter: (params) => getSectorNombre(params.data.sector || params.data.sector_id, sectores),
       },
       {
         field: "criticidad",
-        headerName: "Criticidad",
-        flex: 0.5,
-        minWidth: 80,
-        cellRenderer: (params) => {
-          const criticidad = params.value || "Normal";
-          const config = getCriticidadConfig(criticidad);
-          return (
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, fontSize: "0.875rem", color: config.color }}
-            >
-              {config.label}
-            </Typography>
-          );
-        },
+        headerName: t("common_criticidad", "Criticidad"),
+        flex: 0.6,
+        minWidth: 115,
+        cellRenderer: (params) => <CriticidadBadge value={params.value} t={t} />,
       },
       {
         field: "ai_priority",
-        headerName: "Prioridad IA",
-        flex: 0.5,
-        minWidth: 80,
-        cellRenderer: (params) => {
-          const priority = params.value;
-          if (!priority) return null;
-          const colors = { 'Critica': 'var(--danger-light)', 'Alta': 'var(--warning-light)', 'Media': 'var(--info)', 'Baja': 'var(--neutral)' };
-          return (
-            <Typography variant="body2" fontWeight={700}
-              sx={{ color: colors[priority] || 'var(--fg-muted)', fontSize: '0.75rem' }}>
-              {priority}
-            </Typography>
-          );
-        },
+        headerName: t("todas_col_prioridad_ia", "Prioridad IA"),
+        flex: 0.6,
+        minWidth: 125,
+        cellRenderer: (params) => <PrioridadIA value={params.value} t={t} />,
       },
       {
         field: "total_monto",
-        headerName: "Monto",
-        flex: 0.7,
-        minWidth: 100,
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => (
-          <Typography
-            variant="body2"
-            sx={{ fontFamily: "monospace", fontSize: "0.875rem", color: "text.primary" }}
-          >
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
+        headerName: t("common_monto", "Monto"),
+        flex: 0.8,
+        minWidth: 130,
+        type: "rightAligned",
+        valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: "status",
-        headerName: "Estado",
+        headerName: t("common_estado", "Estado"),
         flex: 0.7,
-        minWidth: 100,
+        minWidth: 120,
         valueGetter: (params) => params.data.estado || params.data.status || "pendiente",
         cellRenderer: (params) => {
           const data = params.data;
@@ -664,9 +634,9 @@ export default function TodasLasSolicitudes() {
       },
       {
         field: "planner_nombre",
-        headerName: "Planificador",
+        headerName: t("common_planificador", "Planificador"),
         flex: 0.8,
-        minWidth: 120,
+        minWidth: 130,
         valueGetter: (params) => {
           const nombre = params.data.planner_nombre || "";
           const apellido = params.data.planner_apellido || "";
@@ -675,29 +645,25 @@ export default function TodasLasSolicitudes() {
       },
       {
         field: "acciones",
-        headerName: "Acciones",
+        headerName: t("common_acciones", "Acciones"),
         flex: 0.5,
-        minWidth: 80,
+        minWidth: 100,
         sortable: false,
         filter: false,
         cellRenderer: (params) => (
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => setDetalleModal({ open: true, solicitud: params.data })}
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              minWidth: "auto",
-              px: 1,
-            }}
-          >
-            Ver
-          </Button>
+          <Tooltip title={t("common_ver", "Ver")}>
+            <IconButton
+              size="small"
+              aria-label={t("common_ver", "Ver")}
+              onClick={() => setDetalleModal({ open: true, solicitud: params.data })}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         ),
       },
     ],
-    [sectores]
+    [sectores, t]
   );
 
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);
@@ -707,35 +673,9 @@ export default function TodasLasSolicitudes() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}
-            >
-              {t("todas_page_title", "Todas las Solicitudes")}
-            </Typography>
-          </Box>
-        </Box>
+    <PageLayout
+      title={t("todas_titulo", "Todas las solicitudes")}
+      actions={
         <Button
           variant="contained"
           size="small"
@@ -743,16 +683,15 @@ export default function TodasLasSolicitudes() {
           onClick={() => navigate("/solicitudes/nueva")}
           sx={{ textTransform: "none" }}
         >
-          {t("btn_crear_solicitud", "Crear Solicitud")}
+          {t("mis_btn_crear", "Crear solicitud")}
         </Button>
-      </Box>
-
+      }
+    >
       {/* Alertas */}
       {error && (
         <Alert
           severity="error"
           onClose={() => setError("")}
-          sx={{ mb: 2 }}
         >
           {error}
         </Alert>
@@ -762,7 +701,6 @@ export default function TodasLasSolicitudes() {
         <Alert
           severity="warning"
           onClose={() => navigate('/solicitudes/todas?tab=pendientes')}
-          sx={{ mb: 0 }}
         >
           {t('todas_sla_filter_active', 'Mostrando solo solicitudes pendientes con más de 3 días sin gestionar (incumplimiento SLA)')}
         </Alert>
@@ -841,8 +779,8 @@ export default function TodasLasSolicitudes() {
           setDetalleModal({ open: false, solicitud: null });
           navigate(`/solicitudes/${detalleModal.solicitud?.id}`);
         }}
+        t={t}
       />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

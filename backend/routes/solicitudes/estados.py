@@ -662,7 +662,7 @@ def rechazar_solicitud(solicitud_id):
                 monto_cents=monto_consumido,
                 aprobador_id=actor_id,
                 aprobador_rol=actor_rol,
-                razon=f"Reversion por rechazo de solicitud aprobada. Motivo: {motivo or 'No especificado'}",
+                razon=f"Reversión por rechazo de solicitud aprobada. Motivo: {motivo or 'No especificado'}",
             )
 
     # Usar FSM para cambiar estado (registra historial y dispara notificaciones)
@@ -802,7 +802,7 @@ def cancelar_solicitud(solicitud_id):
                 monto_cents=monto_consumido,
                 aprobador_id=actor_id,
                 aprobador_rol=actor_rol,
-                razon=f"Reversion por cancelacion de solicitud. Motivo: {motivo}",
+                razon=f"Reversión por cancelación de solicitud. Motivo: {motivo}",
             )
 
     # 8. Usar FSM para cambiar estado

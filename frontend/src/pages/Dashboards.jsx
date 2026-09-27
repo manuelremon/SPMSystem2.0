@@ -53,7 +53,8 @@ import PublicIcon from '@mui/icons-material/Public';
 import LockIcon from '@mui/icons-material/Lock';
 
 // Components
-import PageHeader from '../components/ui/PageHeader';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
 export default function Dashboards() {
@@ -120,7 +121,8 @@ export default function Dashboards() {
       if (response?.ok && response.dashboard) {
         navigate(`/dashboards/${response.dashboard.uuid}`);
       }
-    } catch (err) {
+    } catch {
+      // El store expone el error en `error`
     }
     setIsCreateOpen(false);
     setNewDashboardName('');
@@ -130,7 +132,8 @@ export default function Dashboards() {
     if (!deleteConfirm) return;
     try {
       await deleteDashboard(deleteConfirm);
-    } catch (err) {
+    } catch {
+      // El store expone el error en `error`
     }
     setDeleteConfirm(null);
   };
@@ -151,7 +154,14 @@ export default function Dashboards() {
     const isOwner = dashboard.owner_id === user?.id_spm;
 
     return (
-      <Grid item xs={12} sm={6} md={4} lg={3} key={dashboard.uuid}>
+      <Grid
+        key={dashboard.uuid}
+        size={{
+          xs: 12,
+          sm: 6,
+          md: 4,
+          lg: 3
+        }}>
         <Card
           sx={{
             height: '100%',
@@ -184,7 +194,7 @@ export default function Dashboards() {
               {dashboard.es_publico && (
                 <Chip
                   icon={<PublicIcon sx={{ fontSize: 14 }} />}
-                  label={t('dashboard_public', 'Publico')}
+                  label={t('dashboard_public', 'Público')}
                   size="small"
                   sx={{ bgcolor: 'rgba(255,255,255,0.9)', height: 20, fontSize: 11 }}
                 />
@@ -193,6 +203,7 @@ export default function Dashboards() {
 
             {/* Favorite */}
             <IconButton
+              aria-label={t('dashboards_favorito', 'Marcar como favorito')}
               sx={{
                 position: 'absolute',
                 top: 4,
@@ -213,7 +224,7 @@ export default function Dashboards() {
               {dashboard.nombre}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap>
-              {dashboard.descripcion || t('dashboard_no_description', 'Sin descripcion')}
+              {dashboard.descripcion || t('dashboard_no_description', 'Sin descripción')}
             </Typography>
             <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               {dashboard.grupo && (
@@ -234,6 +245,7 @@ export default function Dashboards() {
             </Typography>
             <IconButton
               size="small"
+              aria-label={t('common_acciones', 'Acciones')}
               onClick={(e) => handleMenuClick(e, dashboard)}
             >
               <MoreVertIcon fontSize="small" />
@@ -245,25 +257,30 @@ export default function Dashboards() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title={t('dashboards_title', 'Dashboards')}
-        subtitle={t('dashboards_subtitle', 'Crea y gestiona hojas de calculo interactivas')}
-        breadcrumbs={[
-          { label: 'Inicio', href: '/dashboard' },
-          { label: 'Dashboards' },
-        ]}
-      />
-
+    <PageLayout
+      title={t('dashboards_title', 'Dashboards')}
+      subtitle={t('dashboards_subtitle', 'Crea y gestiona hojas de cálculo interactivas')}
+      actions={
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setIsCreateOpen(true)}
+          sx={{ textTransform: 'none' }}
+        >
+          {t('dashboards_btn_nuevo', 'Nuevo dashboard')}
+        </Button>
+      }
+    >
       {/* Error */}
       {error && (
-        <Alert severity="error" onClose={clearError} sx={{ mb: 2 }}>
+        <Alert severity="error" onClose={clearError}>
           {error}
         </Alert>
       )}
 
       {/* Toolbar */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             placeholder={t('common_search', 'Buscar...')}
@@ -277,13 +294,16 @@ export default function Dashboards() {
                 </InputAdornment>
               ),
             }}
-            sx={{ minWidth: 250 }}
+            sx={{ minWidth: { xs: '100%', sm: 250 } }}
           />
 
           <Tabs
             value={activeTab}
             onChange={(e, v) => setActiveTab(v)}
-            sx={{ flexGrow: 1, minHeight: 36 }}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{ flexGrow: 1, minHeight: 36, maxWidth: '100%', '& .MuiTab-root': { textTransform: 'none' } }}
           >
             <Tab
               label={t('dashboards_mine', 'Mis dashboards')}
@@ -294,14 +314,6 @@ export default function Dashboards() {
               sx={{ minHeight: 36, py: 0 }}
             />
           </Tabs>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setIsCreateOpen(true)}
-          >
-            {t('dashboard_new', 'Nuevo Dashboard')}
-          </Button>
         </Box>
       </Paper>
 
@@ -312,60 +324,49 @@ export default function Dashboards() {
         </Box>
       )}
 
-      {/* Dashboards Grid */}
-      {!isLoading && (
-        <>
-          {/* Favoritos */}
+      {/* Favoritos */}
+      {!isLoading && favoritos.length > 0 && (
+        <Box>
+          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <StarIcon sx={{ color: 'var(--warning-light)' }} />
+            {t('dashboards_favorites', 'Favoritos')}
+          </Typography>
+          <Grid container spacing={2}>
+            {favoritos.map(renderDashboardCard)}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Otros */}
+      {!isLoading && otros.length > 0 && (
+        <Box>
           {favoritos.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <StarIcon sx={{ color: 'var(--warning-light)' }} />
-                {t('dashboards_favorites', 'Favoritos')}
-              </Typography>
-              <Grid container spacing={2}>
-                {favoritos.map(renderDashboardCard)}
-              </Grid>
-            </Box>
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+              {t('dashboards_all', 'Todos los dashboards')}
+            </Typography>
           )}
+          <Grid container spacing={2}>
+            {otros.map(renderDashboardCard)}
+          </Grid>
+        </Box>
+      )}
 
-          {/* Otros */}
-          {otros.length > 0 && (
-            <Box>
-              {favoritos.length > 0 && (
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  {t('dashboards_all', 'Todos los dashboards')}
-                </Typography>
-              )}
-              <Grid container spacing={2}>
-                {otros.map(renderDashboardCard)}
-              </Grid>
-            </Box>
-          )}
-
-          {/* Empty state */}
-          {filteredDashboards.length === 0 && (
-            <Paper sx={{ p: 6, textAlign: 'center' }}>
-              <TableChartIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                {searchTerm
-                  ? t('dashboards_no_results', 'No se encontraron dashboards')
-                  : activeTab === 0
-                  ? t('dashboards_empty', 'No tienes dashboards aun')
-                  : t('dashboards_no_shared', 'No hay dashboards compartidos contigo')}
-              </Typography>
-              {!searchTerm && activeTab === 0 && (
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{ mt: 2 }}
-                  onClick={() => setIsCreateOpen(true)}
-                >
-                  {t('dashboard_create_first', 'Crear tu primer dashboard')}
-                </Button>
-              )}
-            </Paper>
-          )}
-        </>
+      {/* Empty state */}
+      {!isLoading && filteredDashboards.length === 0 && (
+        <Paper variant="outlined">
+          <EmptyState
+            icon={<TableChartIcon sx={{ fontSize: 32, color: 'text.disabled' }} />}
+            title={
+              searchTerm
+                ? t('dashboards_no_results', 'No se encontraron dashboards')
+                : activeTab === 0
+                ? t('dashboards_empty', 'No tienes dashboards aún')
+                : t('dashboards_no_shared', 'No hay dashboards compartidos contigo')
+            }
+            action={!searchTerm && activeTab === 0 ? t('dashboard_create_first', 'Crear tu primer dashboard') : undefined}
+            onAction={!searchTerm && activeTab === 0 ? () => setIsCreateOpen(true) : undefined}
+          />
+        </Paper>
       )}
 
       {/* Menu contextual */}
@@ -403,7 +404,7 @@ export default function Dashboards() {
 
       {/* Dialog crear */}
       <Dialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('dashboard_create', 'Crear Dashboard')}</DialogTitle>
+        <DialogTitle>{t('dashboards_crear_titulo', 'Crear dashboard')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -416,9 +417,10 @@ export default function Dashboards() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsCreateOpen(false)}>{t('common_cancel', 'Cancelar')}</Button>
+          <Button onClick={() => setIsCreateOpen(false)} sx={{ textTransform: 'none' }}>{t('common_cancel', 'Cancelar')}</Button>
           <Button
             variant="contained"
+            sx={{ textTransform: 'none' }}
             onClick={handleCreate}
             disabled={!newDashboardName.trim()}
           >
@@ -432,11 +434,11 @@ export default function Dashboards() {
         isOpen={Boolean(deleteConfirm)}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={handleDelete}
-        title={t('dashboard_delete_confirm_title', 'Eliminar Dashboard')}
+        title={t('dashboards_eliminar_titulo', 'Eliminar dashboard')}
         message={t('dashboard_delete_confirm_message', 'Esta accion no se puede deshacer. ¿Estas seguro?')}
         confirmText={t('common_delete', 'Eliminar')}
         variant="danger"
       />
-    </Box>
+    </PageLayout>
   );
 }

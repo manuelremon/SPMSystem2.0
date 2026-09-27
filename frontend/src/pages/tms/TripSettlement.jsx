@@ -195,7 +195,7 @@ export default function TripSettlement() {
           {selectedSettlement && (
             <Box sx={{ mt: 1 }}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Card variant="outlined">
                     <CardContent sx={{ textAlign: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
                       <Typography variant="caption" color="text.secondary">
@@ -207,7 +207,7 @@ export default function TripSettlement() {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={6}>
                   <Card variant="outlined">
                     <CardContent sx={{ textAlign: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
                       <Typography variant="caption" color="text.secondary">
@@ -288,5 +288,5 @@ export default function TripSettlement() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }

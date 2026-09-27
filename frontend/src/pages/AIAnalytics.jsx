@@ -10,17 +10,18 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../context/i18n'
 import aiService from '../services/ai'
 import slaService from '../services/sla'
 import { useAuthStore } from '../store/authStore'
+import PageLayout from '../components/ui/PageLayout'
+import { MetricCard } from '../components/ui/MetricCard'
+import { formatDateTime, formatNumber } from '../utils/formatters'
 
 // Chart.js Components
 import { SPMDoughnut } from '../components/ui/SPMChartJS'
 
 // MUI Components
-import Container from '@mui/material/Container'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
@@ -37,9 +38,9 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Skeleton from '@mui/material/Skeleton'
 import LinearProgress from '@mui/material/LinearProgress'
+import Tooltip from '@mui/material/Tooltip'
 
 // MUI Icons
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PsychologyIcon from '@mui/icons-material/Psychology'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
@@ -80,37 +81,23 @@ const getCumplimientoColor = (porcentaje) => {
   return 'var(--danger)'
 }
 
-// Componente MetricCard MUI
-const MetricCard = ({ icon: Icon, label, value, color = 'var(--primary)', highlight = false }) => (
-  <Paper
-    elevation={0}
-    sx={{
-      p: 2.5,
-      border: highlight ? `2px solid ${color}` : "1px solid var(--border)",
-      bgcolor: highlight ? `${color}08` : "var(--card)"
-    }}
-  >
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-      <Box sx={{
-        p: 1.5,
-        bgcolor: `${color}15`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}>
-        <Icon sx={{ fontSize: 24, color }} />
-      </Box>
-      <Box>
-        <Typography variant="h5" fontWeight={700} color="var(--fg-strong)">
-          {value}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {label}
-        </Typography>
-      </Box>
-    </Box>
-  </Paper>
-)
+// Etiquetas de tipo de alerta SLA
+const ALERT_TIPO_LABELS = {
+  warning: ['sla_tipo_warning', 'En riesgo'],
+  breach: ['sla_tipo_breach', 'Incumplida'],
+  escalated: ['sla_tipo_escalated', 'Escalada'],
+}
+
+// Etiquetas de criticidad / severidad
+const NIVEL_LABELS = {
+  alta: ['common_alta', 'Alta'],
+  high: ['common_alta', 'Alta'],
+  media: ['common_media', 'Media'],
+  medium: ['common_media', 'Media'],
+  baja: ['common_baja', 'Baja'],
+  low: ['common_baja', 'Baja'],
+  info: ['ai_nivel_info', 'Informativa'],
+}
 
 // Componente ProgressCircle (usando Chart.js SPMDoughnut)
 const ProgressCircle = ({ percentage, size = 140, color = 'var(--primary)', label }) => (
@@ -139,8 +126,9 @@ const ProgressCircle = ({ percentage, size = 140, color = 'var(--primary)', labe
 
 export default function AIAnalytics() {
   const { t } = useI18n()
-  const navigate = useNavigate()
   const { user } = useAuthStore()
+  const nivelLabel = (v) => (NIVEL_LABELS[v] ? t(...NIVEL_LABELS[v]) : v)
+  const tipoAlertaLabel = (v) => (ALERT_TIPO_LABELS[v] ? t(...ALERT_TIPO_LABELS[v]) : v)
 
   // Estado AI
   const [status, setStatus] = useState(null)
@@ -219,66 +207,53 @@ export default function AIAnalytics() {
     try {
       await slaService.resolverAlerta(alertaId)
       setAlertasSLA(prev => prev.filter(a => a.id !== alertaId))
-    } catch (err) {
+    } catch {
+      setError(t('sla_error_resolver', 'No se pudo resolver la alerta'))
     }
   }
 
   const getPipelineStatus = (pipelineStatus) => {
-    if (!pipelineStatus) return { text: 'No disponible', color: 'var(--fg-subtle)' }
+    if (!pipelineStatus) return { text: t('ai_pipeline_no_disponible', 'No disponible'), color: 'var(--fg-subtle)' }
     if (pipelineStatus === 'fitted' || pipelineStatus === 'ready') {
-      return { text: 'Listo', color: 'var(--success)' }
+      return { text: t('ai_pipeline_listo', 'Listo'), color: 'var(--success)' }
     }
     if (pipelineStatus === 'training') {
-      return { text: 'Entrenando', color: 'var(--warning-light)' }
+      return { text: t('ai_pipeline_entrenando', 'Entrenando'), color: 'var(--warning-light)' }
     }
-    return { text: 'Pendiente', color: 'var(--fg-subtle)' }
+    return { text: t('ai_pipeline_pendiente', 'Pendiente'), color: 'var(--fg-subtle)' }
   }
 
   if (isLoading) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Skeleton variant="text" width={300} height={40} />
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
+      <PageLayout title={t('ai_analytics_titulo', 'Análisis con IA')}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}>
             {[1, 2, 3].map(i => (
               <Skeleton key={i} variant="rectangular" height={100} />
             ))}
           </Box>
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
             <Skeleton variant="rectangular" height={350} />
             <Skeleton variant="rectangular" height={350} />
           </Box>
-        </Box>
-      </Box>
+      </PageLayout>
     )
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-            {t('ai_dashboard', 'IA ANALYTICS')}
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <PageLayout
+      title={t('ai_analytics_titulo', 'Análisis con IA')}
+      actions={
+        <>
           {activeTab === 1 && (
             <FormControl size="small" sx={{ minWidth: 130 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Período</InputLabel>
+              <InputLabel>{t('sla_periodo', 'Período')}</InputLabel>
               <Select
                 value={periodoDias}
                 onChange={(e) => setPeriodoDias(Number(e.target.value))}
-                label="Período"
-                sx={{ fontSize: "0.75rem" }}
+                label={t('sla_periodo', 'Período')}
               >
                 {PERIODOS.map(p => (
-                  <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+                  <MenuItem key={p.value} value={p.value}>{p.value} {t('sla_dias', 'días')}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -291,29 +266,34 @@ export default function AIAnalytics() {
               onClick={handleTrain}
               disabled={isTraining}
               startIcon={isTraining ? <CircularProgress size={16} /> : <BoltIcon />}
-              sx={{ color: isTraining ? undefined : "var(--warning-light)", borderColor: isTraining ? undefined : "var(--warning-light)" }}
+              sx={{ textTransform: "none" }}
             >
-              {isTraining ? t('ai_training', 'Entrenando...') : t('ai_train', 'Entrenar')}
+              {isTraining ? t('ai_training', 'Entrenando...') : t('ai_train', 'Entrenar modelos')}
             </Button>
           )}
 
-          <IconButton
-            onClick={() => fetchData(true)}
-            disabled={isRefreshing}
-            size="small"
-            sx={{ color: "var(--fg-muted)" }}
-          >
-            <RefreshIcon className={isRefreshing ? 'animate-spin' : ''} />
-          </IconButton>
-        </Box>
-      </Box>
-
+          <Tooltip title={t('common_actualizar', 'Actualizar')}>
+            <span>
+              <IconButton
+                onClick={() => fetchData(true)}
+                disabled={isRefreshing}
+                size="small"
+                aria-label={t('common_actualizar', 'Actualizar')}
+                sx={{ color: "var(--fg-muted)" }}
+              >
+                <RefreshIcon className={isRefreshing ? 'animate-spin' : ''} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </>
+      }
+    >
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+        <Alert severity="error">{error}</Alert>
       )}
 
       {/* Tabs */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <Tabs
           value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
@@ -334,8 +314,8 @@ export default function AIAnalytics() {
             "& .MuiTabs-indicator": { bgcolor: "var(--primary)", height: 3 },
           }}
         >
-          <Tab label="ML & IA" disableRipple />
-          <Tab label="SLA" disableRipple />
+          <Tab label={t('ai_tab_ml', 'Modelos e IA')} disableRipple />
+          <Tab label={t('ai_tab_sla', 'Nivel de servicio (SLA)')} disableRipple />
         </Tabs>
       </Box>
 
@@ -343,14 +323,14 @@ export default function AIAnalytics() {
       {activeTab === 0 && (
         <>
           {/* Estado de Pipelines */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}>
             <Paper elevation={0} sx={{ p: 2.5, border: "1px solid var(--border)" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Box sx={{ p: 1.5, bgcolor: "var(--purple-bg-light)" }}>
                   <PsychologyIcon sx={{ fontSize: 24, color: "var(--purple-dark)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary">{t('ai_clustering', 'Clustering')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('ai_clustering_label', 'Agrupamiento')}</Typography>
                   <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.clustering?.status).color }}>
                     {getPipelineStatus(status?.clustering?.status).text}
                   </Typography>
@@ -364,7 +344,7 @@ export default function AIAnalytics() {
                   <GpsFixedIcon sx={{ fontSize: 24, color: "var(--warning-light)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary">{t('ai_scoring', 'Scoring')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('ai_scoring_label', 'Priorización')}</Typography>
                   <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.scoring?.status).color }}>
                     {getPipelineStatus(status?.scoring?.status).text}
                   </Typography>
@@ -378,7 +358,7 @@ export default function AIAnalytics() {
                   <TrendingUpIcon sx={{ fontSize: 24, color: "var(--success)" }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" color="text.secondary">{t('ai_forecast', 'Forecast')}</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('ai_forecast_label', 'Pronóstico')}</Typography>
                   <Typography variant="h6" fontWeight={600} sx={{ color: getPipelineStatus(status?.forecast?.status).color }}>
                     {getPipelineStatus(status?.forecast?.status).text}
                   </Typography>
@@ -389,9 +369,9 @@ export default function AIAnalytics() {
 
           {/* Info de entrenamiento */}
           {status?.pipelines_trained && status?.last_training_date && (
-            <Alert severity="info" icon={<AutoAwesomeIcon />} sx={{ mb: 3 }}>
+            <Alert severity="info" icon={<AutoAwesomeIcon />}>
               {t('ai_last_training', 'Último entrenamiento')}:{' '}
-              {new Date(status.last_training_date).toLocaleString()}
+              {formatDateTime(status.last_training_date)}
             </Alert>
           )}
 
@@ -403,7 +383,7 @@ export default function AIAnalytics() {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <BarChartIcon sx={{ color: "var(--chart-8)" }} />
                   <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
-                    {t('ai_prioridad', 'Solicitudes Priorizadas')}
+                    {t('ai_prioridad', 'Solicitudes priorizadas')}
                   </Typography>
                 </Box>
               </Box>
@@ -431,7 +411,7 @@ export default function AIAnalytics() {
                               </Typography>
                               {sol.criticidad && (
                                 <Chip
-                                  label={sol.criticidad}
+                                  label={nivelLabel(sol.criticidad)}
                                   size="small"
                                   sx={{
                                     height: 20,
@@ -459,7 +439,7 @@ export default function AIAnalytics() {
                                 {Math.round(sol.score * 100)}%
                               </Typography>
                             )}
-                            <Typography variant="caption" color="text.secondary">Score</Typography>
+                            <Typography variant="caption" color="text.secondary">{t('ai_puntaje', 'Puntaje')}</Typography>
                           </Box>
                         </Box>
                         {sol.score !== undefined && (
@@ -491,7 +471,7 @@ export default function AIAnalytics() {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
                   <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
-                    {t('ai_alertas', 'Alertas Inteligentes')}
+                    {t('ai_alertas', 'Alertas inteligentes')}
                   </Typography>
                 </Box>
                 {alertasIA.length > 0 && (
@@ -549,7 +529,7 @@ export default function AIAnalytics() {
                               )}
                             </Box>
                             <Chip
-                              label={severity}
+                              label={nivelLabel(severity)}
                               size="small"
                               sx={{
                                 height: 20,
@@ -574,42 +554,46 @@ export default function AIAnalytics() {
       {activeTab === 1 && (
         <>
           {/* Metricas SLA principales */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
             <MetricCard
+              size="lg"
               icon={AccessTimeIcon}
-              label={t('sla_total', 'Total Solicitudes')}
-              value={metricasSLA?.total_solicitudes || 0}
-              color="var(--primary)"
+              label={t('sla_total', 'Total de solicitudes')}
+              value={formatNumber(metricasSLA?.total_solicitudes || 0)}
+              variant="primary"
             />
             <MetricCard
+              size="lg"
               icon={CheckCircleIcon}
-              label={t('sla_on_time', 'A Tiempo')}
-              value={metricasSLA?.on_time || 0}
-              color="var(--success)"
+              label={t('sla_on_time', 'A tiempo')}
+              value={formatNumber(metricasSLA?.on_time || 0)}
+              variant="success"
             />
             <MetricCard
+              size="lg"
               icon={WarningAmberIcon}
-              label={t('sla_warning', 'En Riesgo')}
-              value={metricasSLA?.warning || 0}
-              color="var(--warning-light)"
-              highlight={metricasSLA?.warning > 0}
+              label={t('sla_warning', 'En riesgo')}
+              value={formatNumber(metricasSLA?.warning || 0)}
+              variant="warning"
+              active={metricasSLA?.warning > 0}
             />
             <MetricCard
+              size="lg"
               icon={CancelIcon}
               label={t('sla_breach', 'Incumplidas')}
-              value={metricasSLA?.breach || 0}
-              color="var(--danger)"
-              highlight={metricasSLA?.breach > 0}
+              value={formatNumber(metricasSLA?.breach || 0)}
+              variant="danger"
+              active={metricasSLA?.breach > 0}
             />
           </Box>
 
           {/* Graficos SLA */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
             {/* Cumplimiento general */}
             <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
                 <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
-                  {t('sla_cumplimiento', 'Cumplimiento General')}
+                  {t('sla_cumplimiento_general', 'Cumplimiento general')}
                 </Typography>
               </Box>
               <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
@@ -631,7 +615,7 @@ export default function AIAnalytics() {
             <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
               <Box sx={{ p: 2.5, borderBottom: "1px solid var(--border)" }}>
                 <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
-                  {t('sla_por_criticidad', 'Por Criticidad')}
+                  {t('sla_por_criticidad', 'Por criticidad')}
                 </Typography>
               </Box>
               <Box sx={{ p: 2.5 }}>
@@ -641,7 +625,7 @@ export default function AIAnalytics() {
                       <Box key={idx} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                           <Chip
-                            label={item.criticidad}
+                            label={nivelLabel(item.criticidad)}
                             size="small"
                             sx={{
                               height: 22,
@@ -656,11 +640,11 @@ export default function AIAnalytics() {
                         </Box>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                           <Typography variant="body2" fontWeight={500} color="var(--success)">
-                            {item.on_time} OK
+                            {item.on_time} {t('sla_a_tiempo_corto', 'a tiempo')}
                           </Typography>
                           {item.breach > 0 && (
                             <Typography variant="body2" fontWeight={500} color="var(--danger)">
-                              {item.breach} SLA
+                              {item.breach} {t('sla_incumplidas_corto', 'incumplidas')}
                             </Typography>
                           )}
                         </Box>
@@ -684,7 +668,7 @@ export default function AIAnalytics() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <WarningAmberIcon sx={{ color: "var(--warning-light)" }} />
                 <Typography variant="subtitle1" fontWeight={600} color="var(--fg-strong)">
-                  {t('sla_alertas_activas', 'Alertas SLA Activas')}
+                  {t('sla_alertas_activas', 'Alertas SLA activas')}
                 </Typography>
                 {alertasSLA.length > 0 && (
                   <Chip label={alertasSLA.length} size="small" color="error" />
@@ -696,12 +680,11 @@ export default function AIAnalytics() {
                   value={tipoFiltroSLA}
                   onChange={(e) => setTipoFiltroSLA(e.target.value)}
                   displayEmpty
-                  sx={{ fontSize: "0.75rem" }}
                 >
                   <MenuItem value="">{t('sla_todos', 'Todos')}</MenuItem>
-                  <MenuItem value="warning">Warning</MenuItem>
-                  <MenuItem value="breach">Breach</MenuItem>
-                  <MenuItem value="escalated">Escalated</MenuItem>
+                  <MenuItem value="warning">{tipoAlertaLabel('warning')}</MenuItem>
+                  <MenuItem value="breach">{tipoAlertaLabel('breach')}</MenuItem>
+                  <MenuItem value="escalated">{tipoAlertaLabel('escalated')}</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -731,7 +714,7 @@ export default function AIAnalytics() {
                           <Box sx={{ flex: 1 }}>
                             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                               <Chip
-                                label={alerta.tipo?.toUpperCase()}
+                                label={tipoAlertaLabel(alerta.tipo)}
                                 size="small"
                                 color={colors.chip}
                                 sx={{ height: 20, fontSize: "0.65rem" }}
@@ -772,29 +755,23 @@ export default function AIAnalytics() {
       )}
 
       {/* Info adicional */}
-      <Paper elevation={0} sx={{ mt: 3, p: 2, border: "1px solid var(--border)" }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <Paper elevation={0} sx={{ p: 2, border: "1px solid var(--border)" }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <PsychologyIcon sx={{ fontSize: 18, color: "var(--purple-dark)" }} />
             <Typography variant="caption" color="text.secondary">
-              {t('ai_powered_by', 'Potenciado por ML')}
+              {t('ai_powered_by', 'Potenciado por aprendizaje automático')}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-            {status?.cache_size !== undefined && (
-              <Typography variant="caption" color="text.secondary">
-                Cache: {status.cache_size} {t('ai_items', 'items')}
-              </Typography>
-            )}
             {metricasSLA?.total_solicitudes !== undefined && (
               <Typography variant="caption" color="text.secondary">
-                SLA: {metricasSLA.total_solicitudes} solicitudes
+                SLA: {formatNumber(metricasSLA.total_solicitudes)} {t('sla_solicitudes', 'solicitudes')}
               </Typography>
             )}
           </Box>
         </Box>
       </Paper>
-      </Box>
-    </Box>
+    </PageLayout>
   )
 }

@@ -6,12 +6,14 @@
  * usando plantilla CSV para importación
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useI18n } from '../context/i18n';
 import forecastService from '../services/forecast';
 import { TempDataBanner } from '../components/ui/TempDataBanner';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { formatNumber } from '../utils/formatters';
 
 // MUI Components
 import Paper from '@mui/material/Paper';
@@ -30,7 +32,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 
 // MUI Icons
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import DownloadIcon from '@mui/icons-material/Download';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
@@ -41,13 +42,16 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 // Modelos disponibles
 const MODELOS_INFO = {
-  random_forest: { nombre: 'Random Forest', icono: '🌲' },
-  gradient_boosting: { nombre: 'Gradient Boosting', icono: '🚀' },
-  linear: { nombre: 'Regresión Lineal', icono: '📈' },
-  xgboost: { nombre: 'XGBoost', icono: '⚡' },
-  arima: { nombre: 'ARIMA', icono: '📊' },
-  prophet: { nombre: 'Prophet', icono: '🔮' }
+  random_forest: { nombre: 'Random Forest' },
+  gradient_boosting: { nombre: 'Gradient Boosting' },
+  linear: { nombre: 'Regresión lineal' },
+  xgboost: { nombre: 'XGBoost' },
+  arima: { nombre: 'ARIMA' },
+  prophet: { nombre: 'Prophet' }
 };
+
+// Formatea con coma decimal (es-ES) y cantidad fija de decimales
+const fmtDec = (v, dec) => formatNumber(Number(v).toFixed(dec));
 
 /**
  * Tabla de resultados migrada a SPMAgGrid
@@ -82,7 +86,7 @@ function ResultadosTable({ data }) {
       minWidth: 100,
       cellRenderer: (params) => (
         <Chip
-          label={params.data.exito ? 'OK' : 'Error'}
+          label={params.data.exito ? t('forecast_masivo_ok', 'Correcto') : t('common_error', 'Error')}
           size="small"
           sx={{
             bgcolor: params.data.exito ? 'var(--success-soft)' : 'var(--danger-soft)',
@@ -99,7 +103,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.mae != null ? Number(params.data.metricas.mae).toFixed(2) : '-',
+      valueFormatter: (params) => params.data?.metricas?.mae != null ? fmtDec(params.data.metricas.mae, 2) : '-',
     },
     {
       field: 'rmse',
@@ -107,7 +111,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.rmse != null ? Number(params.data.metricas.rmse).toFixed(2) : '-',
+      valueFormatter: (params) => params.data?.metricas?.rmse != null ? fmtDec(params.data.metricas.rmse, 2) : '-',
     },
     {
       field: 'r2',
@@ -115,7 +119,7 @@ function ResultadosTable({ data }) {
       flex: 0.25,
       minWidth: 80,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.metricas?.r2 != null ? Number(params.data.metricas.r2).toFixed(4) : '-',
+      valueFormatter: (params) => params.data?.metricas?.r2 != null ? fmtDec(params.data.metricas.r2, 4) : '-',
     },
     {
       field: 'prediccionTotal',
@@ -123,7 +127,7 @@ function ResultadosTable({ data }) {
       flex: 0.3,
       minWidth: 100,
       type: 'numericColumn',
-      valueFormatter: (params) => params.data?.prediccionTotal != null ? Number(params.data.prediccionTotal).toFixed(0) : '-',
+      valueFormatter: (params) => params.data?.prediccionTotal != null ? formatNumber(Math.round(params.data.prediccionTotal)) : '-',
     },
   ], [t]);
 
@@ -143,7 +147,6 @@ function ResultadosTable({ data }) {
 
 const ForecastMasivo = () => {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   // Estado
@@ -165,7 +168,8 @@ const ForecastMasivo = () => {
         if (response.modelos) {
           setModelosDisponibles(response.modelos);
         }
-      } catch (err) {
+      } catch {
+        // Se mantienen los modelos por defecto
       }
     };
     loadModelos();
@@ -248,7 +252,7 @@ const ForecastMasivo = () => {
   // Ejecutar forecast masivo
   const ejecutarForecastMasivo = useCallback(async () => {
     if (materialesImportados.length === 0) {
-      setError(t('forecast_masivo_sin_materiales', 'Importe una plantilla con códigos de materiales'));
+      setError(t('forecast_masivo_sin_materiales', 'Importa una plantilla con códigos de materiales'));
       return;
     }
 
@@ -281,7 +285,7 @@ const ForecastMasivo = () => {
         resultadosTemp.push({
           codigo,
           exito: false,
-          error: err.response?.data?.error || 'Error desconocido'
+          error: err.response?.data?.error || t('forecast_masivo_error_desconocido', 'Error desconocido')
         });
       }
 
@@ -347,18 +351,7 @@ const ForecastMasivo = () => {
   }, []);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {t('forecast_masivo_titulo', 'FORECAST MASIVO')}
-        </Typography>
-      </Box>
-
+    <PageLayout title={t('forecast_masivo_titulo', 'Forecast masivo')}>
       {/* Banner de Modo Temporal */}
       <TempDataBanner />
 
@@ -371,35 +364,34 @@ const ForecastMasivo = () => {
         style={{ display: 'none' }}
       />
 
-      {/* Filtros - estilo Dashboard */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
-        <Box sx={{ py: 1.5, px: 3, minHeight: "73px" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, height: "100%" }}>
+      {/* Barra de parámetros */}
+      <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
+        <Box sx={{ py: 1.5, px: { xs: 2, md: 3 } }}>
+          <Box sx={{ display: "flex", alignItems: "flex-end", gap: 2, flexWrap: "wrap" }}>
             {/* Plantilla */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
               <Typography component="label" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--fg-muted)", mb: 0.5 }}>
                 {t('forecast_masivo_plantilla', 'Plantilla')}
               </Typography>
               <Box sx={{ display: "flex", gap: 1 }}>
-                <Tooltip title="Descargar plantilla CSV">
+                <Tooltip title={t('forecast_masivo_tip_descargar', 'Descargar plantilla CSV')}>
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={descargarPlantilla}
                     startIcon={<FileDownloadIcon />}
                     sx={{
-                      height: 36,
+                      height: 40,
                       textTransform: "none",
-                      fontSize: "0.75rem",
                       borderColor: "var(--border)",
                       color: "var(--fg-muted)",
                       "&:hover": { borderColor: "var(--primary)", color: "var(--primary)" }
                     }}
                   >
-                    Descargar
+                    {t('common_descargar', 'Descargar')}
                   </Button>
                 </Tooltip>
-                <Tooltip title="Importar archivo CSV con códigos">
+                <Tooltip title={t('forecast_masivo_tip_importar', 'Importar archivo CSV con códigos')}>
                   <Button
                     variant="outlined"
                     size="small"
@@ -407,33 +399,31 @@ const ForecastMasivo = () => {
                     disabled={loading}
                     startIcon={<FileUploadIcon />}
                     sx={{
-                      height: 36,
+                      height: 40,
                       textTransform: "none",
-                      fontSize: "0.75rem",
                       borderColor: materialesImportados.length > 0 ? "var(--success)" : "var(--border)",
                       color: materialesImportados.length > 0 ? "var(--success)" : "var(--fg-muted)",
                       bgcolor: materialesImportados.length > 0 ? "var(--success-soft)" : "transparent",
                       "&:hover": { borderColor: "var(--success)", color: "var(--success)", bgcolor: "var(--success-soft)" }
                     }}
                   >
-                    Importar
+                    {t('common_importar', 'Importar')}
                   </Button>
                 </Tooltip>
               </Box>
             </Box>
 
             {/* Materiales importados */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 140 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
               <Typography component="label" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--fg-muted)", mb: 0.5 }}>
                 {t('forecast_masivo_materiales', 'Materiales')}
               </Typography>
               <Chip
                 icon={materialesImportados.length > 0 ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : undefined}
-                label={`${materialesImportados.length} importados`}
+                label={`${formatNumber(materialesImportados.length)} ${t('forecast_masivo_importados', 'importados')}`}
                 size="small"
                 sx={{
-                  height: 36,
-                  fontSize: "0.75rem",
+                  height: 40,
                   fontWeight: 600,
                   bgcolor: materialesImportados.length > 0 ? "var(--success-soft)" : "var(--bg-soft)",
                   color: materialesImportados.length > 0 ? "var(--success)" : "var(--fg-muted)",
@@ -443,46 +433,46 @@ const ForecastMasivo = () => {
             </Box>
 
             {/* Separador */}
-            <Box sx={{ height: 40, width: 1, bgcolor: "var(--border)" }} />
+            <Box sx={{ height: 40, width: "1px", bgcolor: "var(--border)", display: { xs: "none", md: "block" } }} />
 
             {/* Modelo */}
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Modelo</InputLabel>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="fm-modelo-label">{t('forecast_masivo_modelo', 'Modelo')}</InputLabel>
               <Select
+                labelId="fm-modelo-label"
                 value={modeloSeleccionado}
                 onChange={(e) => setModeloSeleccionado(e.target.value)}
                 disabled={loading}
-                label="Modelo"
-                sx={{ fontSize: "0.75rem" }}
+                label={t('forecast_masivo_modelo', 'Modelo')}
               >
                 {modelosDisponibles.map((modelo) => (
-                  <MenuItem key={modelo} value={modelo} sx={{ fontSize: "0.75rem" }}>
-                    {MODELOS_INFO[modelo]?.icono} {MODELOS_INFO[modelo]?.nombre || modelo}
+                  <MenuItem key={modelo} value={modelo}>
+                    {MODELOS_INFO[modelo]?.nombre || modelo}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             {/* Horizonte */}
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ fontSize: "0.75rem" }}>Horizonte</InputLabel>
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <InputLabel id="fm-horizonte-label">{t('forecast_masivo_horizonte', 'Horizonte')}</InputLabel>
               <Select
+                labelId="fm-horizonte-label"
                 value={diasPrediccion}
                 onChange={(e) => setDiasPrediccion(Number(e.target.value))}
                 disabled={loading}
-                label="Horizonte"
-                sx={{ fontSize: "0.75rem" }}
+                label={t('forecast_masivo_horizonte', 'Horizonte')}
               >
-                <MenuItem value={7}>7 días</MenuItem>
-                <MenuItem value={14}>14 días</MenuItem>
-                <MenuItem value={30}>1 mes</MenuItem>
-                <MenuItem value={60}>2 meses</MenuItem>
-                <MenuItem value={90}>3 meses</MenuItem>
+                <MenuItem value={7}>{t('forecast_h_7', '7 días')}</MenuItem>
+                <MenuItem value={14}>{t('forecast_h_14', '14 días')}</MenuItem>
+                <MenuItem value={30}>{t('forecast_h_30', '1 mes')}</MenuItem>
+                <MenuItem value={60}>{t('forecast_h_60', '2 meses')}</MenuItem>
+                <MenuItem value={90}>{t('forecast_h_90', '3 meses')}</MenuItem>
               </Select>
             </FormControl>
 
             {/* Separador */}
-            <Box sx={{ height: 40, width: 1, bgcolor: "var(--border)" }} />
+            <Box sx={{ height: 40, width: "1px", bgcolor: "var(--border)", display: { xs: "none", md: "block" } }} />
 
             {/* Botón Ejecutar */}
             <Button
@@ -490,21 +480,23 @@ const ForecastMasivo = () => {
               onClick={ejecutarForecastMasivo}
               disabled={loading || materialesImportados.length === 0}
               startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchIcon />}
-              sx={{ height: 40, minWidth: 140, textTransform: "none", fontWeight: 600 }}
+              sx={{ height: 40, minWidth: 130, textTransform: "none", fontWeight: 600 }}
             >
-              {loading ? `${progreso.actual}/${progreso.total}` : 'Ejecutar'}
+              {loading ? `${progreso.actual}/${progreso.total}` : t('forecast_masivo_ejecutar', 'Ejecutar')}
             </Button>
 
             {/* Limpiar */}
-            <Tooltip title="Limpiar todo">
-              <IconButton
-                onClick={limpiar}
-                disabled={loading}
-                size="small"
-                sx={{ color: "var(--fg-muted)", "&:hover": { color: "var(--danger)" } }}
-              >
-                <DeleteOutlineIcon />
-              </IconButton>
+            <Tooltip title={t('forecast_masivo_limpiar', 'Limpiar todo')}>
+              <span>
+                <IconButton
+                  onClick={limpiar}
+                  disabled={loading}
+                  aria-label={t('forecast_masivo_limpiar', 'Limpiar todo')}
+                  sx={{ color: "var(--fg-muted)", "&:hover": { color: "var(--danger)" } }}
+                >
+                  <DeleteOutlineIcon />
+                </IconButton>
+              </span>
             </Tooltip>
           </Box>
         </Box>
@@ -512,20 +504,20 @@ const ForecastMasivo = () => {
 
       {/* Mensaje de éxito de importación */}
       {importSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }} icon={<CheckCircleIcon />}>
-          {t('forecast_masivo_import_success', `Se importaron ${materialesImportados.length} materiales correctamente`)}
+        <Alert severity="success" icon={<CheckCircleIcon />}>
+          {t('forecast_masivo_import_success', 'Se importaron {n} materiales correctamente').replace('{n}', formatNumber(materialesImportados.length))}
         </Alert>
       )}
 
       {/* Lista de materiales importados (preview) */}
       {materialesImportados.length > 0 && resultados.length === 0 && !loading && (
-        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
+        <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
           <Box sx={{ p: 2, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="subtitle2" fontWeight={600} color="var(--fg-strong)">
               {t('forecast_masivo_preview', 'Materiales a procesar')}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {materialesImportados.length} materiales
+              {formatNumber(materialesImportados.length)} {t('forecast_masivo_materiales_lc', 'materiales')}
             </Typography>
           </Box>
           <Box sx={{ p: 2, display: "flex", flexWrap: "wrap", gap: 1, maxHeight: 150, overflow: "auto" }}>
@@ -549,17 +541,17 @@ const ForecastMasivo = () => {
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
       {/* Progreso */}
       {loading && (
-        <Paper elevation={0} sx={{ mb: 3, p: 2, border: "1px solid var(--border)" }}>
+        <Paper elevation={0} sx={{ p: 2, border: "1px solid var(--border)" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="body2" fontWeight={500}>Procesando materiales...</Typography>
-            <Typography variant="caption" color="text.secondary">{progreso.actual} de {progreso.total}</Typography>
+            <Typography variant="body2" fontWeight={500}>{t('forecast_masivo_procesando', 'Procesando materiales...')}</Typography>
+            <Typography variant="caption" color="text.secondary">{progreso.actual} {t('common_de', 'de')} {progreso.total}</Typography>
           </Box>
           <LinearProgress variant="determinate" value={(progreso.actual / progreso.total) * 100} sx={{ height: 8, borderRadius: 4 }} />
         </Paper>
@@ -567,36 +559,29 @@ const ForecastMasivo = () => {
 
       {/* Estadísticas */}
       {stats && (
-        <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
-          <Box sx={{ display: "flex", alignItems: "stretch" }}>
-            {[
-              { label: "Total", value: stats.total, color: "var(--fg-strong)", bg: "var(--card)" },
-              { label: "Exitosos", value: stats.exitosos, color: "var(--success)", bg: "var(--success-soft)" },
-              { label: "Fallidos", value: stats.fallidos, color: "var(--danger)", bg: "var(--danger-soft)" },
-              { label: "MAE Prom.", value: Number(stats.maePromedio).toFixed(2), color: "var(--primary)", bg: "var(--primary-soft)" },
-              { label: "R² Prom.", value: Number(stats.r2Promedio).toFixed(4), color: "var(--purple)", bg: "var(--purple-soft)" },
-              { label: "Demanda Total", value: Math.round(stats.prediccionTotal).toLocaleString(), color: "var(--warning)", bg: "var(--warning-soft)" },
-            ].map((item, idx, arr) => (
-              <Box
-                key={item.label}
-                sx={{
-                  flex: 1,
-                  p: 2,
-                  textAlign: "center",
-                  bgcolor: item.bg,
-                  borderRight: idx < arr.length - 1 ? "1px solid var(--border)" : "none",
-                }}
-              >
-                <Typography variant="h5" sx={{ fontWeight: 700, color: item.color }}>
-                  {item.value}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600, fontSize: "0.65rem" }}>
-                  {item.label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", lg: "repeat(6, 1fr)" }, gap: 2 }}>
+          {[
+            { key: 'total', label: t('forecast_masivo_stat_total', 'Total'), value: formatNumber(stats.total), color: "var(--fg-strong)" },
+            { key: 'ok', label: t('forecast_masivo_stat_exitosos', 'Exitosos'), value: formatNumber(stats.exitosos), color: "var(--success)" },
+            { key: 'ko', label: t('forecast_masivo_stat_fallidos', 'Fallidos'), value: formatNumber(stats.fallidos), color: stats.fallidos > 0 ? "var(--danger)" : "var(--fg-strong)" },
+            { key: 'mae', label: t('forecast_masivo_stat_mae', 'MAE prom.'), value: fmtDec(stats.maePromedio, 2), color: "var(--fg-strong)" },
+            { key: 'r2', label: t('forecast_masivo_stat_r2', 'R² prom.'), value: fmtDec(stats.r2Promedio, 4), color: "var(--fg-strong)" },
+            { key: 'dem', label: t('forecast_masivo_stat_demanda', 'Demanda total'), value: formatNumber(Math.round(stats.prediccionTotal)), color: "var(--fg-strong)" },
+          ].map((item) => (
+            <Paper
+              key={item.key}
+              elevation={0}
+              sx={{ p: 2, border: "1px solid var(--border)", minHeight: 88, display: "flex", flexDirection: "column", justifyContent: "center" }}
+            >
+              <Typography variant="caption" sx={{ color: "var(--fg-muted)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>
+                {item.label}
+              </Typography>
+              <Typography sx={{ fontSize: "1.5rem", fontWeight: 700, color: item.color, fontVariantNumeric: "tabular-nums" }}>
+                {item.value}
+              </Typography>
+            </Paper>
+          ))}
+        </Box>
       )}
 
       {/* Tabla de resultados */}
@@ -613,7 +598,7 @@ const ForecastMasivo = () => {
               onClick={exportarCSV}
               sx={{ textTransform: "none", color: "var(--success)", borderColor: "var(--success)", "&:hover": { bgcolor: "var(--success-soft)", borderColor: "var(--success)" } }}
             >
-              Exportar CSV
+              {t('forecast_masivo_exportar_csv', 'Exportar CSV')}
             </Button>
           </Box>
 
@@ -623,36 +608,36 @@ const ForecastMasivo = () => {
 
       {/* Estado vacío */}
       {materialesImportados.length === 0 && resultados.length === 0 && !loading && (
-        <Paper elevation={0} sx={{ p: 8, border: "1px solid var(--border)", textAlign: "center" }}>
-          <PlaylistAddIcon sx={{ fontSize: 64, color: "var(--border)", mb: 2 }} />
-          <Typography variant="h6" fontWeight={600} color="var(--fg-strong)" gutterBottom>
-            {t('forecast_masivo_empty_titulo', 'Analiza múltiples materiales')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480, mx: "auto", mb: 3 }}>
-            {t('forecast_masivo_empty_descripcion', 'Descarga la plantilla CSV, complétala con los códigos de materiales e impórtala para ejecutar el forecast masivo.')}
-          </Typography>
-          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+        <Paper elevation={0} sx={{ p: { xs: 3, md: 6 }, border: "1px solid var(--border)", textAlign: "center" }}>
+          <EmptyState
+            icon={<PlaylistAddIcon sx={{ fontSize: 32, color: "var(--fg-muted)" }} />}
+            title={t('forecast_masivo_empty_titulo', 'Analiza múltiples materiales')}
+            description={t('forecast_masivo_empty_descripcion', 'Descarga la plantilla CSV, complétala con los códigos de materiales e impórtala para ejecutar el forecast masivo.')}
+            className="py-4"
+          />
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
             <Button
               variant="outlined"
+              size="small"
               startIcon={<FileDownloadIcon />}
               onClick={descargarPlantilla}
               sx={{ textTransform: "none" }}
             >
-              1. Descargar plantilla
+              {t('forecast_masivo_paso1', '1. Descargar plantilla')}
             </Button>
             <Button
               variant="contained"
+              size="small"
               startIcon={<FileUploadIcon />}
               onClick={() => fileInputRef.current?.click()}
               sx={{ textTransform: "none" }}
             >
-              2. Importar plantilla
+              {t('forecast_masivo_paso2', '2. Importar plantilla')}
             </Button>
           </Box>
         </Paper>
       )}
-    </Box>
-    </Box>
+    </PageLayout>
   );
 };
 

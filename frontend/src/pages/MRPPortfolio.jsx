@@ -5,10 +5,11 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
+import SummaryCard from "../components/ui/SummaryCard";
 
 // MUI Components
 import {
@@ -16,7 +17,6 @@ import {
   Paper,
   Typography,
   Button,
-  IconButton,
   Stack,
   Grid,
   TextField,
@@ -32,10 +32,8 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import LayersIcon from "@mui/icons-material/Layers";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InboxIcon from "@mui/icons-material/Inbox";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // ============================================================================
 // UTILITIES
@@ -49,63 +47,21 @@ function formatNumber(value) {
   }).format(value);
 }
 
+/** "MANTENIMIENTO" -> "Mantenimiento" */
+function toSentenceCase(value) {
+  if (!value || typeof value !== "string") return value;
+  const lower = value.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
 // ============================================================================
 // UI COMPONENTS
 // ============================================================================
 
-/** Summary card */
-function SummaryCard({ label, value, subvalue }) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        bgcolor: "background.paper",
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontWeight: 600,
-          color: "text.secondary",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          display: "block",
-          mb: 0.5,
-          fontSize: "var(--text-xs)",
-        }}
-      >
-        {label}
-      </Typography>
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: 700,
-          color: "text.primary",
-        }}
-      >
-        {value}
-      </Typography>
-      {subvalue && (
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.secondary",
-            mt: 0.5,
-            display: "block",
-          }}
-        >
-          {subvalue}
-        </Typography>
-      )}
-    </Paper>
-  );
-}
-
 /** Select filter */
 function FilterSelect({ value, onChange, options, placeholder }) {
   return (
-    <FormControl size="small" sx={{ minWidth: 150 }}>
+    <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 150 } }}>
       <Select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -144,6 +100,7 @@ function FilterSelect({ value, onChange, options, placeholder }) {
 
 /** Empty state */
 function EmptyState({ onClearFilters }) {
+  const { t } = useI18n();
   return (
     <Box
       sx={{
@@ -162,10 +119,10 @@ function EmptyState({ onClearFilters }) {
         variant="subtitle2"
         sx={{ fontWeight: 600, color: "text.primary", mb: 0.5 }}
       >
-        No se encontraron materiales MRP
+        {t("mrp_portfolio_empty_title", "No se encontraron materiales MRP")}
       </Typography>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        Prueba ajustando los filtros de busqueda
+        {t("mrp_portfolio_empty_desc", "Prueba ajustando los filtros de búsqueda")}
       </Typography>
       <Button
         onClick={onClearFilters}
@@ -180,7 +137,7 @@ function EmptyState({ onClearFilters }) {
           },
         }}
       >
-        Limpiar filtros
+        {t("common_limpiar_filtros", "Limpiar filtros")}
       </Button>
     </Box>
   );
@@ -250,11 +207,11 @@ function PortfolioTable({ data, loading }) {
       headerName: t("common_sector", "Sector"),
       flex: 0.3,
       minWidth: 100,
-      valueFormatter: (params) => params.value || "-",
+      valueFormatter: (params) => toSentenceCase(params.value) || "-",
     },
     {
       field: "stock_de_seguridad",
-      headerName: t("mrp_stock_safety", "Stock Seguridad"),
+      headerName: t("mrp_stock_safety", "Stock de seguridad"),
       flex: 0.4,
       minWidth: 120,
       type: "numericColumn",
@@ -262,7 +219,7 @@ function PortfolioTable({ data, loading }) {
     },
     {
       field: "punto_de_pedido",
-      headerName: t("mrp_reorder_point", "Punto Pedido"),
+      headerName: t("mrp_reorder_point", "Punto de pedido"),
       flex: 0.4,
       minWidth: 120,
       type: "numericColumn",
@@ -270,7 +227,7 @@ function PortfolioTable({ data, loading }) {
     },
     {
       field: "stock_maximo",
-      headerName: t("mrp_stock_max", "Stock Máximo"),
+      headerName: t("mrp_stock_max", "Stock máximo"),
       flex: 0.4,
       minWidth: 120,
       type: "numericColumn",
@@ -306,7 +263,6 @@ function PortfolioTable({ data, loading }) {
 // ============================================================================
 
 export default function MRPPortfolio() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   // Data state
@@ -349,14 +305,14 @@ export default function MRPPortfolio() {
         setTotal(res.data.total);
         setFiltros(res.data.filtros || { centros: [], almacenes: [], sectores: [] });
       } else {
-        setError("Error al cargar portfolio MRP");
+        setError(t("mrp_portfolio_error", "No se pudo cargar el portfolio MRP"));
       }
     } catch (err) {
-      setError("Error de conexion");
+      setError(t("common_error_conexion", "Error de conexión"));
     } finally {
       setLoading(false);
     }
-  }, [centro, almacen, sector, search]);
+  }, [centro, almacen, sector, search, t]);
 
   useEffect(() => {
     loadData();
@@ -369,294 +325,183 @@ export default function MRPPortfolio() {
     setSector("");
   };
 
-  const hasActiveFilters = search || centro || almacen || sector;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box
-        component="header"
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          bgcolor: "background.paper",
-          borderBottom: 1,
-          borderColor: "grey.200",
-          boxShadow: 1,
-          mx: -4,
-        }}
-      >
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 3 }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ height: 56 }}
-          >
-            {/* Left */}
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <IconButton
-                onClick={() => navigate(-1)}
-                size="small"
-                sx={{
-                  ml: -1,
-                  color: "grey.400",
-                  "&:hover": {
-                    color: "grey.600",
-                    bgcolor: "grey.100",
-                  },
-                }}
-                aria-label="Volver"
-              >
-                <ArrowBackIcon fontSize="small" />
-              </IconButton>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Box
-                  sx={{
-                    p: 1,
-                    bgcolor: "primary.main",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <LayersIcon fontSize="small" />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: "text.primary",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {t("mrp_portfolio_titulo", "Portfolio MRP")}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {t("mrp_portfolio_subtitulo", "Materiales planificados por MRP")}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-
-            {/* Right */}
-            <Button
-              onClick={loadData}
-              disabled={loading}
-              variant="outlined"
-              size="small"
-              startIcon={
-                loading ? (
-                  <RefreshIcon
-                    fontSize="small"
-                    sx={{
-                      animation: "spin 1s linear infinite",
-                      "@keyframes spin": {
-                        "0%": { transform: "rotate(0deg)" },
-                        "100%": { transform: "rotate(360deg)" },
-                      },
-                    }}
-                  />
-                ) : (
-                  <RefreshIcon fontSize="small" />
-                )
-              }
-              sx={{
-                height: 36,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontSize: "0.75rem",
-                color: "text.secondary",
-                borderColor: "grey.200",
-                "&:hover": {
-                  bgcolor: "grey.50",
-                  borderColor: "grey.300",
-                },
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                Actualizar
-              </Box>
-            </Button>
-          </Stack>
-        </Box>
-      </Box>
-
-      {/* Main */}
-      <Box component="main">
-        {error && (
-          <Box sx={{ mb: 3 }}>
+    <PageLayout
+      title={t("mrp_portfolio_titulo", "Portfolio MRP")}
+      subtitle={t("mrp_portfolio_subtitulo", "Materiales planificados por MRP")}
+      actions={
+        <Button
+          onClick={loadData}
+          disabled={loading}
+          variant="outlined"
+          size="small"
+          startIcon={<RefreshIcon fontSize="small" />}
+          sx={{ textTransform: "none" }}
+        >
+          {t("common_actualizar", "Actualizar")}
+        </Button>
+      }
+    >
+          {error && (
             <AlertMessage type="error" onDismiss={() => setError("")}>
               {error}
             </AlertMessage>
-          </Box>
-        )}
+          )}
 
-        {/* Summary Cards */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} md={3}>
-            <SummaryCard
-              label={t("mrp_total_materiales", "Materiales MRP")}
-              value={formatNumber(total)}
-            />
+          {/* Summary Cards */}
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <SummaryCard
+                label={t("mrp_portfolio_total_materiales", "Materiales MRP")}
+                value={formatNumber(total)}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <SummaryCard
+                label={t("mrp_centros", "Centros")}
+                value={formatNumber(filtros.centros?.length || 0)}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <SummaryCard
+                label={t("mrp_almacenes", "Almacenes")}
+                value={formatNumber(filtros.almacenes?.length || 0)}
+              />
+            </Grid>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <SummaryCard
+                label={t("mrp_sectores", "Sectores")}
+                value={formatNumber(filtros.sectores?.length || 0)}
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={6} md={3}>
-            <SummaryCard
-              label={t("mrp_centros", "Centros")}
-              value={formatNumber(filtros.centros?.length || 0)}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <SummaryCard
-              label={t("mrp_almacenes", "Almacenes")}
-              value={formatNumber(filtros.almacenes?.length || 0)}
-            />
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <SummaryCard
-              label={t("mrp_sectores", "Sectores")}
-              value={formatNumber(filtros.sectores?.length || 0)}
-            />
-          </Grid>
-        </Grid>
 
-        {/* Filters */}
-        <Paper variant="outlined" sx={{ mb: 3 }}>
-          <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderBottom: 1,
-              borderColor: "grey.100",
-              bgcolor: "grey.50",
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FilterListIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          {/* Filters */}
+          <Paper variant="outlined">
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                borderBottom: 1,
+                borderColor: "grey.100",
+                bgcolor: "grey.50",
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <FilterListIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: "text.secondary",
+                  }}
+                >
+                  {t("common_filtros", "Filtros")}
+                </Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              <Stack direction="row" flexWrap="wrap" alignItems="center" gap={2}>
+                {/* Search */}
+                <TextField
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('mrp_portfolio_search_placeholder', 'Buscar por código o descripción...')}
+                  size="small"
+                  sx={{
+                    flex: 1,
+                    minWidth: { xs: "100%", sm: 250 },
+                    maxWidth: 400,
+                    "& .MuiOutlinedInput-root": {
+                      height: 40,
+                      bgcolor: "background.paper",
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: "grey.400" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                {/* Centro */}
+                <FilterSelect
+                  value={centro}
+                  onChange={setCentro}
+                  options={filtros.centros}
+                  placeholder={t("mrp_todos_centros", "Todos los centros")}
+                />
+
+                {/* Almacen */}
+                <FilterSelect
+                  value={almacen}
+                  onChange={setAlmacen}
+                  options={filtros.almacenes}
+                  placeholder={t("mrp_todos_almacenes", "Todos los almacenes")}
+                />
+
+                {/* Sector */}
+                <FilterSelect
+                  value={sector}
+                  onChange={setSector}
+                  options={filtros.sectores}
+                  placeholder={t("mrp_todos_sectores", "Todos los sectores")}
+                />
+
+                {/* Counter */}
+                <Chip
+                  icon={<Box sx={{ width: 6, height: 6, bgcolor: "grey.400" }} />}
+                  label={`${formatNumber(total)} ${t("mrp_materiales_label", "materiales")}`}
+                  size="small"
+                  sx={{
+                    bgcolor: "grey.100",
+                    color: "text.secondary",
+                    fontWeight: 600,
+                    fontSize: "0.75rem",
+                    "& .MuiChip-icon": { ml: 1 },
+                  }}
+                />
+              </Stack>
+            </Box>
+          </Paper>
+
+          {/* Data Table */}
+          <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                borderBottom: 1,
+                borderColor: "grey.200",
+                bgcolor: "grey.50",
+              }}
+            >
               <Typography
                 variant="caption"
                 sx={{
                   fontWeight: 600,
-                  color: "text.secondary",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  color: "text.primary",
                 }}
               >
-                Filtros
-              </Typography>
-            </Stack>
-          </Box>
-          <Box sx={{ p: 2 }}>
-            <Stack direction="row" flexWrap="wrap" alignItems="center" gap={2}>
-              {/* Search */}
-              <TextField
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('mrp_portfolio_search_placeholder', 'Buscar por código o descripción...')}
-                size="small"
-                sx={{
-                  flex: 1,
-                  minWidth: 250,
-                  maxWidth: 400,
-                  "& .MuiOutlinedInput-root": {
-                    height: 40,
-                    bgcolor: "background.paper",
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 18, color: "grey.400" }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              {/* Centro */}
-              <FilterSelect
-                value={centro}
-                onChange={setCentro}
-                options={filtros.centros}
-                placeholder="Todos los centros"
-              />
-
-              {/* Almacen */}
-              <FilterSelect
-                value={almacen}
-                onChange={setAlmacen}
-                options={filtros.almacenes}
-                placeholder="Todos los almacenes"
-              />
-
-              {/* Sector */}
-              <FilterSelect
-                value={sector}
-                onChange={setSector}
-                options={filtros.sectores}
-                placeholder="Todos los sectores"
-              />
-
-              {/* Counter */}
-              <Chip
-                icon={<Box sx={{ width: 6, height: 6, bgcolor: "grey.400" }} />}
-                label={`${total} materiales`}
-                size="small"
-                sx={{
-                  bgcolor: "grey.100",
-                  color: "text.secondary",
-                  fontWeight: 600,
-                  fontSize: "0.75rem",
-                  "& .MuiChip-icon": { ml: 1 },
-                }}
-              />
-            </Stack>
-          </Box>
-        </Paper>
-
-        {/* Data Table */}
-        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-          <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderBottom: 1,
-              borderColor: "grey.200",
-              bgcolor: "grey.50",
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 600,
-                color: "text.primary",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {t("mrp_lista", "Materiales Planificados MRP")}
-            </Typography>
-          </Box>
-
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-              <Typography variant="body2" color="text.secondary">
-                {t("common_loading", "Cargando...")}
+                {t("mrp_lista", "Materiales planificados MRP")}
               </Typography>
             </Box>
-          ) : data.length === 0 ? (
-            <EmptyState onClearFilters={clearFilters} />
-          ) : (
-            <PortfolioTable data={data} loading={loading} />
-          )}
-        </Paper>
-      </Box>
-    </Box>
-    </Box>
+
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {t("common_loading", "Cargando...")}
+                </Typography>
+              </Box>
+            ) : data.length === 0 ? (
+              <EmptyState onClearFilters={clearFilters} />
+            ) : (
+              <PortfolioTable data={data} loading={loading} />
+            )}
+          </Paper>
+    </PageLayout>
   );
 }

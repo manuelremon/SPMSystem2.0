@@ -14,6 +14,7 @@ import { useMaterials } from "../hooks/useMaterials";
 import { formatCurrency } from "../utils/formatters";
 import { useI18n } from "../context/i18n";
 import { renderSector } from "../constants/sectores";
+import PageLayout from "../components/ui/PageLayout";
 
 // MUI Components
 import {
@@ -37,7 +38,6 @@ import {
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddIcon from "@mui/icons-material/Add";
@@ -93,38 +93,16 @@ export default function Materials() {
 
   if (m.loading) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Header */}
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Tooltip title={t("common_volver", "Volver")}>
-              <IconButton
-                onClick={() => navigate(-1)}
-                aria-label={t("common_volver", "Volver")}
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": { bgcolor: "background.paper", borderColor: "divider" },
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            </Tooltip>
-            <Box>
-              <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {t("materials_title", "Agregar Materiales")}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
-              </Typography>
-            </Box>
-          </Stack>
+      <PageLayout
+        title={t("materials_title", "Agregar materiales")}
+        subtitle={t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
+      >
           <Paper variant="outlined" aria-busy="true" aria-label={t("materials_loading", "Cargando materiales")}>
             <Box sx={{ pt: 3 }}>
               <TableSkeleton />
             </Box>
           </Paper>
-        </Box>
-      </Box>
+      </PageLayout>
     );
   }
 
@@ -133,45 +111,25 @@ export default function Materials() {
   // ═══════════════════════════════════════════════════════════════════
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Tooltip title={t("common_volver", "Volver")}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            aria-label={t("common_volver", "Volver")}
-            sx={{
-              color: "text.secondary",
-              "&:hover": { bgcolor: "background.paper", borderColor: "divider" },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-        </Tooltip>
-        <Box>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            {t("materials_title", "Agregar Materiales")}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
-          </Typography>
-        </Box>
-      </Stack>
-
+    <PageLayout
+      title={t("materials_title", "Agregar materiales")}
+      subtitle={t("materials_subtitle", "Busca y agrega los materiales a la solicitud")}
+    >
       {/* Messages */}
-      <Box aria-live="polite">
-        {m.error && (
-          <Alert severity="error" onClose={() => m.setError("")}>
-            {m.error}
-          </Alert>
-        )}
-        {m.actionMsg && (
-          <Alert severity="success" onClose={() => m.setActionMsg("")}>
-            {m.actionMsg}
-          </Alert>
-        )}
-      </Box>
+      {(m.error || m.actionMsg) && (
+        <Box aria-live="polite" sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {m.error && (
+            <Alert severity="error" onClose={() => m.setError("")}>
+              {m.error}
+            </Alert>
+          )}
+          {m.actionMsg && (
+            <Alert severity="success" onClose={() => m.setActionMsg("")}>
+              {m.actionMsg}
+            </Alert>
+          )}
+        </Box>
+      )}
 
       {/* Favorites Section */}
       {m.favoritos && m.favoritos.length > 0 && (
@@ -206,7 +164,7 @@ export default function Materials() {
       )}
 
       {/* Search and Context Section */}
-      <Paper variant="outlined" sx={{ p: 3 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
         <Box
           sx={{
             display: "grid",
@@ -233,18 +191,18 @@ export default function Materials() {
             display: "flex",
             alignItems: "center",
             gap: 1.5,
-            px: 3,
+            px: { xs: 2, sm: 3 },
             py: 2,
             borderBottom: 1,
             borderColor: "divider",
           }}
         >
           <Typography variant="subtitle1" component="h2" fontWeight={600} color="text.primary">
-            {t("materials_resumen", "Resumen de Materiales")}
+            {t("materials_resumen", "Resumen de materiales")}
           </Typography>
           {m.items.length > 0 && (
             <Chip
-              label={`${m.items.length} ${m.items.length === 1 ? t("common_item", "item") : t("common_items", "items")}`}
+              label={`${m.items.length} ${m.items.length === 1 ? t("common_item", "ítem") : t("common_items", "ítems")}`}
               size="small"
               color="primary"
               sx={{ height: 24 }}
@@ -253,7 +211,7 @@ export default function Materials() {
         </Box>
 
         {/* Content */}
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
           <MaterialsTable
             items={m.itemsSorted}
             onQtyChange={m.handleQtyChange}
@@ -263,21 +221,32 @@ export default function Materials() {
 
           {/* Action Buttons */}
           <Divider sx={{ my: 3 }} />
-          <Stack direction="row" spacing={2} justifyContent="flex-end" flexWrap="wrap">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column-reverse", sm: "row" },
+              justifyContent: "flex-end",
+              flexWrap: { sm: "wrap" },
+              gap: 1.5,
+              "& .MuiButton-root": {
+                textTransform: "none",
+                minHeight: 40,
+                width: { xs: "100%", sm: "auto" },
+              },
+            }}
+          >
             <Button
               variant="outlined"
               color="error"
               onClick={m.handleCancelar}
               disabled={m.submitting || m.savingDraft}
-              sx={{ textTransform: "none" }}
             >
-              {t("materials_cancelar_solicitud", "Cancelar Solicitud")}
+              {t("materials_cancelar_solicitud", "Cancelar solicitud")}
             </Button>
             <Button
               variant="outlined"
               onClick={m.handleSaveDraft}
               disabled={m.items.length === 0 || m.savingDraft || m.submitting}
-              sx={{ textTransform: "none" }}
             >
               {m.savingDraft
                 ? t("materials_guardando", "Guardando...")
@@ -287,13 +256,12 @@ export default function Materials() {
               variant="contained"
               onClick={m.handleFinalizar}
               disabled={m.items.length === 0 || m.submitting || m.savingDraft}
-              sx={{ textTransform: "none" }}
             >
               {m.submitting
                 ? t("materials_enviando", "Enviando...")
-                : t("materials_enviar", "Enviar Solicitud")}
+                : t("materials_enviar", "Enviar solicitud")}
             </Button>
-          </Stack>
+          </Box>
         </Box>
       </Paper>
 
@@ -315,8 +283,8 @@ export default function Materials() {
         open={m.showCancelModal}
         onClose={() => m.setShowCancelModal(false)}
         onConfirm={m.confirmCancelar}
-        title={t("materials_cancelar_titulo", "Cancelar Solicitud")}
-        description={t("materials_cancelar_confirm", "Se borraran todos los datos ingresados. Continuar?")}
+        title={t("materials_cancelar_titulo", "Cancelar solicitud")}
+        description={t("materials_cancelar_confirm", "Se borrarán todos los datos ingresados. ¿Continuar?")}
         confirmText={t("common_confirmar", "Confirmar")}
         cancelText={t("common_cancelar", "Cancelar")}
         variant="warning"
@@ -327,12 +295,12 @@ export default function Materials() {
         open={m.showSubmitModal}
         onClose={() => m.setShowSubmitModal(false)}
         onConfirm={m.confirmFinalizar}
-        title={t("materials_enviar_titulo", "Enviar Solicitud")}
+        title={t("materials_enviar_titulo", "Enviar solicitud")}
         description={t(
           "materials_enviar_confirm",
-          `Confirmas el envio de la solicitud con ${m.items.length} material(es) por un total de ${formatCurrency(m.total)}?`
+          `¿Confirmas el envío de la solicitud con ${m.items.length} material(es) por un total de ${formatCurrency(m.total)}?`
         )}
-        confirmText={t("materials_enviar_btn", "Si, enviar solicitud")}
+        confirmText={t("materials_enviar_btn", "Sí, enviar solicitud")}
         cancelText={t("common_cancelar", "Cancelar")}
         variant="info"
         loading={m.submitting}
@@ -385,8 +353,7 @@ export default function Materials() {
           m.setShowScanner && m.setShowScanner(false);
         }}
       />
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }
 
@@ -406,7 +373,7 @@ function SearchSection({ m, t }) {
         >
           {t("materials_buscar", "Buscar material")}
         </Typography>
-        <Tooltip title={t("scanner_scan_tooltip", "Escanear el codigo de barras de un material con la camara")}>
+        <Tooltip title={t("scanner_scan_tooltip", "Escanear el código de barras de un material con la cámara")}>
           <Button
             size="small"
             variant="outlined"
@@ -429,7 +396,7 @@ function SearchSection({ m, t }) {
             {t("scanner_scan", "Escanear")}
           </Button>
         </Tooltip>
-        <Tooltip title={t("materials_asistente_ia_tooltip", "Describe lo que necesitas y la IA sugiere materiales del catalogo")}>
+        <Tooltip title={t("materials_asistente_ia_tooltip", "Describe lo que necesitas y la IA sugiere materiales del catálogo")}>
           <Button
             size="small"
             variant="outlined"
@@ -469,14 +436,13 @@ function SearchSection({ m, t }) {
           value={m.searchCodigo}
           onChange={(e) => m.setSearchCodigo(e.target.value)}
           onKeyDown={m.handleSearchKeyDown}
-          placeholder={t("materials_codigo_sap", "Código Material")}
+          placeholder={t("materials_codigo_material", "Código de material")}
           size="small"
           sx={{
-            width: { xs: "100%", sm: 144 },
+            width: { xs: "100%", sm: 170 },
             flexShrink: 0,
-            "& .MuiInputBase-input": { fontFamily: "monospace" },
           }}
-          aria-label={t("materials_codigo_sap", "Código Material")}
+          aria-label={t("materials_codigo_material", "Código de material")}
         />
 
         {/* Descripcion */}
@@ -485,10 +451,10 @@ function SearchSection({ m, t }) {
           value={m.searchDesc}
           onChange={(e) => m.setSearchDesc(e.target.value)}
           onKeyDown={m.handleSearchKeyDown}
-          placeholder={t("materials_buscar_desc", "Buscar por descripcion...")}
+          placeholder={t("materials_buscar_desc", "Buscar por descripción...")}
           size="small"
           sx={{ flex: 1, maxWidth: { sm: 320 } }}
-          aria-label={t("materials_descripcion", "Descripcion")}
+          aria-label={t("materials_descripcion", "Descripción")}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
@@ -507,11 +473,11 @@ function SearchSection({ m, t }) {
                     />
                   )}
                   {(m.searchCodigo || m.searchDesc) && (
-                    <Tooltip title={t("materials_limpiar_busqueda", "Limpiar busqueda")}>
+                    <Tooltip title={t("materials_limpiar_busqueda", "Limpiar búsqueda")}>
                       <IconButton
                         size="small"
                         onClick={m.handleClearSearch}
-                        aria-label={t("materials_limpiar_busqueda", "Limpiar busqueda")}
+                        aria-label={t("materials_limpiar_busqueda", "Limpiar búsqueda")}
                         sx={{ p: 0.25 }}
                       >
                         <CloseIcon sx={{ fontSize: 18, color: "error.main" }} />
@@ -597,7 +563,7 @@ function SelectedMaterialSection({ m, t }) {
           {m.selectedMaterial.precio_usd > 0 && (
             <Typography variant="body2" color="text.secondary">
               {t("materials_precio", "Precio")}:{" "}
-              <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 500, color: "text.primary" }}>
+              <Box component="span" sx={{ fontWeight: 500, color: "text.primary" }}>
                 {formatCurrency(m.selectedMaterial.precio_usd)}
               </Box>
             </Typography>
@@ -724,7 +690,7 @@ function ContextSection({ m, t }) {
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">
-            {t("common_almacen", "Almacen")}
+            {t("common_almacen", "Almacén")}
           </Typography>
           <Typography variant="body2" fontWeight={600} color="text.primary">
             {m.sol?.almacen_virtual || "—"}
@@ -733,12 +699,12 @@ function ContextSection({ m, t }) {
 
         {/* Total section */}
         <Box sx={{ gridColumn: "1 / -1", pt: 2, mt: 1, borderTop: 1, borderColor: "divider" }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-end" flexWrap="wrap" gap={1}>
             <Box>
               <Typography variant="caption" color="text.secondary">
                 {t("common_total", "Total")}
               </Typography>
-              <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ fontFamily: "monospace" }}>
+              <Typography variant="h6" fontWeight={700} color="text.primary">
                 {formatCurrency(m.total)}
               </Typography>
             </Box>
@@ -751,7 +717,6 @@ function ContextSection({ m, t }) {
                   variant="body1"
                   fontWeight={600}
                   sx={{
-                    fontFamily: "monospace",
                     color: m.presupuestoInsuf ? "error.main" : "success.main",
                   }}
                 >

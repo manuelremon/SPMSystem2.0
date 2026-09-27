@@ -234,7 +234,7 @@ class AtomicBudgetTransaction:
                     solicitud_id,
                     ctx.actor_id,
                     ctx.actor_rol,
-                    f"Aprobacion solicitud #{solicitud_id}",
+                    f"Aprobación solicitud #{solicitud_id}",
                 ),
             )
             ledger_id = self._get_lastrowid()
@@ -260,7 +260,7 @@ class AtomicBudgetTransaction:
                     solicitud_id,
                     ctx.actor_id,
                     ctx.actor_rol,
-                    f"Aprobacion solicitud #{solicitud_id}",
+                    f"Aprobación solicitud #{solicitud_id}",
                 ),
             )
             ledger_id = self._cursor.lastrowid
@@ -279,7 +279,7 @@ class AtomicBudgetTransaction:
         monto_cents: int,
         solicitud_id: int,
         ctx: TransactionContext,
-        motivo: str = "Reversion por rechazo",
+        motivo: str = "Reversión por rechazo",
     ) -> BudgetOperationResult:
         """
         Revierte un consumo previo (devuelve saldo).

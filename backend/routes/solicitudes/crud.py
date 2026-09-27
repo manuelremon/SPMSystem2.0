@@ -197,7 +197,10 @@ def get_solicitud(solicitud_id):
         extra = json.loads(d.get("data_json") or "{}")
     except json.JSONDecodeError:
         extra = {}
-    d["items"] = extra.get("items", [])
+    d["items"] = [
+        {**it, "codigo": it.get("codigo") or it.get("material_id")} if isinstance(it, dict) else it
+        for it in (extra.get("items") or [])
+    ]
     d["archivos"] = _archivos_publicos(extra.get("archivos"))
 
     # Nombres de solicitante / aprobador / planificador para mostrar en la UI

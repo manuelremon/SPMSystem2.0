@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -26,31 +25,34 @@ import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DescriptionIcon from '@mui/icons-material/Description';
 import EmailIcon from '@mui/icons-material/Email';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { formatDateTime } from '../utils/formatters';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 
 const TIPOS_REPORTE = [
-  { value: 'solicitudes', label: 'Solicitudes' },
-  { value: 'stock', label: 'Stock' },
-  { value: 'presupuesto', label: 'Presupuesto' },
-  { value: 'kpis', label: 'KPIs' },
-  { value: 'materiales', label: 'Materiales' },
+  { value: 'solicitudes', key: 'reportes_tipo_solicitudes', label: 'Solicitudes' },
+  { value: 'stock', key: 'reportes_tipo_stock', label: 'Stock' },
+  { value: 'presupuesto', key: 'reportes_tipo_presupuesto', label: 'Presupuesto' },
+  { value: 'kpis', key: 'reportes_tipo_kpis', label: 'Indicadores (KPI)' },
+  { value: 'materiales', key: 'reportes_tipo_materiales', label: 'Materiales' },
 ];
 
 const FRECUENCIAS = [
-  { value: 'manual', label: 'Manual' },
-  { value: 'diario', label: 'Diario' },
-  { value: 'semanal', label: 'Semanal' },
-  { value: 'mensual', label: 'Mensual' },
+  { value: 'manual', key: 'reportes_frec_manual', label: 'Manual' },
+  { value: 'diario', key: 'reportes_frec_diario', label: 'Diario' },
+  { value: 'semanal', key: 'reportes_frec_semanal', label: 'Semanal' },
+  { value: 'mensual', key: 'reportes_frec_mensual', label: 'Mensual' },
 ];
 
 const FORMATOS = [
@@ -71,10 +73,10 @@ const INITIAL_FORM = {
 export default function ReportesProgramados() {
   const { t } = useI18n();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
@@ -86,12 +88,13 @@ export default function ReportesProgramados() {
   const fetchReportes = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const response = await api.get('/export/programados');
       if (response.data?.ok) {
         setReportes(response.data.reportes || []);
       }
     } catch (err) {
-      toast.error(t('reportes_error_cargar', 'Error al cargar reportes programados'));
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -227,7 +230,7 @@ export default function ReportesProgramados() {
         }
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error?.message || err.response?.data?.error || t('reportes_error_email', 'Error al enviar por email');
+      const errorMsg = err.response?.data?.error?.message || err.response?.data?.error || t('reportes_error_email', 'Error al enviar por correo');
       toast.error(errorMsg);
     } finally {
       setSendingEmail(null);
@@ -246,15 +249,18 @@ export default function ReportesProgramados() {
       headerName: t('reportes_tipo', 'Tipo'),
       flex: 1,
       cellRenderer: (params) => {
-        const tipo = TIPOS_REPORTE.find(t => t.value === params.value);
-        return tipo?.label || params.value;
+        const tipo = TIPOS_REPORTE.find(tr => tr.value === params.value);
+        return tipo ? t(tipo.key, tipo.label) : params.value;
       },
     },
     {
       field: 'frecuencia',
       headerName: t('reportes_frecuencia', 'Frecuencia'),
       flex: 1,
-      cellRenderer: (params) => params.value || 'manual',
+      cellRenderer: (params) => {
+        const frec = FRECUENCIAS.find(f => f.value === (params.value || 'manual'));
+        return frec ? t(frec.key, frec.label) : params.value;
+      },
     },
     {
       field: 'formato',
@@ -270,11 +276,11 @@ export default function ReportesProgramados() {
     },
     {
       field: 'ultimo_envio',
-      headerName: t('reportes_ultimo_envio', 'Último Envío'),
+      headerName: t('reportes_ultimo_envio', 'Último envío'),
       flex: 1,
       valueFormatter: (params) => {
         if (!params.value) return t('reportes_nunca', 'Nunca');
-        return new Date(params.value).toLocaleString('es-AR');
+        return formatDateTime(params.value);
       },
     },
     {
@@ -284,93 +290,95 @@ export default function ReportesProgramados() {
       filter: false,
       cellRenderer: (params) => (
         <Stack direction="row" spacing={0.5} sx={{ height: '100%', alignItems: 'center' }}>
-          <IconButton
-            size="small"
-            onClick={() => handleExecute(params.data.id)}
-            disabled={executing === params.data.id}
-            title={t('reportes_ejecutar', 'Ejecutar ahora')}
-            aria-label={t('reportes_ejecutar', 'Ejecutar ahora')}
-          >
-            {executing === params.data.id ? (
-              <CircularProgress size={16} />
-            ) : (
-              <PlayArrowIcon fontSize="small" color="success" />
-            )}
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleSendEmail(params.data.id)}
-            disabled={sendingEmail === params.data.id}
-            title={t('reportes_enviar_email', 'Enviar por Email')}
-            aria-label={t('reportes_enviar_email', 'Enviar por Email')}
-          >
-            {sendingEmail === params.data.id ? (
-              <CircularProgress size={16} />
-            ) : (
-              <EmailIcon fontSize="small" color="info" />
-            )}
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleOpenDialog(params.data)}
-            title={t('reportes_editar_btn', 'Editar')}
-            aria-label={t('reportes_editar_btn', 'Editar')}
-          >
-            <EditIcon fontSize="small" color="primary" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDelete(params.data.id)}
-            title={t('reportes_eliminar_btn', 'Eliminar')}
-            aria-label={t('reportes_eliminar_btn', 'Eliminar')}
-          >
-            <DeleteIcon fontSize="small" color="error" />
-          </IconButton>
+          <Tooltip describeChild title={t('reportes_ejecutar', 'Ejecutar ahora')}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleExecute(params.data.id)}
+                disabled={executing === params.data.id}
+                aria-label={t('reportes_ejecutar', 'Ejecutar ahora')}
+              >
+                {executing === params.data.id ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <PlayArrowIcon fontSize="small" color="success" />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip describeChild title={t('reportes_enviar_email', 'Enviar por correo')}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleSendEmail(params.data.id)}
+                disabled={sendingEmail === params.data.id}
+                aria-label={t('reportes_enviar_email', 'Enviar por correo')}
+              >
+                {sendingEmail === params.data.id ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <EmailIcon fontSize="small" color="info" />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title={t('reportes_editar_btn', 'Editar')}>
+            <IconButton
+              size="small"
+              onClick={() => handleOpenDialog(params.data)}
+              aria-label={t('reportes_editar_btn', 'Editar')}
+            >
+              <EditIcon fontSize="small" color="primary" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('reportes_eliminar_btn', 'Eliminar')}>
+            <IconButton
+              size="small"
+              onClick={() => handleDelete(params.data.id)}
+              aria-label={t('reportes_eliminar_btn', 'Eliminar')}
+            >
+              <DeleteIcon fontSize="small" color="error" />
+            </IconButton>
+          </Tooltip>
         </Stack>
       ),
     },
   ];
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-            {t('reportes_title', 'Reportes Programados')}
-          </Typography>
-        </Box>
+    <PageLayout
+      title={t('reportes_title', 'Reportes programados')}
+      actions={
         <Button
           variant="contained"
+          size="small"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
+          sx={{ textTransform: 'none' }}
         >
-          {t('reportes_crear', 'Crear Reporte')}
+          {t('reportes_crear', 'Nuevo reporte')}
         </Button>
-      </Stack>
-
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('reportes_title', 'Reportes Programados')}>
-        <SPMAgGrid
-          columnDefs={columnDefs}
-          rowData={reportes}
-          loading={loading}
-          height={500}
-          enableQuickFilter={true}
-          exportFileName="reportes_programados"
-          emptyMessage={t('reportes_empty', 'No hay reportes programados')}
-        />
+      }
+    >
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('reportes_title', 'Reportes programados')}>
+        {loadError ? (
+          <EmptyState
+            title={t('reportes_error_cargar', 'Error al cargar reportes programados')}
+            description={t('common_error_carga_desc', 'No pudimos obtener los datos. Intenta nuevamente en unos minutos.')}
+            action={t('common_reintentar', 'Reintentar')}
+            onAction={fetchReportes}
+          />
+        ) : (
+          <SPMAgGrid
+            columnDefs={columnDefs}
+            rowData={reportes}
+            loading={loading}
+            height={500}
+            enableQuickFilter={true}
+            exportFileName="reportes_programados"
+            emptyMessage={t('reportes_empty', 'No hay reportes programados')}
+          />
+        )}
       </Paper>
 
       {/* Dialog Crear/Editar */}
@@ -379,7 +387,7 @@ export default function ReportesProgramados() {
           <Stack direction="row" alignItems="center" gap={1}>
             <DescriptionIcon color="primary" />
             <Typography variant="h6">
-              {editingId ? t('reportes_editar', 'Editar Reporte') : t('reportes_nuevo', 'Nuevo Reporte Programado')}
+              {editingId ? t('reportes_editar', 'Editar reporte') : t('reportes_nuevo', 'Nuevo reporte programado')}
             </Typography>
           </Stack>
         </DialogTitle>
@@ -394,14 +402,14 @@ export default function ReportesProgramados() {
               autoFocus
             />
             <FormControl fullWidth>
-              <InputLabel>{t('reportes_tipo_reporte', 'Tipo de Reporte')}</InputLabel>
+              <InputLabel>{t('reportes_tipo_reporte', 'Tipo de reporte')}</InputLabel>
               <Select
                 value={form.tipo}
                 onChange={(e) => setForm(prev => ({ ...prev, tipo: e.target.value }))}
-                label={t('reportes_tipo_reporte', 'Tipo de Reporte')}
+                label={t('reportes_tipo_reporte', 'Tipo de reporte')}
               >
-                {TIPOS_REPORTE.map(t => (
-                  <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
+                {TIPOS_REPORTE.map(tr => (
+                  <MenuItem key={tr.value} value={tr.value}>{t(tr.key, tr.label)}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -413,7 +421,7 @@ export default function ReportesProgramados() {
                 label={t('reportes_frecuencia', 'Frecuencia')}
               >
                 {FRECUENCIAS.map(f => (
-                  <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>
+                  <MenuItem key={f.value} value={f.value}>{t(f.key, f.label)}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -430,13 +438,13 @@ export default function ReportesProgramados() {
               </Select>
             </FormControl>
             <TextField
-              label={t('reportes_destinatarios', 'Destinatarios (emails separados por coma)')}
+              label={t('reportes_destinatarios', 'Destinatarios (correos separados por coma)')}
               value={form.destinatarios}
               onChange={(e) => setForm(prev => ({ ...prev, destinatarios: e.target.value }))}
               fullWidth
               multiline
               rows={2}
-              helperText={t('reportes_destinatarios_hint', 'Dejar vacío si solo se descarga manualmente')}
+              helperText={t('reportes_destinatarios_hint', 'Déjalo vacío si solo lo descargas manualmente')}
               placeholder="usuario@empresa.com, otro@empresa.com"
             />
             {form.destinatarios && form.destinatarios.trim() && (
@@ -494,7 +502,6 @@ export default function ReportesProgramados() {
           <Button variant="contained" color="error" onClick={confirmDelete}>{t('common_eliminar', 'Eliminar')}</Button>
         </DialogActions>
       </Dialog>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

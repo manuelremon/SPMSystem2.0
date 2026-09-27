@@ -298,7 +298,7 @@ describe('Mensajes', () => {
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Error de conexion al cargar mensajes')).toBeInTheDocument()
+        expect(screen.getByText('No se pudieron cargar los mensajes. Intenta nuevamente.')).toBeInTheDocument()
       })
     })
   })

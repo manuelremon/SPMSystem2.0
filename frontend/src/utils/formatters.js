@@ -7,6 +7,19 @@
  * @param {any} val - Value to convert
  * @returns {number} - The numeric value or 0 if invalid
  */
+/**
+ * Convierte a Date. Las fechas "AAAA-MM-DD" (sin hora) se interpretan como fecha LOCAL:
+ * new Date("2026-10-03") es medianoche UTC y en Argentina (UTC-3) se veria el dia anterior.
+ */
+export function toDate(val) {
+  if (val instanceof Date) return val;
+  if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+    const [y, m, d] = val.trim().split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(val);
+}
+
 export function toNumber(val) {
   const num = Number(val);
   return Number.isFinite(num) ? num : 0;
@@ -23,8 +36,8 @@ export function toNumber(val) {
 export function formatCurrency(val, decimals = 2) {
   const num = toNumber(val);
 
-  // Format with Spanish locale (period for thousands, comma for decimals)
-  const formatted = num.toLocaleString("es-ES", {
+  // es-AR: punto de miles y coma decimal. (es-ES NO agrupa numeros de 4 cifras: "3269,25")
+  const formatted = num.toLocaleString("es-AR", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -37,9 +50,10 @@ export function formatCurrency(val, decimals = 2) {
  * @param {number|string} val - The value to format
  * @returns {string} - Formatted number string
  */
-export function formatNumber(val) {
+export function formatNumber(val, decimals) {
   const num = toNumber(val);
-  return num.toLocaleString("es-ES");
+  const opts = decimals === undefined ? {} : { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
+  return num.toLocaleString("es-AR", opts);
 }
 
 /**
@@ -49,7 +63,7 @@ export function formatNumber(val) {
  */
 export function formatDate(val) {
   if (!val) return "N/D";
-  const d = new Date(val);
+  const d = toDate(val);
   if (isNaN(d.getTime())) return "N/D";
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -64,7 +78,7 @@ export function formatDate(val) {
  */
 export function formatDateFull(val) {
   if (!val) return "N/D";
-  const d = new Date(val);
+  const d = toDate(val);
   if (isNaN(d.getTime())) return "N/D";
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -79,7 +93,7 @@ export function formatDateFull(val) {
  */
 export function formatDateTime(val) {
   if (!val) return "N/D";
-  const d = new Date(val);
+  const d = toDate(val);
   if (isNaN(d.getTime())) return "N/D";
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");

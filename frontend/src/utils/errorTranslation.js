@@ -24,6 +24,7 @@ const ERROR_MAP = {
 
   // Server errors
   'Internal server error': 'error_internal',
+  'An internal error occurred. Please try again later.': 'error_internal',
   'Internal Server Error': 'error_internal',
 
   // Access

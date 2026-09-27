@@ -197,7 +197,7 @@ describe('Planner', () => {
       renderPlanner();
 
       expect(screen.getByText('Pendientes')).toBeInTheDocument();
-      expect(screen.getByText('En Progreso')).toBeInTheDocument();
+      expect(screen.getByText('En progreso')).toBeInTheDocument();
       expect(screen.getByText('Finalizadas')).toBeInTheDocument();
     });
 
@@ -248,7 +248,7 @@ describe('Planner', () => {
       renderPlanner();
 
       // MUI Tabs: click the "En Progreso" tab text
-      const enProgresoTab = screen.getByText('En Progreso');
+      const enProgresoTab = screen.getByText('En progreso');
       fireEvent.click(enProgresoTab);
 
       // setActiveTab is called via handleTabChange which calls setActiveTab(newValue)

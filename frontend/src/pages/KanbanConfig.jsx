@@ -342,7 +342,7 @@ const KanbanConfig = () => {
         <DialogTitle>{t('kanban_crear_tablero', 'Crear Tablero')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label={t('kanban_nombre', 'Nombre')}
@@ -351,7 +351,7 @@ const KanbanConfig = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_centro', 'Centro ID')}
@@ -360,7 +360,7 @@ const KanbanConfig = () => {
                 onChange={(e) => setTableroForm({ ...tableroForm, centro_id: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_almacen', 'Almacén ID')}
@@ -369,7 +369,7 @@ const KanbanConfig = () => {
                 onChange={(e) => setTableroForm({ ...tableroForm, almacen_id: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline
@@ -412,7 +412,7 @@ const KanbanConfig = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_material', 'Código Material')}
@@ -422,7 +422,7 @@ const KanbanConfig = () => {
                 disabled={!!editingTarjeta}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth required disabled={!!editingTarjeta}>
                 <InputLabel>{t('kanban_tipo', 'Tipo')}</InputLabel>
                 <Select
@@ -436,7 +436,7 @@ const KanbanConfig = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_cantidad_contenedor', 'Cantidad Contenedor')}
@@ -446,7 +446,7 @@ const KanbanConfig = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_punto_reorden', 'Punto Reorden')}
@@ -455,7 +455,7 @@ const KanbanConfig = () => {
                 onChange={(e) => setTarjetaForm({ ...tarjetaForm, punto_reorden: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_lead_time', 'Lead Time (horas)')}
@@ -464,7 +464,7 @@ const KanbanConfig = () => {
                 onChange={(e) => setTarjetaForm({ ...tarjetaForm, lead_time_horas: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t('kanban_ubicacion', 'Ubicación Supermarket')}
@@ -472,7 +472,7 @@ const KanbanConfig = () => {
                 onChange={(e) => setTarjetaForm({ ...tarjetaForm, ubicacion_supermarket: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label={t('kanban_proveedor', 'Proveedor CUIT')}

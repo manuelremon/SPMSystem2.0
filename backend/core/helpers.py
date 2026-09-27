@@ -293,7 +293,7 @@ def safe_error_response(
                 "ok": False,
                 "error": {
                     "code": "internal_error",
-                    "message": "An internal error occurred. Please try again later.",
+                    "message": "Ocurrió un error interno. Intenta nuevamente en unos minutos.",
                 },
             }
         ),

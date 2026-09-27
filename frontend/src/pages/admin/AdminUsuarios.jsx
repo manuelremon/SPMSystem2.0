@@ -4,10 +4,11 @@
  */
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -31,14 +32,9 @@ import FormHelperText from "@mui/material/FormHelperText";
 import CircularProgress from "@mui/material/CircularProgress";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import PeopleIcon from "@mui/icons-material/People";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import WarningIcon from "@mui/icons-material/Warning";
 import InboxIcon from "@mui/icons-material/Inbox";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -48,8 +44,8 @@ import CloseIcon from "@mui/icons-material/Close";
 
 const ROLES_OPTIONS = [
   { value: "solicitante", label: "Solicitante" },
-  { value: "aprobador_solicitudes", label: "Aprobador Sol." },
-  { value: "aprobador_presupuestos", label: "Aprobador Pres." },
+  { value: "aprobador_solicitudes", label: "Aprobador de solicitudes" },
+  { value: "aprobador_presupuestos", label: "Aprobador de presupuestos" },
   { value: "planificador", label: "Planificador" },
   { value: "administrador", label: "Administrador" },
 ];
@@ -57,8 +53,8 @@ const ROLES_OPTIONS = [
 const PUESTOS_OPTIONS = [
   { value: "Planificador", label: "Planificador" },
   { value: "Jefe", label: "Jefe" },
-  { value: "Gerente1", label: "Gerente Nivel 1" },
-  { value: "Gerente2", label: "Gerente Nivel 2" },
+  { value: "Gerente1", label: "Gerente nivel 1" },
+  { value: "Gerente2", label: "Gerente nivel 2" },
   { value: "Director", label: "Director" },
   { value: "Supervisor", label: "Supervisor" },
   { value: "Analista", label: "Analista" },
@@ -69,10 +65,10 @@ const SECTORES_OPTIONS = [
   { value: "1", label: "Almacenes" },
   { value: "2", label: "Compras" },
   { value: "3", label: "Mantenimiento" },
-  { value: "4", label: "Planificacion" },
+  { value: "4", label: "Planificación" },
   { value: "5", label: "Operaciones" },
-  { value: "6", label: "Logistica" },
-  { value: "7", label: "Produccion" },
+  { value: "6", label: "Logística" },
+  { value: "7", label: "Producción" },
   { value: "8", label: "Calidad" },
 ];
 
@@ -153,16 +149,40 @@ function getRoleColor(role) {
   return colors[role?.toLowerCase()] || { bgcolor: "grey.100", color: "grey.700" };
 }
 
-function getRoleAbbr(role) {
-  const abbrs = {
-    administrador: "Admin",
-    admin: "Admin",
-    aprobador_presupuestos: "Aprob. Pres.",
-    aprobador_solicitudes: "Aprob. Sol.",
-    planificador: "Planif.",
-    solicitante: "Solicit.",
-  };
-  return abbrs[role?.toLowerCase()] || role;
+const ROLE_LABELS = {
+  administrador: "Admin",
+  admin: "Admin",
+  aprobador_presupuestos: "Aprob. presupuestos",
+  aprobador_solicitudes: "Aprob. solicitudes",
+  planificador: "Planificador",
+  planner: "Planificador",
+  solicitante: "Solicitante",
+  usuario: "Usuario",
+  coordinador: "Coordinador",
+  jefe: "Jefe",
+  gerente: "Gerente",
+  gerente1: "Gerente N1",
+  gerente2: "Gerente N2",
+  director: "Director",
+};
+
+/** Etiqueta legible de un rol (tipo oración). */
+function getRoleLabel(role) {
+  const key = String(role || "").trim().toLowerCase().replace(/\s+/g, "_");
+  if (ROLE_LABELS[key]) return ROLE_LABELS[key];
+  const text = key.replace(/_/g, " ");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
+}
+
+/** Roles únicos por etiqueta (evita "Admin" duplicado para admin/administrador). */
+function uniqueRoles(roles) {
+  const seen = new Set();
+  return roles.filter((r) => {
+    const label = getRoleLabel(r);
+    if (!label || seen.has(label)) return false;
+    seen.add(label);
+    return true;
+  });
 }
 
 // ============================================================================
@@ -174,7 +194,7 @@ function RoleBadge({ role }) {
   const colors = getRoleColor(role);
   return (
     <Chip
-      label={getRoleAbbr(role)}
+      label={getRoleLabel(role)}
       size="small"
       sx={{
         height: 20,
@@ -182,8 +202,6 @@ function RoleBadge({ role }) {
         fontWeight: 600,
         bgcolor: colors.bgcolor,
         color: colors.color,
-        border: 1,
-        borderColor: "grey.900",
         "& .MuiChip-label": {
           px: 1,
         },
@@ -236,12 +254,10 @@ function FormSection({ title, children }) {
   return (
     <Box sx={{ px: 3, py: 2.5 }}>
       <Typography
-        variant="overline"
+        variant="subtitle2"
         sx={{
-          fontSize: "var(--text-xs)",
           fontWeight: 600,
-          color: "text.secondary",
-          letterSpacing: 1,
+          color: "text.primary",
           display: "block",
           mb: 2,
           pb: 1,
@@ -294,18 +310,20 @@ function UsuariosTable({
     {
       field: "roles",
       headerName: t('common_roles', 'Roles'),
-      flex: 0.4,
-      minWidth: 200,
+      flex: 0.45,
+      minWidth: 220,
+      autoHeight: true,
+      wrapText: true,
       valueFormatter: (params) => {
-        const roles = parseRoles(params.value || params.data?.rol);
-        return roles.length > 0 ? roles.join(", ") : "-";
+        const roles = uniqueRoles(parseRoles(params.value || params.data?.rol));
+        return roles.length > 0 ? roles.map(getRoleLabel).join(", ") : "-";
       },
       cellRenderer: (params) => {
-        const roles = parseRoles(params.data?.roles || params.data?.rol);
+        const roles = uniqueRoles(parseRoles(params.data?.roles || params.data?.rol));
         return (
-          <Stack direction="row" flexWrap="wrap" gap={0.5}>
+          <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ py: 0.75, lineHeight: 1 }}>
             {roles.length > 0 ? (
-              roles.map((rol, idx) => <RoleBadge key={idx} role={rol} />)
+              roles.map((rol) => <RoleBadge key={rol} role={rol} />)
             ) : (
               <Typography color="text.disabled" variant="caption">
                 -
@@ -317,132 +335,68 @@ function UsuariosTable({
     },
     {
       field: "mail",
-      headerName: t('common_email', 'Email'),
-      flex: 0.35,
-      minWidth: 150,
+      headerName: t('common_email', 'Correo'),
+      flex: 0.4,
+      minWidth: 200,
+      tooltipField: "mail",
+      cellStyle: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
       valueFormatter: (params) => params.value || "-",
     },
     {
-      field: "estado",
+      field: "estado_registro",
       headerName: t('common_estado', 'Estado'),
       flex: 0.2,
-      minWidth: 100,
-      cellRenderer: (params) => {
-        const isActive =
-          params.data?.estado_registro?.toLowerCase() === "activo";
-        return (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor: isActive ? "success.main" : "grey.400",
-              }}
-            />
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: "var(--text-2xs)",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                color: isActive ? "success.700" : "text.disabled",
-              }}
-            >
-              {isActive ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
-            </Typography>
-          </Stack>
-        );
-      },
-    },
-    {
-      field: "acciones",
-      headerName: t('common_acciones', 'Acciones'),
-      flex: 0.15,
-      minWidth: 80,
-      sortable: false,
-      filter: false,
+      minWidth: 110,
+      valueFormatter: (params) => params.value || "-",
       cellRenderer: (params) => (
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => onDelete && onDelete(params.data.id_spm)}
-          disabled={!!deletingId}
-          sx={{
-            textTransform: "none",
-            fontWeight: 600,
-            color: "error.main",
-            fontSize: "0.75rem",
-            minWidth: "auto",
-            px: 1,
-            "&:hover": { bgcolor: "error.lighter" },
-          }}
-        >
-          {t('common_eliminar', 'Eliminar')}
-        </Button>
+        <ActiveStatus activo={params.data?.estado_registro?.toLowerCase() === "activo"} />
       ),
     },
-  ], [onDelete, deletingId, t]);
+    actionsColumn(t('common_acciones', 'Acciones'), (params) => (
+      <RowActions
+        onEdit={() => onEdit && onEdit(params.data)}
+        onDelete={() => onDelete && onDelete(params.data.id_spm)}
+        disabled={!!deletingId}
+      />
+    )),
+  ], [onEdit, onDelete, deletingId, t]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Confirmación de eliminación */}
       {deletingId && (
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: "error.50",
-            borderLeft: 4,
-            borderLeftColor: "error.400",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                onClick={onCancelDelete}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {t('common_cancelar', 'Cancelar')}
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={() => onConfirmDelete && onConfirmDelete(deletingId)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {t('common_eliminar', 'Eliminar')}
+              </Button>
+            </Stack>
+          }
         >
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "error.800" }}>
-            <WarningIcon sx={{ fontSize: 18 }} />
-            <Typography variant="body2" fontWeight={500}>
-              {t('admin_users_delete_confirm', 'Eliminar a')}{" "}
-              <Box component="strong">
-                {data.find((u) => u.id_spm === deletingId)?.nombre}{" "}
-                {data.find((u) => u.id_spm === deletingId)?.apellido}
-              </Box>
-              ?
-            </Typography>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onCancelDelete}
-              disabled={submitting}
-              sx={{
-                fontSize: "var(--text-xs)",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                color: "text.secondary",
-                borderColor: "grey.200",
-                "&:hover": { bgcolor: "grey.50" },
-              }}
-            >
-              {t('common_cancelar', 'Cancelar')}
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={() => onConfirmDelete && onConfirmDelete(deletingId)}
-              disabled={submitting}
-              sx={{
-                fontSize: "var(--text-xs)",
-                fontWeight: 600,
-                textTransform: "uppercase",
-              }}
-            >
-              {t('common_eliminar', 'Eliminar')}
-            </Button>
-          </Stack>
-        </Box>
+          {t('admin_users_delete_confirm_q', '¿Eliminar a')}{" "}
+          <strong>
+            {data.find((u) => u.id_spm === deletingId)?.nombre}{" "}
+            {data.find((u) => u.id_spm === deletingId)?.apellido}
+          </strong>
+          ?
+        </Alert>
       )}
 
       {/* Tabla SPMAgGrid */}
@@ -451,7 +405,7 @@ function UsuariosTable({
         columnDefs={columnDefs}
         height={500}
         pagination={true}
-        paginationPageSize={10}
+        paginationPageSize={25}
         enableQuickFilter={true}
         exportFileName="usuarios"
         emptyMessage={t("common_no_data", "Sin usuarios")}
@@ -484,15 +438,14 @@ function EmptyState({ type = "no-data", onClearFilters }) {
           {t('admin_no_results', 'No se encontraron usuarios')}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {t('admin_users_adjust_filters', 'Prueba ajustando los filtros de busqueda')}
+          {t('admin_users_adjust_filters', 'Prueba ajustando los filtros de búsqueda')}
         </Typography>
         <Button
           size="small"
           onClick={onClearFilters}
           sx={{
-            fontSize: "var(--text-xs)",
             fontWeight: 600,
-            textTransform: "uppercase",
+            textTransform: "none",
             color: "primary.main",
             bgcolor: "primary.50",
             "&:hover": { bgcolor: "primary.100" },
@@ -554,7 +507,6 @@ function LoadingSkeleton() {
 // ============================================================================
 
 export default function AdminUsuarios() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   // Estado principal
@@ -840,116 +792,34 @@ export default function AdminUsuarios() {
   // ============================================================================
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* HEADER */}
-      <Box
-        component="header"
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          bgcolor: "background.paper",
-          borderBottom: 1,
-          borderColor: "grey.200",
-          boxShadow: 1,
-        }}
-      >
-        <Box sx={{ maxWidth: 1600, mx: "auto", px: 3 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ height: 56 }}>
-            {/* Left */}
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <IconButton
-                onClick={() => navigate("/admin")}
-                sx={{ ml: -1, color: "grey.400", "&:hover": { color: "grey.600", bgcolor: "grey.100" } }}
-                aria-label={t("aria_back", "Volver")}
-              >
-                <ArrowBackIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Box
-                  sx={{
-                    p: 1,
-                    bgcolor: "primary.main",
-                    color: "common.white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <PeopleIcon sx={{ fontSize: 20 }} />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, color: "text.primary", textTransform: "uppercase", letterSpacing: 0.5 }}
-                  >
-                    {t("admin_usuarios", "Usuarios")}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-
-            {/* Right */}
-            <Stack direction="row" spacing={1}>
-              {/* Botón "Nuevo" */}
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleNew}
-                sx={{
-                  fontWeight: 600,
-                  fontSize: "var(--text-xs)",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  px: 2,
-                  height: 36,
-                }}
-              >
-                {t('common_nuevo', 'Nuevo')}
-              </Button>
-            </Stack>
-          </Stack>
-        </Box>
-      </Box>
-
-      {/* MAIN */}
-      <Box component="main" sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
+    <PageLayout
+      title={t("admin_usuarios", "Usuarios")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
         {/* Alerts */}
         {error && (
-          <Alert severity="error" onClose={() => setError("")} sx={{ mb: 2 }}>
+          <Alert severity="error" onClose={() => setError("")}>
             {error}
           </Alert>
         )}
         {success && (
-          <Alert severity="success" onClose={() => setSuccess("")} sx={{ mb: 2 }}>
+          <Alert severity="success" onClose={() => setSuccess("")}>
             {success}
           </Alert>
         )}
 
         {/* FILTROS */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", mb: 3 }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "grey.100", bgcolor: "grey.50" }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FilterListIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-              <Typography
-                variant="overline"
-                sx={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "text.secondary", letterSpacing: 1 }}
-              >
-                {t('admin_users_filters', 'Filtros')}
-              </Typography>
-            </Stack>
-          </Box>
+        <Paper variant="outlined">
           <Box sx={{ p: 2 }}>
             <Stack direction="row" flexWrap="wrap" alignItems="center" gap={2}>
               {/* Busqueda */}
               <TextField
                 size="small"
-                placeholder={t('admin_users_search_placeholder', 'Buscar por nombre, email o ID...')}
+                placeholder={t('admin_users_search_placeholder', 'Busca por nombre, correo o ID...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                sx={{ flex: 1, minWidth: 250, maxWidth: 400 }}
+                sx={{ flex: 1, minWidth: { xs: "100%", sm: 250 }, maxWidth: { sm: 400 } }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -960,7 +830,7 @@ export default function AdminUsuarios() {
               />
 
               {/* Filtro Estado */}
-              <FormControl size="small" sx={{ minWidth: 170 }}>
+              <FormControl size="small" sx={{ minWidth: 170, flex: { xs: 1, sm: "0 0 auto" } }}>
                 <InputLabel>{t('admin_users_status', 'Estado')}</InputLabel>
                 <Select
                   value={filterEstado}
@@ -977,7 +847,7 @@ export default function AdminUsuarios() {
               </FormControl>
 
               {/* Filtro Rol */}
-              <FormControl size="small" sx={{ minWidth: 170 }}>
+              <FormControl size="small" sx={{ minWidth: 170, flex: { xs: 1, sm: "0 0 auto" } }}>
                 <InputLabel>{t('admin_users_role', 'Rol')}</InputLabel>
                 <Select
                   value={filterRol}
@@ -993,43 +863,12 @@ export default function AdminUsuarios() {
                 </Select>
               </FormControl>
 
-              {/* Contador */}
-              <Chip
-                icon={
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      bgcolor: "grey.400",
-                      ml: 1,
-                    }}
-                  />
-                }
-                label={`${filteredUsuarios.length} ${t('admin_users_count_label', 'usuarios')}`}
-                size="small"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: "var(--text-xs)",
-                  bgcolor: "grey.100",
-                  color: "text.secondary",
-                  "& .MuiChip-icon": { mr: 0.5 },
-                }}
-              />
             </Stack>
           </Box>
         </Paper>
 
         {/* TABLA */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200" }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
-            <Typography
-              variant="overline"
-              sx={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "text.primary", letterSpacing: 1 }}
-            >
-              {t('admin_users_list_title', 'Lista de Usuarios')}
-            </Typography>
-          </Box>
-
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           {loading ? (
             <LoadingSkeleton />
           ) : filteredUsuarios.length === 0 ? (
@@ -1046,16 +885,7 @@ export default function AdminUsuarios() {
             />
           )}
 
-          {/* Footer */}
-          {!loading && filteredUsuarios.length > 0 && (
-            <Box sx={{ px: 2, py: 1.5, borderTop: 1, borderColor: "grey.200", bgcolor: "grey.50" }}>
-              <Typography variant="caption" color="text.secondary">
-                {t('admin_users_showing', 'Mostrando')} {filteredUsuarios.length} {t('admin_users_of', 'de')} {usuarios.length} {t('admin_users_count_label', 'usuarios')}
-              </Typography>
-            </Box>
-          )}
         </Paper>
-      </Box>
 
       {/* DRAWER */}
       <Drawer
@@ -1080,7 +910,7 @@ export default function AdminUsuarios() {
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
-              {editingUser ? t('admin_users_edit_user', 'Editar Usuario') : t('admin_users_new_user', 'Nuevo Usuario')}
+              {editingUser ? t('admin_users_edit_user', 'Editar usuario') : t('admin_users_new_user', 'Nuevo usuario')}
             </Typography>
             {editingUser && (
               <Typography variant="caption" color="text.secondary">
@@ -1097,7 +927,7 @@ export default function AdminUsuarios() {
         <Box sx={{ flex: 1, overflow: "auto" }}>
           <Box component="form" id="user-form" onSubmit={handleSubmit}>
             {/* Datos Basicos */}
-            <FormSection title={t('admin_users_basic_data', 'Datos Basicos')}>
+            <FormSection title={t('admin_users_basic_data', 'Datos básicos')}>
               <Stack direction="row" spacing={2}>
                 <TextField
                   fullWidth
@@ -1147,7 +977,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label={t('admin_users_email', 'Email')}
+                label={t('admin_users_email', 'Correo electrónico')}
                 name="mail"
                 type="email"
                 value={form.mail}
@@ -1159,7 +989,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label={t('admin_users_telefono', 'Telefono')}
+                label={t('admin_users_telefono', 'Teléfono')}
                 name="telefono"
                 value={form.telefono}
                 onChange={handleChange}
@@ -1169,7 +999,7 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Puesto y Roles */}
-            <FormSection title={t('admin_users_position_roles', 'Puesto y Roles')}>
+            <FormSection title={t('admin_users_position_roles', 'Puesto y roles')}>
               <Stack direction="row" spacing={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>{t('admin_users_puesto', 'Puesto')}</InputLabel>
@@ -1194,7 +1024,7 @@ export default function AdminUsuarios() {
                     onChange={handleChange}
                     label={t('admin_users_sector', 'Sector')}
                   >
-                    <MenuItem value="">{t('admin_users_select', 'Seleccionar...')}</MenuItem>
+                    <MenuItem value="">{t('admin_users_select', 'Selecciona...')}</MenuItem>
                     {SECTORES_OPTIONS.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>
                         {opt.label}
@@ -1211,8 +1041,6 @@ export default function AdminUsuarios() {
                     mb: 1,
                     fontWeight: 500,
                     color: "text.secondary",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
                   }}
                 >
                   {t('admin_users_roles', 'Roles')} <Box component="span" sx={{ color: "error.main" }}>*</Box>
@@ -1229,7 +1057,7 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Jerarquia */}
-            <FormSection title={t('admin_users_hierarchy', 'Jerarquia')}>
+            <FormSection title={t('admin_users_hierarchy', 'Jerarquía')}>
               <FormControl fullWidth size="small">
                 <InputLabel>{t('admin_users_centros', 'Centros')}</InputLabel>
                 <Select
@@ -1341,7 +1169,7 @@ export default function AdminUsuarios() {
             <Divider />
 
             {/* Estado y Acceso */}
-            <FormSection title={t('admin_users_status_access', 'Estado y Acceso')}>
+            <FormSection title={t('admin_users_status_access', 'Estado y acceso')}>
               <FormControl fullWidth size="small">
                 <InputLabel>{t('admin_users_status', 'Estado')}</InputLabel>
                 <Select
@@ -1360,7 +1188,7 @@ export default function AdminUsuarios() {
               <TextField
                 fullWidth
                 size="small"
-                label={t('admin_users_contrasena', 'Contrasena')}
+                label={t('admin_users_contrasena', 'Contraseña')}
                 name="contrasena"
                 type={showPassword ? "text" : "password"}
                 value={form.contrasena}
@@ -1368,7 +1196,7 @@ export default function AdminUsuarios() {
                 required={!editingUser}
                 error={!!formErrors.contrasena}
                 helperText={
-                  formErrors.contrasena || (editingUser ? t('admin_users_password_hint', 'Dejar vacio para no cambiar') : "")
+                  formErrors.contrasena || (editingUser ? t('admin_users_password_hint', 'Déjala vacía para no cambiarla') : "")
                 }
                 InputProps={{
                   endAdornment: (
@@ -1408,11 +1236,7 @@ export default function AdminUsuarios() {
             variant="outlined"
             onClick={handleCloseDrawer}
             disabled={submitting}
-            sx={{
-              fontWeight: 600,
-              fontSize: "var(--text-xs)",
-              textTransform: "uppercase",
-            }}
+            sx={{ textTransform: "none" }}
           >
             {t('common_cancelar', 'Cancelar')}
           </Button>
@@ -1422,17 +1246,12 @@ export default function AdminUsuarios() {
             variant="contained"
             disabled={submitting}
             startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{
-              fontWeight: 600,
-              fontSize: "var(--text-xs)",
-              textTransform: "uppercase",
-            }}
+            sx={{ textTransform: "none" }}
           >
             {submitting ? t('common_guardando', 'Guardando...') : t('common_guardar', 'Guardar')}
           </Button>
         </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

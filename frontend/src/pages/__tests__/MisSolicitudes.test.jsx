@@ -296,7 +296,7 @@ describe('MisSolicitudes', () => {
       });
 
       // The cellRenderer for draft rows shows "Editar" button
-      const editButton = screen.getByText('Editar');
+      const editButton = screen.getByLabelText('Editar');
       expect(editButton).toBeInTheDocument();
     });
 
@@ -308,7 +308,7 @@ describe('MisSolicitudes', () => {
       });
 
       // The cellRenderer for draft rows shows "Borrar" button
-      const deleteButton = screen.getByText('Borrar');
+      const deleteButton = screen.getByLabelText('Eliminar');
       expect(deleteButton).toBeInTheDocument();
 
       // Clicking Borrar should open the delete modal

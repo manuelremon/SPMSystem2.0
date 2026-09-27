@@ -274,7 +274,7 @@ const KanbanBoard = () => {
       {/* KPIs */}
       {kpis && (
         <Grid container spacing={2} mb={3}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
                 {kpis.tarjetas_vacias}
@@ -284,7 +284,7 @@ const KanbanBoard = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
                 {kpis.tarjetas_transito}
@@ -294,7 +294,7 @@ const KanbanBoard = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
                 {kpis.tarjetas_llenas}
@@ -304,7 +304,7 @@ const KanbanBoard = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.light' }}>
               <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white' }}>
                 {kpis.senales_pendientes}
@@ -337,7 +337,7 @@ const KanbanBoard = () => {
         <>
           {/* Columnas Kanban */}
           <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ p: 2, bgcolor: 'error.light', minHeight: '400px' }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
                   {t('kanban_vacias', 'Vacías')} ({tableroDetalle.tarjetas.filter(t => t.estado === 'empty').length})
@@ -347,7 +347,7 @@ const KanbanBoard = () => {
                   .map((tarjeta) => renderKanbanCard(tarjeta))}
               </Paper>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ p: 2, bgcolor: 'warning.light', minHeight: '400px' }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
                   {t('kanban_transito', 'En Tránsito')} ({tableroDetalle.tarjetas.filter(t => t.estado === 'in_transit').length})
@@ -357,7 +357,7 @@ const KanbanBoard = () => {
                   .map((tarjeta) => renderKanbanCard(tarjeta))}
               </Paper>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ p: 2, bgcolor: 'success.light', minHeight: '400px' }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'white' }}>
                   {t('kanban_llenas', 'Llenas')} ({tableroDetalle.tarjetas.filter(t => t.estado === 'full').length})

@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { useNavigate } from "react-router-dom";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // MUI Components
 import {
@@ -17,14 +18,9 @@ import {
   Drawer,
   Checkbox,
   FormControlLabel,
-  Chip,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 
 const initialForm = {
@@ -37,7 +33,6 @@ const initialForm = {
    Main Component
 ───────────────────────────────────────────────────────────── */
 export default function AdminCentros() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   const [centros, setCentros] = useState([]);
@@ -174,113 +169,25 @@ export default function AdminCentros() {
         headerName: t('common_estado', 'Estado'),
         flex: 0.4,
         minWidth: 100,
-        cellRenderer: (params) => {
-          const isActivo = params.value === 1 || params.value === true;
-          return (
-            <Chip
-              label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
-              size="small"
-              color={isActivo ? "success" : "default"}
-              sx={{
-                fontSize: "0.625rem",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                height: 20,
-              }}
-            />
-          );
-        },
+        cellRenderer: (params) => <ActiveStatus activo={params.value} />,
       },
-      {
-        field: "created_at",
-        headerName: t('common_creado', 'Creado'),
-        flex: 0.5,
-        minWidth: 120,
-        valueFormatter: (params) => params.value || "-",
-      },
-      {
-        headerName: t('common_acciones', 'Acciones'),
-        flex: 0.4,
-        minWidth: 100,
-        sortable: false,
-        filter: false,
-        cellRenderer: (params) => (
-          <Stack direction="row" spacing={0.5} justifyContent="center">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.data)}
-              title={t('common_editar', 'Editar')}
-              sx={{
-                color: "text.secondary",
-                "&:hover": { color: "primary.main", bgcolor: "primary.lighter" },
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => setDeletingId(params.data.codigo)}
-              title={t('common_eliminar', 'Eliminar')}
-              sx={{
-                color: "text.secondary",
-                "&:hover": { color: "error.main", bgcolor: "error.lighter" },
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-        ),
-      },
+      actionsColumn(t("common_acciones", "Acciones"), (params) => (
+        <RowActions
+          onEdit={() => handleEdit(params.data)}
+          onDelete={() => setDeletingId(params.data.codigo)}
+        />
+      )),
     ],
-    [t]
+    [t, handleEdit]
   );
 
   // ─── Render ───────────────────────────────────────────────
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate("/admin")}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h5"
-            component="h1"
-            sx={{
-              fontWeight: 700,
-              color: "text.primary",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            {t("admin_centros", "Centros")}
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={handleNew}
-          sx={{ textTransform: "none" }}
-        >
-          {t("crud_new", "Nuevo")}
-        </Button>
-      </Box>
-
+    <PageLayout
+      title={t("admin_centros", "Centros")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
       {/* Alerts */}
       {error && (
         <Alert severity="error" onClose={() => setError("")}>
@@ -320,7 +227,7 @@ export default function AdminCentros() {
             </Stack>
           }
         >
-          Eliminar centro <strong>{deletingId}</strong>?
+          {t("admin_centros_confirm_delete", "¿Eliminar el centro")} <strong>{deletingId}</strong>?
         </Alert>
       )}
 
@@ -332,6 +239,7 @@ export default function AdminCentros() {
         }}
       >
         <SPMAgGrid
+            searchable
           rowData={centros}
           columnDefs={columnDefs}
           loading={loading}
@@ -367,15 +275,10 @@ export default function AdminCentros() {
           }}
         >
           <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: "text.primary",
-            }}
+            variant="subtitle1"
+            sx={{ fontWeight: 600, color: "text.primary" }}
           >
-            {editingId ? `${t('common_editar', 'Editar')} Centro` : `${t('common_nuevo', 'Nuevo')} Centro`}
+            {editingId ? t("admin_centros_editar", "Editar centro") : t("admin_centros_nuevo", "Nuevo centro")}
           </Typography>
           <IconButton
             onClick={() => setDrawerOpen(false)}
@@ -409,7 +312,7 @@ export default function AdminCentros() {
               onChange={handleChange}
               required
               disabled={!!editingId}
-              placeholder="Ej: C001"
+              placeholder={t("admin_centros_codigo_ph", "Ej.: C001")}
               size="small"
               fullWidth
               InputLabelProps={{ shrink: true }}
@@ -419,7 +322,7 @@ export default function AdminCentros() {
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
-              placeholder="Nombre del centro"
+              placeholder={t("admin_centros_nombre_ph", "Nombre del centro")}
               size="small"
               fullWidth
               InputLabelProps={{ shrink: true }}
@@ -479,7 +382,6 @@ export default function AdminCentros() {
           </Stack>
         </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

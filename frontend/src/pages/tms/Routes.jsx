@@ -215,7 +215,7 @@ export default function Routes() {
               autoComplete="off"
             />
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_route_origen', 'Origen')}
                   value={form.origen}
@@ -225,7 +225,7 @@ export default function Routes() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_route_destino', 'Destino')}
                   value={form.destino}
@@ -237,7 +237,7 @@ export default function Routes() {
               </Grid>
             </Grid>
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_route_distancia', 'Distancia (km)')}
                   type="number"
@@ -247,7 +247,7 @@ export default function Routes() {
                   autoComplete="off"
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={6}>
                 <TextField
                   label={t('tms_route_tiempo', 'Tiempo (hrs)')}
                   type="number"
@@ -303,5 +303,5 @@ export default function Routes() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }
