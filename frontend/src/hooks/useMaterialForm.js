@@ -55,10 +55,17 @@ export function useMaterialForm({ cartRef }) {
   useEffect(() => {
     if (!id) return
 
+    // Guard contra respuestas obsoletas: en React.StrictMode (dev) este efecto se
+    // ejecuta dos veces, disparando dos fetches; sin este guard el segundo
+    // setInitialItems (con un array distinto) pisa el primero y descarta cualquier
+    // mezcla que ya haya hecho useMaterialCart con los items sugeridos.
+    let vigente = true
+
     setLoading(true)
     solicitudes
       .obtener(id)
       .then((res) => {
+        if (!vigente) return
         const data = res.data.solicitud || res.data
         setSol(data)
         const loadedItems = Array.isArray(data?.items) ? data.items : []
@@ -66,12 +73,22 @@ export function useMaterialForm({ cartRef }) {
         if (data?.centro && data?.sector) {
           api
             .get('/planificador/presupuesto', { params: { centro: data.centro, sector: data.sector } })
-            .then((r) => setPresupuesto(r.data))
+            .then((r) => {
+              if (vigente) setPresupuesto(r.data)
+            })
             .catch(() => {})
         }
       })
-      .catch((err) => setError(err.response?.data?.error?.message || err.message))
-      .finally(() => setLoading(false))
+      .catch((err) => {
+        if (vigente) setError(err.response?.data?.error?.message || err.message)
+      })
+      .finally(() => {
+        if (vigente) setLoading(false)
+      })
+
+    return () => {
+      vigente = false
+    }
   }, [id])
 
   // Auto-dismiss action messages
