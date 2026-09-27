@@ -344,7 +344,10 @@ function HeaderNav() {
   const location = useLocation();
   const { t } = useI18n();
   const { user } = useAuthStore();
+  // Suscribirse a modules para re-renderizar cuando se cargan o cambian
+  useModuleStore(s => s.modules);
   const isModuleEnabled = useModuleStore(s => s.isModuleEnabled);
+  const isPathEnabled = useModuleStore(s => s.isPathEnabled);
 
   // Single state for open menu
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -453,7 +456,7 @@ function HeaderNav() {
               {menu.sections.map((section, sIdx) => {
                 if (section.visible === false) return null;
 
-                const visibleItems = section.items.filter((item) => item.visible !== false);
+                const visibleItems = section.items.filter((item) => item.visible !== false && isPathEnabled(item.to));
                 if (visibleItems.length === 0) return null;
 
                 return (

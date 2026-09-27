@@ -83,10 +83,14 @@ export default function AdminModules() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {localModules.map((mod) => (
+            {localModules.map((mod) => {
+              // Submodulo ("padre.hijo"): sin efecto si el padre esta apagado
+              const parentKey = mod.module_key.includes('.') ? mod.module_key.split('.')[0] : null
+              const parentOff = parentKey && localModules.some(m => m.module_key === parentKey && !m.enabled)
+              return (
               <TableRow key={mod.module_key} hover>
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: mod.module_key.includes('.') ? 3 : 0 }}>
                     <Typography variant="body2" fontWeight={600}>
                       {t(mod.label_key, mod.label_fallback)}
                     </Typography>
@@ -102,14 +106,15 @@ export default function AdminModules() {
                 </TableCell>
                 <TableCell align="center">
                   <Switch
-                    checked={mod.enabled}
+                    checked={mod.enabled && !parentOff}
                     onChange={() => handleToggle(mod.module_key)}
-                    disabled={mod.is_core}
+                    disabled={mod.is_core || parentOff}
                     size="small"
                   />
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>

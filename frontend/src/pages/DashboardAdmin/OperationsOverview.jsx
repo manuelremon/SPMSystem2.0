@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../context/i18n';
 import { useUserRoles } from '../../hooks/useUserRoles';
 import { cachedGet } from '../../services/cachedApi';
+import { useModuleStore } from '../../store/moduleStore';
 import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -16,11 +17,12 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 const MODULE_CONFIGS = [
   {
     id: 'tms',
+    module: 'logistica',
     label: 'dash_ops_transport',
     fallback: 'Transporte',
     icon: LocalShippingIcon,
     api: '/tms/kpis',
-    path: '/tms',
+    path: '/tms/shipments',
     roles: ['admin', 'jefe'],
     metrics: (data) => [
       { label: 'Envíos activos', value: data?.envios_activos ?? data?.active_shipments ?? '-' },
@@ -29,11 +31,12 @@ const MODULE_CONFIGS = [
   },
   {
     id: 'fms',
+    module: 'logistica',
     label: 'dash_ops_fleet',
     fallback: 'Flota',
     icon: DirectionsCarIcon,
     api: '/fms/kpis',
-    path: '/fms',
+    path: '/fms/vehicles',
     roles: ['admin', 'jefe'],
     metrics: (data) => [
       { label: 'Disponibles', value: data?.vehiculos_disponibles != null ? `${data.vehiculos_disponibles}/${data.vehiculos_total ?? '?'}` : (data?.available != null ? `${data.available}/${data.total ?? '?'}` : '-') },
@@ -42,11 +45,12 @@ const MODULE_CONFIGS = [
   },
   {
     id: 'quality',
+    module: 'calidad',
     label: 'dash_ops_quality',
     fallback: 'Calidad',
     icon: VerifiedIcon,
     api: '/quality/kpis',
-    path: '/quality',
+    path: '/quality/inspections',
     roles: ['admin', 'jefe', 'planificador'],
     metrics: (data) => [
       { label: 'Pass rate', value: data?.pass_rate != null ? `${Math.round(data.pass_rate)}%` : (data?.tasa_aprobacion != null ? `${Math.round(data.tasa_aprobacion)}%` : '-') },
@@ -55,11 +59,12 @@ const MODULE_CONFIGS = [
   },
   {
     id: 'mrp',
+    module: 'planificacion',
     label: 'dash_ops_mrp',
     fallback: 'MRP',
     icon: InventoryIcon,
     api: '/mrp/kpis',
-    path: '/mrp',
+    path: '/mrp/portfolio',
     roles: ['admin', 'jefe', 'planificador'],
     metrics: (data) => [
       { label: 'En riesgo', value: data?.materiales_en_riesgo ?? data?.at_risk ?? '-' },
@@ -161,6 +166,9 @@ function ModuleCard({ config, t }) {
 function OperationsOverview() {
   const { t } = useI18n();
   const { hasRole } = useUserRoles();
+  // Suscribirse a modules para re-renderizar cuando se cargan o cambian
+  const modules = useModuleStore(s => s.modules);
+  const isModuleEnabled = useModuleStore(s => s.isModuleEnabled);
   const [visible, setVisible] = useState(false);
   const ref = useRef(null);
 
@@ -181,9 +189,9 @@ function OperationsOverview() {
     return () => observer.disconnect();
   }, []);
 
-  // Filter modules by role
+  // Filter modules by role and enabled state
   const visibleModules = MODULE_CONFIGS.filter(config =>
-    config.roles.some(role => hasRole(role))
+    modules && isModuleEnabled(config.module) && config.roles.some(role => hasRole(role))
   );
 
   if (visibleModules.length === 0) return null;

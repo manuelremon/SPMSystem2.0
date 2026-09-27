@@ -35,6 +35,7 @@ export const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null
       })
+      useModuleStore.getState().fetchModules()
       return response
     } catch (error) {
       const errorMsg = error.response?.data?.error?.message || error.message
@@ -60,6 +61,7 @@ export const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null
       })
+      useModuleStore.getState().fetchModules()
       return response
     } catch (error) {
       const errorMsg = error.response?.data?.error?.message || error.message

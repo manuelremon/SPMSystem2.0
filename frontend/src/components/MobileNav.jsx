@@ -185,7 +185,10 @@ function MobileNav({ open, onClose }) {
   const location = useLocation();
   const { t } = useI18n();
   const { user } = useAuthStore();
+  // Suscribirse a modules para re-renderizar cuando se cargan o cambian
+  useModuleStore(s => s.modules);
   const isModuleEnabled = useModuleStore(s => s.isModuleEnabled);
+  const isPathEnabled = useModuleStore(s => s.isPathEnabled);
   const [expandedMenu, setExpandedMenu] = useState(null);
 
   const getUserRoles = useCallback(() => {
@@ -365,7 +368,7 @@ function MobileNav({ open, onClose }) {
                   <Box sx={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
                     {menu.sections.map((section, sIdx) => {
                       if (section.visible === false) return null;
-                      const visibleItems = section.items.filter(item => item.visible !== false);
+                      const visibleItems = section.items.filter(item => item.visible !== false && isPathEnabled(item.to));
                       if (visibleItems.length === 0) return null;
 
                       return (
