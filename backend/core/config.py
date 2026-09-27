@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     _DB_PATH = str(_DEFAULT_DB).replace("\\", "/")
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 
+    # Cuentas demo publicas (portfolio): no pueden cambiar su contrasena ni su contacto
+    DEMO_ACCOUNT_IDS: frozenset = frozenset(
+        x.strip() for x in os.getenv("SPM_DEMO_ACCOUNTS", "901,902,903").split(",") if x.strip()
+    )
+
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "logs/spm_backend.log"

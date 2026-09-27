@@ -39,6 +39,26 @@ def _parse_json_field(value: str | None) -> list:
         return []
 
 
+def _bloquear_cuenta_demo(user_id):
+    """403 si el usuario es una cuenta demo publica (evita que un visitante la bloquee)."""
+    from backend.core.config import settings
+
+    if str(user_id) in settings.DEMO_ACCOUNT_IDS:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "demo_account",
+                        "message": "Cuenta de demostración: no se puede modificar",
+                    },
+                }
+            ),
+            403,
+        )
+    return None
+
+
 @bp.route("/mi-cuenta", methods=["GET"])
 @require_auth
 def get_mi_cuenta():
@@ -121,6 +141,9 @@ def update_password():
         401: No autenticado
     """
     user_id = g.user.get("user_id")
+    bloqueo = _bloquear_cuenta_demo(user_id)
+    if bloqueo:
+        return bloqueo
 
     data = request.get_json(silent=True) or {}
     password_nueva = data.get("password_nueva", "").strip()
@@ -190,6 +213,9 @@ def update_contacto():
         401: No autenticado
     """
     user_id = g.user.get("user_id")
+    bloqueo = _bloquear_cuenta_demo(user_id)
+    if bloqueo:
+        return bloqueo
 
     data = request.get_json(silent=True) or {}
     telefono = data.get("telefono", "").strip()
