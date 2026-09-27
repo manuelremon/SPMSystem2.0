@@ -956,177 +956,177 @@ export default function CatalogoEquivalencias() {
     >
         <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
           <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" onClose={() => setError("")}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" onClose={() => setSuccess("")}>
-            {success}
-          </Alert>
-        )}
+            {/* Alerts */}
+            {error && (
+              <Alert severity="error" onClose={() => setError("")}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" onClose={() => setSuccess("")}>
+                {success}
+              </Alert>
+            )}
 
-        {/* Search Card */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", p: { xs: 2, md: 2.5 } }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
-            {/* Codigo SAP */}
-            <Box sx={{ minWidth: 150, flex: { xs: 1, md: "0 0 auto" } }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                }}
-              >
-                {t("equivalencias_codigo", "Código SAP")}
-              </Typography>
-              <TextField
-                size="small"
-                fullWidth
-                value={searchCodigo}
-                onChange={(e) => setSearchCodigo(e.target.value)}
-                placeholder={t('materials_catalogo_codigo_example', 'Ej: 100012345')}
-                InputProps={{ sx: { fontFamily: "monospace" } }}
-              />
-            </Box>
+            {/* Search Card */}
+            <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", p: { xs: 2, md: 2.5 } }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
+                {/* Codigo SAP */}
+                <Box sx={{ minWidth: 150, flex: { xs: 1, md: "0 0 auto" } }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "text.secondary",
+                      mb: 0.5,
+                    }}
+                  >
+                    {t("equivalencias_codigo", "Código SAP")}
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={searchCodigo}
+                    onChange={(e) => setSearchCodigo(e.target.value)}
+                    placeholder={t('materials_catalogo_codigo_example', 'Ej: 100012345')}
+                    InputProps={{ sx: { fontFamily: "monospace" } }}
+                  />
+                </Box>
 
-            {/* Descripcion */}
-            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                }}
-              >
-                {t("equivalencias_descripcion", "Descripción")}
-              </Typography>
-              <TextField
-                size="small"
-                fullWidth
-                value={searchDesc}
-                onChange={(e) => setSearchDesc(e.target.value)}
-                placeholder={t("equivalencias_buscar_desc", "Buscar por descripción...")}
-              />
-            </Box>
+                {/* Descripcion */}
+                <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "text.secondary",
+                      mb: 0.5,
+                    }}
+                  >
+                    {t("equivalencias_descripcion", "Descripción")}
+                  </Typography>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={searchDesc}
+                    onChange={(e) => setSearchDesc(e.target.value)}
+                    placeholder={t("equivalencias_buscar_desc", "Buscar por descripción...")}
+                  />
+                </Box>
 
-            {/* Tipo Equivalencia */}
-            <Box sx={{ minWidth: 180, flex: { xs: 1, md: "0 0 auto" } }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  fontWeight: 700,
-                  color: "text.secondary",
-                  mb: 0.5,
-                }}
-              >
-                {t("equivalencias_tipo", "Tipo de equivalencia")}
-              </Typography>
-              <FormControl size="small" fullWidth>
-                <Select
-                  value={searchTipo}
-                  onChange={(e) => setSearchTipo(e.target.value)}
-                  displayEmpty
-                >
-                  <MenuItem value="">{t("equivalencias_todos_tipos", "Todos")}</MenuItem>
-                  {tiposOptions.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
+                {/* Tipo Equivalencia */}
+                <Box sx={{ minWidth: 180, flex: { xs: 1, md: "0 0 auto" } }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      fontWeight: 700,
+                      color: "text.secondary",
+                      mb: 0.5,
+                    }}
+                  >
+                    {t("equivalencias_tipo", "Tipo de equivalencia")}
+                  </Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={searchTipo}
+                      onChange={(e) => setSearchTipo(e.target.value)}
+                      displayEmpty
+                    >
+                      <MenuItem value="">{t("equivalencias_todos_tipos", "Todos")}</MenuItem>
+                      {tiposOptions.map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
 
-            {/* Results & Clear */}
-            {!loading && hasFilters && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Chip
-                  label={`${formatNumber(pagination.total)} ${t("common_resultados", "resultados")}`}
-                  size="small"
+                {/* Results & Clear */}
+                {!loading && hasFilters && (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip
+                      label={`${formatNumber(pagination.total)} ${t("common_resultados", "resultados")}`}
+                      size="small"
+                      sx={{
+                        bgcolor: pagination.total > 0 ? "primary.lighter" : "grey.100",
+                        color: pagination.total > 0 ? "primary.main" : "text.secondary",
+                        fontWeight: 500,
+                      }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<ClearIcon />}
+                      onClick={clearFilters}
+                      sx={{ textTransform: "none" }}
+                    >
+                      {t("common_limpiar", "Limpiar")}
+                    </Button>
+                  </Stack>
+                )}
+              </Box>
+            </Paper>
+
+            {/* DataGrid Card */}
+            <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", height: 550 }}>
+              {loadError && !loading ? (
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                  <EmptyState
+                    icon={<ErrorOutlineIcon sx={{ fontSize: 32, color: "error.main" }} />}
+                    title={t("equivalencias_error_carga", "No pudimos cargar las equivalencias")}
+                    description={t("equivalencias_error_carga_desc", "Ocurrió un error al consultar la información. Intenta nuevamente en unos minutos.")}
+                    action={t("common_reintentar", "Reintentar")}
+                    onAction={() => loadEquivalencias(0)}
+                  />
+                </Box>
+              ) : results.length === 0 && !loading ? (
+                <Box
                   sx={{
-                    bgcolor: pagination.total > 0 ? "primary.lighter" : "grey.100",
-                    color: pagination.total > 0 ? "primary.main" : "text.secondary",
-                    fontWeight: 500,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    py: 8,
+                  }}
+                >
+                  <SwapHorizIcon sx={{ fontSize: 48, color: "grey.300", mb: 2 }} />
+                  <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mb: 2 }}>
+                    {hasFilters
+                      ? t("equivalencias_sin_resultados", "No se encontraron equivalencias con los criterios de búsqueda")
+                      : t("equivalencias_vacio", "No hay equivalencias registradas")}
+                  </Typography>
+                  {canManage && !hasFilters && (
+                    <Button variant="outlined" size="small" onClick={openCreateModal} sx={{ textTransform: "none" }}>
+                      {t('equiv_crear_primera', 'Crear la primera equivalencia')}
+                    </Button>
+                  )}
+                </Box>
+              ) : (
+                <SPMAgGrid
+                  rowData={results}
+                  columnDefs={columnDefs}
+                  loading={loading}
+                  height="100%"
+                  pagination={true}
+                  paginationPageSize={20}
+                  paginationPageSizeSelector={[20, 50, 100]}
+                  enableQuickFilter={true}
+                  exportFileName="equivalencias"
+                  emptyMessage={t("equivalencias_sin_resultados", "No se encontraron equivalencias")}
+                  gridOptions={{
+                    getRowId: (params) => String(params.data._id),
+                    rowHeight: 60,
+                    headerHeight: 48,
                   }}
                 />
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<ClearIcon />}
-                  onClick={clearFilters}
-                  sx={{ textTransform: "none" }}
-                >
-                  {t("common_limpiar", "Limpiar")}
-                </Button>
-              </Stack>
-            )}
-          </Box>
-        </Paper>
-
-        {/* DataGrid Card */}
-        <Paper elevation={0} sx={{ border: 1, borderColor: "grey.200", height: 550 }}>
-          {loadError && !loading ? (
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-              <EmptyState
-                icon={<ErrorOutlineIcon sx={{ fontSize: 32, color: "error.main" }} />}
-                title={t("equivalencias_error_carga", "No pudimos cargar las equivalencias")}
-                description={t("equivalencias_error_carga_desc", "Ocurrió un error al consultar la información. Intenta nuevamente en unos minutos.")}
-                action={t("common_reintentar", "Reintentar")}
-                onAction={() => loadEquivalencias(0)}
-              />
-            </Box>
-          ) : results.length === 0 && !loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                py: 8,
-              }}
-            >
-              <SwapHorizIcon sx={{ fontSize: 48, color: "grey.300", mb: 2 }} />
-              <Typography variant="body1" sx={{ color: "text.secondary", textAlign: "center", mb: 2 }}>
-                {hasFilters
-                  ? t("equivalencias_sin_resultados", "No se encontraron equivalencias con los criterios de búsqueda")
-                  : t("equivalencias_vacio", "No hay equivalencias registradas")}
-              </Typography>
-              {canManage && !hasFilters && (
-                <Button variant="outlined" size="small" onClick={openCreateModal} sx={{ textTransform: "none" }}>
-                  {t('equiv_crear_primera', 'Crear la primera equivalencia')}
-                </Button>
               )}
-            </Box>
-          ) : (
-            <SPMAgGrid
-              rowData={results}
-              columnDefs={columnDefs}
-              loading={loading}
-              height="100%"
-              pagination={true}
-              paginationPageSize={20}
-              paginationPageSizeSelector={[20, 50, 100]}
-              enableQuickFilter={true}
-              exportFileName="equivalencias"
-              emptyMessage={t("equivalencias_sin_resultados", "No se encontraron equivalencias")}
-              gridOptions={{
-                getRowId: (params) => String(params.data._id),
-                rowHeight: 60,
-                headerHeight: 48,
-              }}
-            />
-          )}
-        </Paper>
+            </Paper>
           </Box>
           {esEscritorio && (
             <Box
@@ -1147,7 +1147,7 @@ export default function CatalogoEquivalencias() {
 
         {!esEscritorio && (
           <Drawer anchor="right" open={drawerAbierto} onClose={() => setDrawerAbierto(false)} keepMounted>
-            <Box sx={{ width: { xs: "100vw", sm: 420 }, height: "100%" }}>
+            <Box sx={{ width: { xs: "100vw", md: 420 }, height: "100%" }}>
               <BuscadorMaterialesPanel onFiltrarTabla={filtrarTabla} onCerrar={() => setDrawerAbierto(false)} />
             </Box>
           </Drawer>
