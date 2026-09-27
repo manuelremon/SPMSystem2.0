@@ -12,6 +12,7 @@ Las BDs SQLite secundarias (catalogo_materiales, sap_data, equivalentes,
 master_materiales) solo se usan en desarrollo local.
 """
 
+import re
 import sqlite3
 from pathlib import Path
 
@@ -419,6 +420,44 @@ class DictRow(dict):
         return self._keys
 
 
+_PG_PLACEHOLDER = re.compile(r"(?<!%)%s")
+
+
+def _to_sqlite_placeholders(sql):
+    """Convierte placeholders %s (estilo psycopg2) a ? para SQLite."""
+    return _PG_PLACEHOLDER.sub("?", sql) if isinstance(sql, str) and "%s" in sql else sql
+
+
+class _CompatSQLiteCursor(sqlite3.Cursor):
+    """Cursor SQLite que acepta tambien placeholders %s (simetrico a PostgresCursorWrapper)."""
+
+    def execute(self, sql, parameters=()):
+        return super().execute(_to_sqlite_placeholders(sql), parameters)
+
+    def executemany(self, sql, seq_of_parameters):
+        return super().executemany(_to_sqlite_placeholders(sql), seq_of_parameters)
+
+
+class _CompatSQLiteConnection(sqlite3.Connection):
+    """Conexion SQLite cuyo cursor/execute aceptan placeholders %s."""
+
+    def cursor(self, factory=_CompatSQLiteCursor):
+        return super().cursor(factory)
+
+    def execute(self, sql, parameters=()):
+        return self.cursor().execute(sql, parameters)
+
+    def executemany(self, sql, seq_of_parameters):
+        return self.cursor().executemany(sql, seq_of_parameters)
+
+
+def _connect_sqlite(db_path):
+    conn = sqlite3.connect(db_path, factory=_CompatSQLiteConnection)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
 class PostgresCursorWrapper:
     """Wrapper para cursor PostgreSQL que convierte ? a %s automaticamente"""
 
@@ -583,10 +622,7 @@ def get_db_connection(db_name: str = "spm"):
     if is_using_postgresql():
         conn = _get_postgres_connection()
     else:
-        db_path = get_db_path(db_name)
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
+        conn = _connect_sqlite(get_db_path(db_name))
     return DualModeConnection(conn)
 
 
@@ -695,10 +731,7 @@ def get_db_transaction(db_name: str = "spm"):
     if is_using_postgresql():
         conn = _get_postgres_connection()
     else:
-        db_path = get_db_path(db_name)
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
+        conn = _connect_sqlite(get_db_path(db_name))
     return DualModeTransaction(conn)
 
 

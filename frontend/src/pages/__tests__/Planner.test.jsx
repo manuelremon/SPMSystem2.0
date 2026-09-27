@@ -234,8 +234,8 @@ describe('Planner', () => {
     it('permite buscar por texto', () => {
       renderPlanner();
 
-      // The search field has placeholder "ID, asunto..."
-      const searchInput = screen.getByPlaceholderText('ID, asunto...');
+      // The search field has placeholder "ID, asunto, solicitante..."
+      const searchInput = screen.getByPlaceholderText('ID, asunto, solicitante...');
       expect(searchInput).toBeInTheDocument();
 
       fireEvent.change(searchInput, { target: { value: 'test' } });

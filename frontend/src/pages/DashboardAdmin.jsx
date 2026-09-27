@@ -115,7 +115,7 @@ function getTableColumnsAgGrid(t) {
       },
     },
     {
-      field: "items", headerName: t('common_items', 'Items'), width: 80, flex: 0,
+      field: "items", headerName: t('common_items_header', 'Ítems'), width: 80, flex: 0,
       valueGetter: (params) => (params.data?.items || []).length,
       cellRenderer: (params) => (
         <Typography component="span" sx={{ fontFamily: "monospace", fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>

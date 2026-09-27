@@ -82,18 +82,21 @@ const generatePredictions = (avgMonthlyConsumption, leadTimeDays, uncertaintyBuf
   return predictions;
 };
 
-const ForecastPlaceholder = ({
-  historicalData = [],
+const ForecastPlaceholder = (props) => {
+  // Solo renderizar si hay menos de 3 registros
+  if (props.historicalData && props.historicalData.length >= 3) {
+    return null;
+  }
+  return <ForecastPlaceholderForm {...props} />;
+};
+
+// Separado de ForecastPlaceholder para que los hooks no se llamen condicionalmente
+const ForecastPlaceholderForm = ({
   onGenerateForecast,
   materialCodigo = '',
   disabled = false,
 }) => {
   const { t } = useI18n();
-
-  // Solo renderizar si hay menos de 3 registros
-  if (historicalData && historicalData.length >= 3) {
-    return null;
-  }
 
   // Estado del formulario
   const [avgMonthlyConsumption, setAvgMonthlyConsumption] = useState('');

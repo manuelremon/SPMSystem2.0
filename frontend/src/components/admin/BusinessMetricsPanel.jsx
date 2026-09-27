@@ -181,6 +181,7 @@ function EstadosChart({ estados }) {
  * Panel de metricas de negocio
  */
 export function BusinessMetricsPanel({ data, isLoading = false }) {
+  const { t } = useI18n()
   if (isLoading) {
     return (
       <Paper elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
@@ -229,7 +230,6 @@ export function BusinessMetricsPanel({ data, isLoading = false }) {
     )
   }
 
-  const { t } = useI18n()
   const { solicitudes = {}, usuarios = {}, materiales = {} } = data
 
   return (

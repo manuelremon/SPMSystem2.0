@@ -12,6 +12,9 @@ export const solicitudes = {
   finalizar: (id, payload) => api.put(`/solicitudes/${id}/enviar`, payload),
   aprobar: (id) => api.put(`/solicitudes/${id}/aprobar`),
   rechazar: (id, motivo) => api.put(`/solicitudes/${id}/rechazar`, { motivo }),
+  corregirYReenviar: (id) => api.put(`/solicitudes/${id}/reenviar`),
+  descargarAdjunto: (id, archivoId) =>
+    api.get(`/solicitudes/${id}/archivos/${archivoId}`, { responseType: 'blob' }),
   eliminar: (id) => api.delete(`/solicitudes/${id}`),
 }
 

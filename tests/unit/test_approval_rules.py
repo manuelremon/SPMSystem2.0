@@ -12,7 +12,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# La asignacion/permiso por reglas_aprobacion (esquema de la migracion 007) fue
+# reemplazada por la cadena jerarquica del solicitante; ver test_solicitudes_reglas.py.
+OBSOLETO_REGLAS = pytest.mark.skip(
+    reason="Diseno anterior por reglas_aprobacion; reemplazado por cadena jerarquica (test_solicitudes_reglas.py)"
+)
 
+
+@OBSOLETO_REGLAS
 class TestObtenerAprobadorRequerido:
     """Tests para determinar el aprobador requerido segun el monto."""
 
@@ -133,6 +140,7 @@ class TestObtenerAprobadorRequerido:
         assert regla["nivel_aprobacion"] == 4
 
 
+@OBSOLETO_REGLAS
 class TestValidarPermisoAprobacion:
     """Tests para validar si un usuario puede aprobar una solicitud."""
 
@@ -213,6 +221,7 @@ class TestValidarPermisoAprobacion:
         assert resultado["puede_aprobar"] is True
 
 
+@OBSOLETO_REGLAS
 class TestBuscarAprobadorDisponible:
     """Tests para buscar un aprobador disponible."""
 
@@ -386,6 +395,7 @@ class TestDelegacionAprobaciones:
         assert delegacion is not None
         assert delegacion["delegado_id"] == "aprobador_2"
 
+    @OBSOLETO_REGLAS
     def test_delegado_puede_aprobar(self, mock_db):
         """Un delegado activo puede aprobar en nombre del original."""
         from backend.services.approval_service import puede_aprobar

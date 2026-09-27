@@ -305,12 +305,25 @@ def tratar_items(solicitud_id):
         or "planner"
     )
 
+    # Solo se tratan solicitudes aprobadas o en tratamiento
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT status FROM solicitud WHERE id=?", (solicitud_id,))
+        row = cur.fetchone()
+    if not row:
+        return error_not_found("Solicitud", solicitud_id)
+    if normalizar_estado(row["status"] or "") not in ("approved", "in_treatment"):
+        return error_validation("status", "Solo se pueden tratar solicitudes aprobadas o en tratamiento")
+
     # Validacion basica de items de tratamiento (Sprint 3.4)
-    if not items:
-        return error_validation("Se requiere al menos un item para tratar")
+    if not isinstance(items, list) or not items:
+        return error_validation("items", "Se requiere al menos un item para tratar")
 
     errores = []
     for idx, it in enumerate(items):
+        if not isinstance(it, dict):
+            errores.append(f"Item {idx}: formato invalido")
+            continue
         if it.get("item_index") is None:
             errores.append(f"Item {idx}: item_index es requerido")
             continue
@@ -336,7 +349,7 @@ def tratar_items(solicitud_id):
                 errores.append(f"Item {idx}: precio_unitario_estimado debe ser un numero")
 
     if errores:
-        return error_validation("; ".join(errores))
+        return error_validation("items", "; ".join(errores))
 
     with get_db_transaction() as conn:
         cur = conn.cursor()

@@ -11,8 +11,9 @@ Valida:
 """
 
 import logging
+import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -44,24 +45,28 @@ class SolicitudValidationError(Exception):
 # =============================================================================
 
 
-CRITICIDADES_VALIDAS = {"Baja", "Normal", "Alta", "Urgente"}
+CRITICIDADES_VALIDAS = {"Baja", "Normal", "Alta", "Critica", "Urgente"}
 
-# Cache de materiales validados para evitar consultas repetidas
-_materiales_validados_cache: Set[str] = set()
+# Tope de cantidad por item (evita totales desbordados a infinito)
+CANTIDAD_MAXIMA = 1_000_000
+
+# Cache codigo normalizado -> precio de catalogo (evita consultas repetidas)
+_materiales_validados_cache: Dict[str, float] = {}
+
+# Resultado de _precio_catalogo cuando la BD no responde
+_PRECIO_NO_VERIFICABLE = object()
 
 
-def _verificar_material_existe(material_id: str) -> bool:
+def _precio_catalogo(material_id: str):
     """
-    Verifica si un material existe en el catalogo.
-
-    Args:
-        material_id: Codigo del material a verificar
+    Precio unitario (USD) del material segun el catalogo.
 
     Returns:
-        True si el material existe, False si no existe
+        float si el material existe, None si no existe,
+        _PRECIO_NO_VERIFICABLE si no se pudo consultar la BD.
     """
     if not material_id:
-        return False
+        return None
 
     # Normalizar codigo (eliminar ceros y .0 finales)
     codigo_norm = material_id.strip()
@@ -69,61 +74,43 @@ def _verificar_material_existe(material_id: str) -> bool:
         codigo_norm = codigo_norm[:-2]
     codigo_norm = codigo_norm.lstrip("0")
 
-    # Verificar cache primero
     if codigo_norm in _materiales_validados_cache:
-        return True
+        return _materiales_validados_cache[codigo_norm]
 
     try:
         # Import diferido para evitar dependencias circulares
         from backend.core.db import get_db_connection
 
-        # Buscar primero en master_materiales.db (materiales_mrp - antes materiales_bbdd)
+        sufijo = material_id.split("-")[-1] if "-" in material_id else material_id
         with get_db_connection("master_materiales") as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT 1 FROM catalogo_materiales
+                SELECT precio_usd FROM catalogo_materiales
                 WHERE codigo = ?
                    OR REPLACE(codigo, '-', '') = ?
                    OR LTRIM(REPLACE(codigo, '-', ''), '0') = ?
+                   OR codigo = ?
                 LIMIT 1
                 """,
-                (material_id, material_id.replace("-", ""), codigo_norm),
+                (material_id, material_id.replace("-", ""), codigo_norm, sufijo),
             )
-            existe = cursor.fetchone() is not None
-
-        # Si no existe, buscar en master_materiales.db (catalogo_materiales)
-        if not existe:
-            with get_db_connection("master_materiales") as conn:
-                cursor = conn.cursor()
-                # Extraer sufijo numérico (ej: 0109-0000649 -> 0000649)
-                sufijo = material_id.split("-")[-1] if "-" in material_id else material_id
-                cursor.execute(
-                    """
-                    SELECT 1 FROM catalogo_materiales
-                    WHERE codigo = ?
-                       OR REPLACE(codigo, '-', '') = ?
-                       OR codigo = ?
-                    LIMIT 1
-                    """,
-                    (material_id, material_id.replace("-", ""), sufijo),
-                )
-                existe = cursor.fetchone() is not None
-
-        if existe:
-            _materiales_validados_cache.add(codigo_norm)
-
-        return existe
+            row = cursor.fetchone()
     except Exception as e:
-        # Si hay error de BD, permitir continuar (log warning)
-        logger.warning(f"Error verificando existencia de material {material_id}: {e}")
-        return True  # Asumir que existe si no se puede verificar
+        logger.warning(f"Error consultando catalogo para material {material_id}: {e}")
+        return _PRECIO_NO_VERIFICABLE
+
+    if row is None:
+        return None
+    precio = round(float(row[0] or 0), 2)
+    _materiales_validados_cache[codigo_norm] = precio
+    return precio
 
 
 def limpiar_cache_materiales():
     """Limpia el cache de materiales validados."""
     global _materiales_validados_cache
-    _materiales_validados_cache = set()
+    _materiales_validados_cache = {}
 
 
 # =============================================================================
@@ -158,7 +145,13 @@ class ItemSolicitud:
 
     def __post_init__(self):
         """Valida y sanitiza los datos despues de la inicializacion."""
-        # Sanitizar strings
+        # Sanitizar strings (material_id puede llegar como numero)
+        if isinstance(self.material_id, (int, float)) and not isinstance(self.material_id, bool):
+            self.material_id = str(self.material_id)
+        for campo in ("material_id", "unidad", "descripcion", "almacen", "centro", "observaciones"):
+            valor = getattr(self, campo)
+            if valor is not None and not isinstance(valor, str):
+                raise ItemValidationError(f"{campo} debe ser texto", campo)
         self.material_id = (self.material_id or "").strip()
         self.unidad = (self.unidad or "").strip()
 
@@ -184,8 +177,10 @@ class ItemSolicitud:
         except (TypeError, ValueError):
             raise ItemValidationError("cantidad debe ser un numero", "cantidad")
 
-        if self.cantidad <= 0:
+        if not math.isfinite(self.cantidad) or self.cantidad <= 0:
             raise ItemValidationError("cantidad debe ser mayor a 0", "cantidad")
+        if self.cantidad > CANTIDAD_MAXIMA:
+            raise ItemValidationError(f"cantidad no puede superar {CANTIDAD_MAXIMA:,.0f}", "cantidad")
 
         # Validar precio
         if self.precio_unitario is not None:
@@ -194,7 +189,7 @@ class ItemSolicitud:
             except (TypeError, ValueError):
                 raise ItemValidationError("precio_unitario debe ser un numero", "precio_unitario")
 
-            if self.precio_unitario < 0:
+            if not math.isfinite(self.precio_unitario) or self.precio_unitario < 0:
                 raise ItemValidationError(
                     "precio_unitario no puede ser negativo", "precio_unitario"
                 )
@@ -223,6 +218,8 @@ class ItemSolicitud:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ItemSolicitud":
         """Crea un item desde un diccionario."""
+        if not isinstance(data, dict):
+            raise ItemValidationError("Cada item debe ser un objeto", "item")
         # Accept both 'material_id' and 'codigo' for compatibility
         material_id = data.get("material_id") or data.get("codigo", "")
         return cls(
@@ -457,6 +454,16 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
             "mensaje": "",
         }
 
+    if not isinstance(items, list):
+        return {
+            "ok": False,
+            "items": [],
+            "errores": [{"indice": None, "campo": "items", "mensaje": "items debe ser una lista"}],
+            "items_validos": 0,
+            "total": 0,
+            "mensaje": "items debe ser una lista",
+        }
+
     items_validos = []
     errores = []
 
@@ -464,8 +471,9 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
         try:
             item = ItemSolicitud.from_dict(item_data)
 
-            # Verificar que el material existe en el catalogo
-            if not _verificar_material_existe(item.material_id):
+            # El precio sale del catalogo, nunca del cliente
+            precio = _precio_catalogo(item.material_id)
+            if precio is None:
                 errores.append(
                     {
                         "indice": idx,
@@ -475,6 +483,8 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
                     }
                 )
                 continue
+            if precio is not _PRECIO_NO_VERIFICABLE:
+                item.precio_unitario = precio
 
             items_validos.append(item)
         except ItemValidationError as e:

@@ -87,6 +87,17 @@ const BacktestResults = ({ data, loading = false }) => {
     },
   ], []);
 
+  const steps = data?.steps;
+  // Datos para el grafico de metricas por paso (MUI X Charts)
+  const chartData = useMemo(() => {
+    if (!steps || steps.length === 0) return { labels: [], mae: [], rmse: [] };
+    return {
+      labels: steps.map((_, i) => `Paso ${i + 1}`),
+      mae: steps.map(s => s.mae || 0),
+      rmse: steps.map(s => s.rmse || 0),
+    };
+  }, [steps]);
+
   if (loading) {
     return (
       <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>
@@ -105,17 +116,7 @@ const BacktestResults = ({ data, loading = false }) => {
     return null;
   }
 
-  const { metricas_agregadas, steps, es_estable } = data;
-
-  // Datos para el grafico de metricas por paso (MUI X Charts)
-  const chartData = useMemo(() => {
-    if (!steps || steps.length === 0) return { labels: [], mae: [], rmse: [] };
-    return {
-      labels: steps.map((_, i) => `Paso ${i + 1}`),
-      mae: steps.map(s => s.mae || 0),
-      rmse: steps.map(s => s.rmse || 0),
-    };
-  }, [steps]);
+  const { metricas_agregadas, es_estable } = data;
 
   return (
     <Paper sx={{ p: 3, border: 1, borderColor: 'divider' }}>

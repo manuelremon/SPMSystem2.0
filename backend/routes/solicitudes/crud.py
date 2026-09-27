@@ -8,22 +8,31 @@ eliminar_solicitud, guardar_borrador.
 import json
 import logging
 import os
+import shutil
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from pathlib import Path
 
-from flask import g, jsonify, request
+from flask import g, jsonify, request, send_file
+from werkzeug.utils import secure_filename
 
 from backend.core.db import get_db_connection, get_db_transaction
 from backend.core.fsm import normalizar_estado
 from backend.core.helpers import row_to_dict as _row_to_dict
-from backend.core.item_schemas import validar_items
-from backend.core.roles import has_any_role, is_admin, require_auth
+from backend.core.item_schemas import CRITICIDADES_VALIDAS, validar_items
+from backend.core.roles import is_admin, require_auth
 from backend.routes.solicitudes import bp
 from backend.routes.solicitudes.helpers import (
+    _archivos_publicos,
     _calcular_total,
     _get_raw,
+    _get_uploads_dir,
+    _puede_ver_solicitud,
+    _rol_usuario_actual,
     _save_uploaded_file,
+    _tiene_vision_amplia,
     _update_solicitud,
+    _validar_adjuntos,
 )
 from backend.services.audit_service import auditar_creacion_solicitud
 from backend.services.notification_service import NotificationService
@@ -40,6 +49,11 @@ def list_solicitudes():
     page_size = min(max(1, request.args.get("page_size", 10, type=int)), 2000)  # Maximo 2000
     user_id = request.args.get("user_id")
     estado = request.args.get("estado")
+
+    # SEGURIDAD: sin rol de vision amplia, solo se listan las propias solicitudes
+    current_user_id = str(g.user.get("user_id", ""))
+    if not _tiene_vision_amplia(_rol_usuario_actual(current_user_id)):
+        user_id = current_user_id
 
     where = []
     where_count = []
@@ -165,28 +179,7 @@ def get_solicitud(solicitud_id):
 
     # SEGURIDAD: Verificar ownership - solo el dueno, admin, aprobadores o planificadores pueden ver
     solicitud_owner = str(d.get("id_usuario", ""))
-    roles_permitidos = [
-        "aprobador",
-        "aprobador_solicitudes",
-        "aprobador solicitudes",
-        "aprobador de solicitudes",
-        "aprobador_presupuestos",
-        "aprobador presupuestos",
-        "aprobador de presupuesto",
-        "approver",
-        "coordinador",
-        "coordinator",
-        "planificador",
-        "planner",
-        "jefe",
-        "gerente1",
-        "gerente2",
-    ]
-    if (
-        str(user_id) != solicitud_owner
-        and not is_admin(user_rol)
-        and not has_any_role(user_rol, roles_permitidos)
-    ):
+    if str(user_id) != solicitud_owner and not _tiene_vision_amplia(user_rol):
         return (
             jsonify(
                 {
@@ -205,6 +198,28 @@ def get_solicitud(solicitud_id):
     except json.JSONDecodeError:
         extra = {}
     d["items"] = extra.get("items", [])
+    d["archivos"] = _archivos_publicos(extra.get("archivos"))
+
+    # Nombres de solicitante / aprobador / planificador para mostrar en la UI
+    ids = {str(d.get(k)) for k in ("id_usuario", "aprobador_id", "planner_id") if d.get(k)}
+    nombres = {}
+    if ids:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            placeholders = ",".join("?" * len(ids))
+            cur.execute(
+                f"SELECT id_spm, nombre, apellido FROM usuario WHERE id_spm IN ({placeholders})",
+                tuple(ids),
+            )
+            for row in cur.fetchall():
+                nombres[str(row["id_spm"])] = " ".join(
+                    x for x in ((row["nombre"] or "").strip(), (row["apellido"] or "").strip()) if x
+                )
+    d["solicitante_nombre"] = nombres.get(str(d.get("id_usuario") or ""))
+    d["aprobador_nombre"] = nombres.get(str(d.get("aprobador_id") or ""))
+    d["planner_nombre"] = nombres.get(str(d.get("planner_id") or ""))
+    # No exponer data_json crudo (contiene rutas del servidor)
+    d.pop("data_json", None)
 
     # FIX: Si total_monto es None o 0, recalcularlo desde los items
     if not d.get("total_monto") and d["items"]:
@@ -236,7 +251,13 @@ def create_solicitud():
         }
         # Items pueden venir como JSON string
         items_str = request.form.get("items")
-        items = json.loads(items_str) if items_str else []
+        try:
+            items = json.loads(items_str) if items_str else []
+        except (json.JSONDecodeError, TypeError):
+            return (
+                jsonify({"ok": False, "error": {"code": "validation_error", "message": "items no es JSON valido"}}),
+                400,
+            )
         # Archivos se procesan despues de crear la solicitud
         uploaded_files = request.files.getlist("archivos")
     else:
@@ -244,6 +265,41 @@ def create_solicitud():
         data = request.get_json(silent=True) or {}
         items = data.get("items") or []
         uploaded_files = []
+
+    # Validar cabecera (tipos, obligatorios, criticidad, fecha, longitudes)
+    if not isinstance(data, dict):
+        data = {}
+    error_cabecera = _validar_cabecera(data)
+    if error_cabecera:
+        return (
+            jsonify({"ok": False, "error": {"code": "validation_error", "message": error_cabecera}}),
+            400,
+        )
+    # SEGURIDAD: solo se puede pedir para los centros del usuario (misma regla que /auth/mi-acceso)
+    centro_pedido = (data.get("centro") or "").strip()
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rol, centros FROM usuario WHERE id_spm = ?", (str(user_id),))
+        urow = cur.fetchone()
+    if urow and not is_admin(urow["rol"] or ""):
+        centros_usuario = [c.strip() for c in (urow["centros"] or "").split(",") if c.strip()]
+        if centros_usuario and centro_pedido not in centros_usuario:
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": {"code": "forbidden", "message": "No tiene acceso al centro indicado"},
+                    }
+                ),
+                403,
+            )
+
+    error_adjuntos = _validar_adjuntos(uploaded_files)
+    if error_adjuntos:
+        return (
+            jsonify({"ok": False, "error": {"code": "validation_error", "message": error_adjuntos}}),
+            400,
+        )
 
     # Validar items (Sprint 3.3)
     validacion = validar_items(items)
@@ -350,7 +406,7 @@ def create_solicitud():
                     data.get("criticidad") or "Normal",
                     data.get("fecha_necesidad") or "",
                     json.dumps({"items": items_validos, "archivos": archivos_metadata}),
-                    "Borrador",
+                    "draft",
                     total,
                     now,
                     now,
@@ -361,16 +417,22 @@ def create_solicitud():
 
             # Renombrar archivos con el ID real de la solicitud (dentro de la transaccion logica)
             if archivos_guardados:
-                for i, old_path in enumerate(archivos_guardados):
-                    if old_path and os.path.exists(old_path):
-                        # Actualizar path en metadata
-                        new_path = old_path.replace(temp_prefix, str(new_id))
-                        try:
-                            os.rename(old_path, new_path)
-                            archivos_metadata[i]["path"] = new_path
-                            archivos_metadata[i]["solicitud_id"] = new_id
-                        except OSError as e:
-                            logger.warning(f"No se pudo renombrar archivo {old_path}: {e}")
+                temp_dir = Path(archivos_guardados[0]).parent
+                final_dir = temp_dir.parent / str(new_id)
+                try:
+                    if final_dir.exists():
+                        for f in temp_dir.iterdir():
+                            os.replace(f, final_dir / f.name)
+                        temp_dir.rmdir()
+                    else:
+                        os.rename(temp_dir, final_dir)
+                    for meta in archivos_metadata:
+                        meta["path"] = str(final_dir / meta["nombre_almacenado"])
+                        meta["ruta"] = (meta.get("ruta") or "").replace(temp_prefix, str(new_id))
+                        meta["solicitud_id"] = new_id
+                    archivos_guardados = [m["path"] for m in archivos_metadata]
+                except OSError as e:
+                    logger.warning(f"No se pudieron mover los adjuntos de {temp_dir}: {e}")
 
                 # Actualizar data_json con paths correctos
                 cur.execute(
@@ -469,9 +531,10 @@ def eliminar_solicitud(solicitud_id):
             403,
         )
 
-    # FIX 3.2: Admin puede eliminar cualquier solicitud, usuarios solo borradores
+    # Solo borradores (tambien para admin): una solicitud enviada/aprobada tiene
+    # historial y movimientos de presupuesto; se cancela, no se borra.
     estado = normalizar_estado(solicitud.get("status") or "")
-    if estado != "draft" and not es_admin:
+    if estado != "draft":
         return (
             jsonify(
                 {
@@ -487,7 +550,14 @@ def eliminar_solicitud(solicitud_id):
 
     with get_db_transaction() as conn:
         cur = conn.cursor()
+        # Dependencias sin ON DELETE CASCADE
+        cur.execute("DELETE FROM notificacion WHERE solicitud_id=?", (solicitud_id,))
+        cur.execute("DELETE FROM solicitud_historial_estado WHERE solicitud_id=?", (solicitud_id,))
+        cur.execute("UPDATE mensaje SET solicitud_id=NULL WHERE solicitud_id=?", (solicitud_id,))
         cur.execute("DELETE FROM solicitud WHERE id=?", (solicitud_id,))
+
+    # Borrar adjuntos del disco
+    shutil.rmtree(_get_uploads_dir(solicitud_id), ignore_errors=True)
 
     # Notificar al usuario que su solicitud fue eliminada
     try:
@@ -573,14 +643,97 @@ def guardar_borrador(solicitud_id):
         total = validacion["total"]
     else:
         items_validos = []
-        total = data.get("total_monto", 0)
+        total = 0
+
+    try:
+        data_json_actual = json.loads(solicitud.get("data_json") or "{}")
+        if not isinstance(data_json_actual, dict):
+            data_json_actual = {}
+    except (json.JSONDecodeError, TypeError):
+        data_json_actual = {}
+    data_json_actual["items"] = items_validos
 
     _update_solicitud(
         solicitud_id,
         {
-            "data_json": json.dumps({"items": items_validos}),
+            "data_json": json.dumps(data_json_actual),
             "total_monto": total,
-            "status": "Borrador",
+            "status": "draft",
         },
     )
     return get_solicitud(solicitud_id)
+
+
+@bp.route("/<int:solicitud_id>/archivos/<archivo_id>", methods=["GET"])
+@require_auth
+def descargar_adjunto(solicitud_id, archivo_id):
+    """Descargar un adjunto de la solicitud (mismo control de acceso que el detalle)."""
+    user_id = str(g.user.get("user_id", ""))
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}), 404
+    if not _puede_ver_solicitud(solicitud, user_id):
+        return (
+            jsonify({"ok": False, "error": {"code": "forbidden", "message": "No tiene permiso para ver esta solicitud"}}),
+            403,
+        )
+
+    try:
+        archivos = json.loads(solicitud.get("data_json") or "{}").get("archivos") or []
+    except (json.JSONDecodeError, TypeError, AttributeError):
+        archivos = []
+    meta = next((a for a in archivos if isinstance(a, dict) and str(a.get("id")) == str(archivo_id)), None)
+    if not meta:
+        return jsonify({"ok": False, "error": {"code": "not_found", "message": "Archivo no encontrado"}}), 404
+
+    # Resolver dentro de la carpeta de la solicitud (nunca rutas arbitrarias)
+    carpeta = _get_uploads_dir(solicitud_id).resolve()
+    ruta = (carpeta / secure_filename(meta.get("nombre_almacenado") or "")).resolve()
+    if ruta.parent != carpeta or not ruta.is_file():
+        return jsonify({"ok": False, "error": {"code": "not_found", "message": "Archivo no encontrado"}}), 404
+
+    return send_file(ruta, as_attachment=True, download_name=meta.get("nombre") or ruta.name)
+
+
+_CABECERA_TEXTO = {
+    "centro": 50,
+    "sector": 100,
+    "justificacion": 2000,
+    "centro_costos": 100,
+    "almacen_virtual": 50,
+    "almacen": 50,
+    "criticidad": 20,
+    "fecha_necesidad": 30,
+}
+
+
+def _validar_cabecera(data: dict) -> str:
+    """Valida la cabecera de una solicitud nueva. Devuelve mensaje de error o cadena vacia."""
+    for campo, maximo in _CABECERA_TEXTO.items():
+        valor = data.get(campo)
+        if valor is None:
+            continue
+        if not isinstance(valor, str):
+            return f"{campo} debe ser texto"
+        if len(valor) > maximo:
+            return f"{campo} supera el largo maximo ({maximo})"
+
+    if not (data.get("centro") or "").strip():
+        return "centro es requerido"
+    if not (data.get("sector") or "").strip():
+        return "sector es requerido"
+
+    criticidad = (data.get("criticidad") or "Normal").strip()
+    if criticidad not in CRITICIDADES_VALIDAS:
+        return f"criticidad debe ser una de: {', '.join(sorted(CRITICIDADES_VALIDAS))}"
+
+    fecha = (data.get("fecha_necesidad") or "").strip()
+    if fecha:
+        try:
+            fecha_necesidad = date.fromisoformat(fecha[:10])
+        except ValueError:
+            return "fecha_necesidad debe tener formato AAAA-MM-DD"
+        if fecha_necesidad < datetime.utcnow().date():
+            return "fecha_necesidad no puede ser anterior a hoy"
+    return ""
+

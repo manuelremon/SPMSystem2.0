@@ -144,11 +144,9 @@ const TimeRangeNavigator = ({
   // Calcular posiciones de los handles basadas en el rango visible
   const totalPoints = data.length;
 
-  // Proteccion contra division por cero
-  if (totalPoints === 0) return null;
-
-  const leftPercent = (visibleRange[0] / totalPoints) * 100;
-  const rightPercent = (visibleRange[1] / totalPoints) * 100;
+  // Proteccion contra division por cero (el return null va despues de los hooks)
+  const leftPercent = totalPoints ? (visibleRange[0] / totalPoints) * 100 : 0;
+  const rightPercent = totalPoints ? (visibleRange[1] / totalPoints) * 100 : 0;
   const widthPercent = Math.max(rightPercent - leftPercent, 1);
 
   // Formatear etiquetas de fecha para el navegador
@@ -221,7 +219,7 @@ const TimeRangeNavigator = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  if (data.length < 2) return null;
+  if (totalPoints === 0 || data.length < 2) return null;
 
   return (
     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>

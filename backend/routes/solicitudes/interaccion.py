@@ -14,14 +14,37 @@ from backend.core.fsm import (
     estado_para_display,
     normalizar_estado,
 )
+from backend.core.helpers import safe_error_response
 from backend.core.roles import require_auth
 from backend.routes.solicitudes import bp
 from backend.routes.solicitudes.helpers import (
     _calcular_total,
     _get_raw,
+    _puede_ver_solicitud,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _denegar_si_sin_acceso(solicitud_id, user_id):
+    """Respuesta 404/403 si la solicitud no existe o el usuario no puede verla; None si tiene acceso."""
+    solicitud = _get_raw(solicitud_id)
+    if not solicitud:
+        return (
+            jsonify({"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}),
+            404,
+        )
+    if not _puede_ver_solicitud(solicitud, user_id):
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "forbidden", "message": "No tiene permiso para ver esta solicitud"},
+                }
+            ),
+            403,
+        )
+    return None
 
 
 @bp.route("/<int:solicitud_id>/comentar", methods=["POST"])
@@ -31,7 +54,8 @@ def comentar_solicitud(solicitud_id):
     actor_id = str(g.user.get("user_id") or "system")
 
     data = request.get_json(silent=True) or {}
-    comentario = data.get("comentario", "").strip()
+    comentario = data.get("comentario")
+    comentario = comentario.strip() if isinstance(comentario, str) else ""
 
     if not comentario:
         return (
@@ -46,33 +70,38 @@ def comentar_solicitud(solicitud_id):
             ),
             400,
         )
+    if len(comentario) > 2000:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {"code": "validation_error", "message": "El comentario es demasiado largo"},
+                }
+            ),
+            400,
+        )
 
-    # Registrar el comentario en el log (si existe la tabla)
+    # SEGURIDAD: la solicitud debe existir y el usuario debe poder verla
+    denegado = _denegar_si_sin_acceso(solicitud_id, actor_id)
+    if denegado:
+        return denegado
+
     try:
-        with get_db_connection() as conn:
+        with get_db_transaction() as conn:
             cur = conn.cursor()
-            # Verificar si existe la tabla de log
             cur.execute(
-                "SELECT table_name FROM information_schema.tables WHERE table_name='solicitud_tratamiento_log'"
+                "INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES (?,?,?,?,?,?)",
+                (
+                    solicitud_id,
+                    None,
+                    actor_id,
+                    "comentario_agregado",
+                    "comentario",
+                    json.dumps({"comentario": comentario}),
+                ),
             )
-            table_exists = cur.fetchone() is not None
-
-        if table_exists:
-            with get_db_transaction() as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    "INSERT INTO solicitud_tratamiento_log (solicitud_id, item_index, actor_id, tipo, estado, payload_json) VALUES (?,?,?,?,?,?)",
-                    (
-                        solicitud_id,
-                        None,
-                        actor_id,
-                        "comentario_agregado",
-                        "comentario",
-                        json.dumps({"comentario": comentario}),
-                    ),
-                )
-    except Exception:
-        pass  # Log error silently - consider proper logging in production
+    except Exception as e:
+        return safe_error_response(e, logger, "solicitudes.comentar")
 
     return jsonify({"ok": True, "message": "Comentario agregado correctamente"}), 200
 
@@ -88,15 +117,11 @@ def get_historial_estados(solicitud_id):
     # Importar funcion del FSM
     from backend.core.fsm import estado_para_display, obtener_historial_estados
 
-    # Verificar que la solicitud existe
+    # Verificar que la solicitud existe y el usuario puede verla
+    denegado = _denegar_si_sin_acceso(solicitud_id, str(g.user.get("user_id", "")))
+    if denegado:
+        return denegado
     solicitud = _get_raw(solicitud_id)
-    if not solicitud:
-        return (
-            jsonify(
-                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
-            ),
-            404,
-        )
 
     # Obtener historial
     historial = obtener_historial_estados(solicitud_id)
@@ -139,15 +164,11 @@ def get_transiciones_posibles(solicitud_id):
     # Importar servicio de aprobacion para validar permisos
     from backend.services.approval_service import puede_aprobar
 
-    # Verificar que la solicitud existe
+    # Verificar que la solicitud existe y el usuario puede verla
+    denegado = _denegar_si_sin_acceso(solicitud_id, str(user_id or ""))
+    if denegado:
+        return denegado
     solicitud = _get_raw(solicitud_id)
-    if not solicitud:
-        return (
-            jsonify(
-                {"ok": False, "error": {"code": "not_found", "message": "Solicitud not found"}}
-            ),
-            404,
-        )
 
     estado_actual = normalizar_estado(solicitud.get("status") or "")
     transiciones_display = fsm_transiciones(estado_actual)  # Retorna strings display names
