@@ -25,6 +25,7 @@ def register_blueprints(app: Flask) -> None:
         auth,
         budget,
         catalogos,
+        consumo_historico,
         dashboards,
         database,
         docs,
@@ -65,6 +66,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(materiales.bp)
     app.register_blueprint(materiales_detalle.bp_detalle)
     app.register_blueprint(stock.bp)  # Stock management at /api/stock
+    app.register_blueprint(consumo_historico.bp)  # Consumo historico at /api/consumo-historico
 
     # Administration
     app.register_blueprint(admin.bp)
