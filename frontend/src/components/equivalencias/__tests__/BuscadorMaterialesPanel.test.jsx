@@ -8,7 +8,11 @@ vi.mock('../../../services/spm', () => ({
   equivalencias: { asistente: vi.fn() },
   solicitudes: { listar: vi.fn().mockResolvedValue({ data: { solicitudes: [] } }), obtener: vi.fn(), guardarBorrador: vi.fn() },
 }))
-vi.mock('../../../store/authStore', () => ({ useUser: () => ({ id: '901', rol: 'Solicitante' }) }))
+const mockUser = { id: '901', rol: 'Solicitante' }
+vi.mock('../../../store/authStore', () => ({
+  useUser: () => mockUser,
+  useAuthStore: (sel) => sel({ user: mockUser }),
+}))
 const mockT = (key, fallback) => fallback || key
 vi.mock('../../../context/i18n', () => ({ useI18n: () => ({ t: mockT }) }))
 
@@ -18,7 +22,10 @@ const RESP_DESC = {
 }
 
 describe('BuscadorMaterialesPanel', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUser.rol = 'Solicitante'
+  })
 
   it('muestra saludo con 3 ejemplos', () => {
     render(<BuscadorMaterialesPanel onFiltrarTabla={vi.fn()} />)
@@ -52,6 +59,21 @@ describe('BuscadorMaterialesPanel', () => {
     fireEvent.click(screen.getAllByTestId('equiv-bot-ejemplo')[0])
     fireEvent.click(await screen.findByRole('button', { name: /Filtrar tabla/ }))
     expect(onFiltrarTabla).toHaveBeenCalledWith('0101-0000080')
+  })
+
+  it('rol Compartidos no ve Agregar a solicitud; Solicitante si', async () => {
+    equivalencias.asistente.mockResolvedValue({ data: RESP_DESC })
+    mockUser.rol = 'Compartidos'
+    const { unmount } = render(<BuscadorMaterialesPanel onFiltrarTabla={vi.fn()} />)
+    fireEvent.click(screen.getAllByTestId('equiv-bot-ejemplo')[0])
+    await screen.findByText('BOMBA CENTRIF./REP')
+    expect(screen.queryByRole('button', { name: /Agregar a solicitud/ })).not.toBeInTheDocument()
+    unmount()
+
+    mockUser.rol = 'Solicitante'
+    render(<BuscadorMaterialesPanel onFiltrarTabla={vi.fn()} />)
+    fireEvent.click(screen.getAllByTestId('equiv-bot-ejemplo')[0])
+    expect(await screen.findByRole('button', { name: /Agregar a solicitud/ })).toBeInTheDocument()
   })
 
   it('error muestra Reintentar y reintenta', async () => {

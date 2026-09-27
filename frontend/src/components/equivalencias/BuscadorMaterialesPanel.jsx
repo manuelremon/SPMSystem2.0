@@ -16,7 +16,7 @@ import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import { useI18n } from "../../context/i18n";
-import { useUser } from "../../store/authStore";
+import { useUserRoles } from "../../hooks/useUserRoles";
 import { useBuscadorMateriales } from "./useBuscadorMateriales";
 import MaterialResultadoCard from "./MaterialResultadoCard";
 import EquivalenciasResultado from "./EquivalenciasResultado";
@@ -67,15 +67,14 @@ function Burbuja({ rol, children }) {
 export default function BuscadorMaterialesPanel({ onFiltrarTabla, onCerrar }) {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const user = useUser();
+  const { hasRole, isAdmin } = useUserRoles();
   const { mensajes, cargando, enviar, reintentar, limpiar } = useBuscadorMateriales();
   const [texto, setTexto] = useState("");
   const [menu, setMenu] = useState({ material: null, anchorEl: null });
   const [aviso, setAviso] = useState(null);
   const finRef = useRef(null);
 
-  const rol = String(user?.rol || "").toLowerCase();
-  const puedeAgregar = !rol.includes("compartidos") || rol.includes("admin");
+  const puedeAgregar = !hasRole("compartidos") || isAdmin;
 
   useEffect(() => {
     finRef.current?.scrollIntoView?.({ block: "end", behavior: "smooth" });
