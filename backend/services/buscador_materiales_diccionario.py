@@ -35,6 +35,8 @@ ABREVIATURAS = {
     "ELECTRICO": ("ELECT", "ELEC"),
     "EMPAQUETADURA": ("EMPAQ",),
     "ENGRANAJE": ("ENGRAN",),
+    "ESFERICA": ("ESFER", "ESF"),
+    "ESFERICO": ("ESFER", "ESF"),
     "FILTRO": ("FILTR", "FILT"),
     "HIDRAULICO": ("HIDR", "HIDRAUL"),
     "JUNTA": ("JUNTA", "JTA"),
