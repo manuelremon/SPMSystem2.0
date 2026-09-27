@@ -50,11 +50,20 @@ CRITICIDADES_VALIDAS = {"Baja", "Normal", "Alta", "Critica", "Urgente"}
 # Tope de cantidad por item (evita totales desbordados a infinito)
 CANTIDAD_MAXIMA = 1_000_000
 
-# Cache codigo normalizado -> precio de catalogo (evita consultas repetidas)
+# Cache codigo normalizado -> precio de catalogo (evita consultas repetidas).
+# Vive lo que el proceso (se vacia al reiniciar el backend o con
+# limpiar_cache_materiales()). Solo guarda materiales CON precio: los que no
+# tienen precio se consultan siempre, asi un precio cargado despues se ve al
+# instante. Un cambio de precio de un material ya cacheado (p. ej. migracion
+# 104, que corre en otro proceso) requiere reiniciar el backend; el deploy lo hace.
 _materiales_validados_cache: Dict[str, float] = {}
 
 # Resultado de _precio_catalogo cuando la BD no responde
 _PRECIO_NO_VERIFICABLE = object()
+
+# Resultado de _precio_catalogo cuando el material existe pero no tiene precio
+# de referencia (precio_usd NULL): no se puede solicitar hasta que se cargue
+_SIN_PRECIO = object()
 
 
 def _precio_catalogo(material_id: str):
@@ -62,7 +71,8 @@ def _precio_catalogo(material_id: str):
     Precio unitario (USD) del material segun el catalogo.
 
     Returns:
-        float si el material existe, None si no existe,
+        float si el material existe y tiene precio, None si no existe,
+        _SIN_PRECIO si existe sin precio (precio_usd NULL),
         _PRECIO_NO_VERIFICABLE si no se pudo consultar la BD.
     """
     if not material_id:
@@ -102,7 +112,9 @@ def _precio_catalogo(material_id: str):
 
     if row is None:
         return None
-    precio = round(float(row[0] or 0), 2)
+    if row[0] is None:
+        return _SIN_PRECIO  # no se cachea: un precio cargado despues se ve enseguida
+    precio = round(float(row[0]), 2)
     _materiales_validados_cache[codigo_norm] = precio
     return precio
 
@@ -480,6 +492,19 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "indice": idx,
                         "campo": "material_id",
                         "mensaje": f"Material '{item.material_id}' no existe en el catálogo",
+                        "datos": item_data,
+                    }
+                )
+                continue
+            if precio is _SIN_PRECIO:
+                errores.append(
+                    {
+                        "indice": idx,
+                        "campo": "material_id",
+                        "mensaje": (
+                            f"El material {item.material_id} no tiene precio de referencia; "
+                            "no se puede solicitar hasta que se cargue"
+                        ),
                         "datos": item_data,
                     }
                 )

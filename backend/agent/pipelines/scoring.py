@@ -160,7 +160,7 @@ class ScoringPipeline:
             scores["disponibilidad"] = disponibilidad
 
             # Score de costo
-            precio = float(material.get("precio_usd", 0))
+            precio = float(material.get("precio_usd") or 0)
             max_precio = 10000.0
             scores["costo"] = 1.0 - min(precio / max_precio, 1.0)  # Inverso: menor precio = mejor
 

@@ -216,6 +216,68 @@ class TestItemsPrecioCatalogo:
         assert not r["ok"]  # no existe en catalogo, pero no lanza excepcion
 
 
+class TestItemsSinPrecio:
+    """Precio de catalogo = precio SAP del stock; sin precio no se puede pedir (migracion 104)."""
+
+    @pytest.fixture
+    def catalogo_bd(self, tmp_path, monkeypatch):
+        import backend.core.item_schemas as items
+
+        path = str(tmp_path / "master.db")
+        conn = db_module._connect_sqlite(path)
+        conn.execute("CREATE TABLE catalogo_materiales (codigo TEXT PRIMARY KEY, precio_usd REAL)")
+        conn.executemany(
+            "INSERT INTO catalogo_materiales VALUES (?, ?)",
+            [("0503-0000103", 0.43), ("0206-0000398", None)],
+        )
+        conn.commit()
+        conn.close()
+
+        @contextmanager
+        def _conn(db_name="spm"):
+            assert db_name == "master_materiales"
+            c = db_module._connect_sqlite(path)
+            try:
+                yield c
+            finally:
+                c.close()
+
+        monkeypatch.setattr(db_module, "get_db_connection", _conn)
+        items.limpiar_cache_materiales()
+        yield items, path
+        items.limpiar_cache_materiales()
+
+    def test_precio_sap_se_aplica(self, catalogo_bd):
+        items, _ = catalogo_bd
+        r = items.validar_items([{"codigo": "0503-0000103", "cantidad": 10, "unidad": "L"}])
+        assert r["ok"] and r["items"][0].precio_unitario == pytest.approx(0.43)
+        assert r["total"] == pytest.approx(4.30)
+
+    def test_sin_precio_se_rechaza(self, catalogo_bd):
+        items, _ = catalogo_bd
+        assert items._precio_catalogo("0206-0000398") is items._SIN_PRECIO
+        r = items.validar_items([{"codigo": "0206-0000398", "cantidad": 1, "unidad": "UNI"}])
+        assert not r["ok"] and r["items_validos"] == 0
+        assert r["errores"][0]["mensaje"] == (
+            "El material 0206-0000398 no tiene precio de referencia; no se puede solicitar hasta que se cargue"
+        )
+
+    def test_precio_cargado_despues_se_ve(self, catalogo_bd):
+        items, path = catalogo_bd
+        assert items._precio_catalogo("0206-0000398") is items._SIN_PRECIO
+        c = db_module._connect_sqlite(path)
+        c.execute("UPDATE catalogo_materiales SET precio_usd = 12.5 WHERE codigo = '0206-0000398'")
+        c.commit()
+        c.close()
+        assert items._precio_catalogo("0206-0000398") == pytest.approx(12.5)
+
+    def test_inexistente_mensaje_de_siempre(self, catalogo_bd):
+        items, _ = catalogo_bd
+        r = items.validar_items([{"codigo": "9999-9999999", "cantidad": 1, "unidad": "UNI"}])
+        assert not r["ok"]
+        assert r["errores"][0]["mensaje"] == "Material '9999-9999999' no existe en el catálogo"
+
+
 # ---------------------------------------------------------------------------
 # Cabecera de solicitud
 # ---------------------------------------------------------------------------
