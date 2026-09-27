@@ -821,6 +821,7 @@ const translations = {
   common_seleccionar_todos: { es: "Seleccionar todos", en: "Select all" },
   common_limpiar_busqueda: { es: "Limpiar búsqueda", en: "Clear search" },
   common_limpiar: { es: "Limpiar", en: "Clear" },
+  common_limpiar_filtros: { es: "Limpiar filtros", en: "Clear filters" },
   common_confirmar_eliminar: { es: "¿Está seguro de eliminar?", en: "Are you sure you want to delete?" },
   common_nuevo: { es: "Nuevo", en: "New" },
   common_actualizar: { es: "Actualizar", en: "Update" },
