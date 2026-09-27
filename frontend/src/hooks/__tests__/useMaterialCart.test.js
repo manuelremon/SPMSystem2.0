@@ -38,4 +38,25 @@ describe('useMaterialCart precarga', () => {
     expect(sessionStorage.getItem('suggested_items')).toBeNull()
     expect(result.current.hasUnsavedChanges).toBe(true)
   })
+
+  it('conserva el item sugerido si initialItems se recarga con una instancia distinta pero igual contenido', () => {
+    sessionStorage.setItem('suggested_items', JSON.stringify([{ codigo: 'B', descripcion: 'Bomba', unidad: 'UNI', cantidad: 1 }]))
+    const setActionMsg = vi.fn()
+    const { result, rerender } = renderHook((props) => useMaterialCart(props), {
+      initialProps: { initialItems: null, setActionMsg, setShowAssistant: vi.fn() },
+    })
+
+    // Primera carga (p. ej. primer fetch de useMaterialForm)
+    act(() => rerender({ initialItems: [{ codigo: 'A', cantidad: 2, unidad: 'UNI' }], setActionMsg, setShowAssistant: vi.fn() }))
+    expect(result.current.items.map((it) => it.codigo)).toEqual(['A', 'B'])
+
+    // Segunda carga con OTRA instancia de array pero mismo contenido (StrictMode / doble fetch)
+    act(() => rerender({ initialItems: [{ codigo: 'A', cantidad: 2, unidad: 'UNI' }], setActionMsg, setShowAssistant: vi.fn() }))
+    expect(result.current.items.map((it) => it.codigo)).toEqual(['A', 'B'])
+    expect(result.current.hasUnsavedChanges).toBe(true)
+
+    // El mensaje de sugerencias solo se muestra la primera vez que se agregan
+    const llamadasSugeridos = setActionMsg.mock.calls.filter(([msg]) => msg.includes('material(es) sugeridos'))
+    expect(llamadasSugeridos.length).toBe(1)
+  })
 })
