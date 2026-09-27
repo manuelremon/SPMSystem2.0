@@ -57,7 +57,8 @@ def terminos(texto: str) -> list[list[str]]:
     """Un grupo de alternativas (raiz + abreviaturas) por cada palabra util."""
     grupos: list[list[str]] = []
     for palabra in normalizar(texto).split():
-        if palabra in PALABRAS_VACIAS or len(palabra) < 2:
+        # las medidas de una cifra (2", 4") cuentan; las letras sueltas no
+        if palabra in PALABRAS_VACIAS or (len(palabra) < 2 and not palabra.isdigit()):
             continue
         alternativas = {palabra[:LARGO_RAIZ]} | set(ABREVIATURAS.get(palabra, ()))
         grupo = sorted(alternativas)
@@ -71,55 +72,129 @@ LIMITE_CANDIDATOS = 200
 TOP_CON_EQUIVALENCIAS = 20
 
 
-def _where_grupos(grupos: list[list[str]], todos: bool) -> tuple[str, list[str]]:
-    clausulas, params = [], []
+def _condicion_grupo(grupo: list[str]) -> tuple[str, list[str]]:
+    """(cond1 OR cond2 ...) para un grupo de alternativas, en descripcion y descripcion_larga."""
+    alternativas, params = [], []
+    for alt in grupo:
+        alternativas.append("UPPER(descripcion) LIKE %s")
+        alternativas.append("UPPER(COALESCE(descripcion_larga, '')) LIKE %s")
+        params.extend([f"%{alt}%", f"%{alt}%"])
+    return "(" + " OR ".join(alternativas) + ")", params
+
+
+def _es_numerico(grupo: list[str]) -> bool:
+    return all(alt.isdigit() for alt in grupo)
+
+
+def _ancla(grupos: list[list[str]]) -> list[str] | None:
+    """Primer grupo no numerico con alguna alternativa de 3+ letras: el sustantivo de la consulta."""
     for grupo in grupos:
-        alternativas = []
-        for alt in grupo:
-            alternativas.append("UPPER(descripcion) LIKE %s")
-            alternativas.append("UPPER(COALESCE(descripcion_larga, '')) LIKE %s")
-            params.extend([f"%{alt}%", f"%{alt}%"])
-        clausulas.append("(" + " OR ".join(alternativas) + ")")
-    return (" AND " if todos else " OR ").join(clausulas), params
+        if not _es_numerico(grupo) and max(len(alt) for alt in grupo) >= 3:
+            return grupo
+    return None
+
+
+def _puntos_sql(grupo: list[str]) -> tuple[str, list[str]]:
+    """Relevancia de un grupo en SQL: 2 si esta en la descripcion corta, 1 si solo en la larga;
+    para numeros, +2 si aparece como medida en pulgadas (12")."""
+    en_desc = " OR ".join(["UPPER(descripcion) LIKE %s"] * len(grupo))
+    en_larga = " OR ".join(["UPPER(COALESCE(descripcion_larga, '')) LIKE %s"] * len(grupo))
+    sql = f"(CASE WHEN {en_desc} THEN 2 WHEN {en_larga} THEN 1 ELSE 0 END)"
+    params = [f"%{alt}%" for alt in grupo] * 2
+    if _es_numerico(grupo):
+        sql += " + (CASE WHEN " + " OR ".join(["UPPER(descripcion) LIKE %s"] * len(grupo)) + " THEN 2 ELSE 0 END)"
+        params += [f'% {alt}"%' for alt in grupo]
+    return sql, params
+
+
+def _consultar(where: str, params: list[str], grupos_orden: list[list[str]]) -> list[dict]:
+    """Candidatos que cumplen `where`, ordenados en SQL por relevancia ANTES del LIMIT
+    (si no, con consultas amplias el ranking solo ve 200 filas arbitrarias)."""
+    puntos, params_orden = [], []
+    for grupo in grupos_orden:
+        sql, p = _puntos_sql(grupo)
+        puntos.append(sql)
+        params_orden.extend(p)
+    orden = (" + ".join(puntos) + " DESC, ") if puntos else ""
+    with get_db_connection(DB_MATERIALES) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd "
+            f"FROM catalogo_materiales WHERE {where} "
+            f"ORDER BY {orden}LENGTH(descripcion), codigo LIMIT {LIMITE_CANDIDATOS}",
+            params + params_orden,
+        )
+        return [
+            {
+                "codigo": f["codigo"],
+                "descripcion": f["descripcion"] or "",
+                "descripcion_larga": f["descripcion_larga"] or "",
+                "unidad": f["unidad_medida"] or "UNI",
+                "precio_usd": float(f["precio_usd"]) if f["precio_usd"] is not None else None,
+            }
+            for f in cur.fetchall()
+        ]
 
 
 def _candidatos(grupos: list[list[str]]) -> list[dict]:
-    with get_db_connection(DB_MATERIALES) as conn:
-        cur = conn.cursor()
-        for todos in (True, False):
-            where, params = _where_grupos(grupos, todos)
-            cur.execute(
-                "SELECT codigo, descripcion, descripcion_larga, unidad_medida, precio_usd "
-                f"FROM catalogo_materiales WHERE {where} LIMIT {LIMITE_CANDIDATOS}",
-                params,
-            )
-            filas = cur.fetchall()
-            if filas:
-                return [
-                    {
-                        "codigo": f["codigo"],
-                        "descripcion": f["descripcion"] or "",
-                        "descripcion_larga": f["descripcion_larga"] or "",
-                        "unidad": f["unidad_medida"] or "UNI",
-                        "precio_usd": float(f["precio_usd"]) if f["precio_usd"] is not None else None,
-                    }
-                    for f in filas
-                ]
-    return []
+    """Todas las palabras + las que tienen el sustantivo (el resto suma); si nada, cualquier palabra no numerica."""
+    condiciones = [_condicion_grupo(g) for g in grupos]
+    where = " AND ".join(c for c, _ in condiciones)
+    filas = _consultar(where, [p for _, ps in condiciones for p in ps], grupos)
+
+    # Tambien los que tienen el sustantivo aunque falte alguna palabra: exigirlas todas deja
+    # afuera, por ejemplo, la brida 12" 300 de acero al carbono cuando se pidio inoxidable.
+    ancla = _ancla(grupos)
+    if ancla is not None and len(grupos) > 1:
+        where, params = _condicion_grupo(ancla)
+        vistos = {f["codigo"] for f in filas}
+        filas += [f for f in _consultar(where, params, grupos) if f["codigo"] not in vistos]
+    if filas:
+        return filas
+
+    textuales = [g for g in grupos if not _es_numerico(g)]
+    if not textuales:
+        return []
+    condiciones = [_condicion_grupo(g) for g in textuales]
+    where = " OR ".join(c for c, _ in condiciones)
+    return _consultar(where, [p for _, ps in condiciones for p in ps], grupos)
+
+
+def _coincide(alt: str, texto: str) -> bool:
+    """Numeros y abreviaturas cortas o con punto ("V.ESF") cuentan solo desde el inicio de una
+    palabra ("12" no coincide con "1219MM"; "AC" no coincide con "PLACA"); el resto, como raiz.
+    `texto` ya viene normalizado, asi que la alternativa tambien se normaliza."""
+    alt = normalizar(alt)
+    if alt.isdigit():
+        return re.search(rf"(?<![0-9]){alt}(?![0-9])", texto) is not None
+    if len(alt) <= 3 or " " in alt:
+        return re.search(rf"(?<![A-Z0-9]){re.escape(alt)}", texto) is not None
+    return alt in texto
 
 
 def _puntaje(material: dict, grupos: list[list[str]]) -> int:
+    crudo = (material["descripcion"] or "").upper()
     desc = normalizar(material["descripcion"])
     larga = normalizar(material["descripcion_larga"])
+    ancla = _ancla(grupos)
     puntos = 0
     for grupo in grupos:
-        if any(alt in desc for alt in grupo):
-            puntos += 10
-        elif any(alt in larga for alt in grupo):
-            puntos += 4
+        peso = 20 if grupo is ancla else 12 if _es_numerico(grupo) else 10
+        if _es_numerico(grupo):
+            # sobre el texto crudo: el 2 de 1/2" o de 2,5 no es la medida 2
+            en_desc = any(re.search(rf"(?<![0-9/.,]){alt}(?![0-9/.,])", crudo) for alt in grupo)
+        else:
+            en_desc = any(_coincide(alt, desc) for alt in grupo)
+        if en_desc:
+            puntos += peso
+            # medida en pulgadas: 12" en el catalogo
+            if _es_numerico(grupo) and any(re.search(rf'(?<![0-9]){alt}"', crudo) for alt in grupo):
+                puntos += 5
+        elif any(_coincide(alt, larga) for alt in grupo):
+            puntos += 2 if grupo is ancla else 4
     palabras = desc.split()
-    if palabras and grupos and any(palabras[0].startswith(alt) for alt in grupos[0]):
-        puntos += 3
+    if palabras and ancla and any(palabras[0].startswith(alt) for alt in ancla):
+        puntos += 5
     return puntos
 
 

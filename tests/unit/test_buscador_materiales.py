@@ -107,7 +107,8 @@ class TestBuscarPorDescripcion:
     def test_abreviatura_encuentra_centrif(self, db_materiales):
         codigos = [m["codigo"] for m in svc.buscar_por_descripcion("bomba centrífuga")]
         assert codigos[:2] == ["0101-0000080", "0101-0000081"]
-        assert "0101-0000090" not in codigos  # AND: dosificadora no es centrifuga
+        # la dosificadora tiene el sustantivo pero no "centrifuga": aparece, pero despues
+        assert codigos.index("0101-0000090") > 1
 
     def test_or_si_and_no_encuentra(self, db_materiales):
         codigos = [m["codigo"] for m in svc.buscar_por_descripcion("bomba inexistente")]
@@ -309,3 +310,69 @@ class TestEndpointAsistente:
         r = auth_client.post("/api/equivalencias/asistente", json={"mensaje": "bomba"})
         assert r.status_code == 500
         assert "detalle interno" not in r.get_data(as_text=True)
+
+
+class TestConsultaEnLenguajeNatural:
+    """Frases reales: palabras que el catalogo SAP no usa ("pulgadas", "serie", "inoxidable")."""
+
+    FRASE = "Necesito una brida de 12 pulgadas serie 300 de acero inoxidable"
+    RUIDO = [
+        # coinciden con "12", "300" o "AC" como subcadena, pero no son bridas
+        ("0101-0000198", 'ZX RECEPTAC.HALLIB.912PBS50038 7" 23-32#'),
+        ("0101-0000016", "XO NC46-HX XT39-M 4145H 1219MM"),
+        ("0101-0000199", "ZX MOT.EXPL.HERCULES G2300 A GAS"),
+        ("0101-0000026", 'SUST.SONDEO A 3.1/2" NC38M 4" XT39-M*'),
+        ("0102-0000001", "SUBESTRUCT.REGULAB.FRACTURAS"),
+    ]
+    BRIDAS = [
+        ("0803-0000001", 'BRIDA WN 16" 300 A105 RF 12,70MM'),
+        ("0803-0000002", 'BRIDA SO 12" 150 F316L RF'),
+        ("0803-0000003", 'BRIDA SO 12" 300 F316L RF'),
+        ("0803-0000004", 'BRIDA WN 12" 300 A105 RF 6,35MM'),
+        ("0803-0000005", 'BRIDA SO 3" 150 A105 RF'),
+    ]
+
+    @pytest.fixture
+    def db_bridas(self, db_materiales):
+        conn = db_module._connect_sqlite(db_materiales)
+        # el ruido se inserta primero: sin ORDER BY en SQL entraria antes que las bridas
+        for codigo, desc in self.RUIDO + self.BRIDAS:
+            conn.execute("INSERT INTO catalogo_materiales VALUES (?, ?, '', 'UNI', 10.0)", (codigo, desc))
+        conn.commit()
+        conn.close()
+        return db_materiales
+
+    def test_frase_ignora_palabras_de_relleno(self):
+        assert svc.terminos(svc.interpretar(self.FRASE)["texto"])[0] == ["BRIDA"]
+        planos = {alt for grupo in svc.terminos(svc.interpretar(self.FRASE)["texto"]) for alt in grupo}
+        assert not {"PULGA", "SERIE"} & planos
+
+    def test_brida_12_300_inoxidable_primero(self, db_bridas):
+        codigos = [m["codigo"] for m in svc.buscar_por_descripcion(self.FRASE)]
+        assert codigos[0] == "0803-0000003"  # 12" + 300 + F316L
+        assert set(codigos[:4]) == {"0803-0000001", "0803-0000002", "0803-0000003", "0803-0000004"}
+        assert not {c for c, _ in self.RUIDO} & set(codigos)
+
+    def test_orden_en_sql_antes_de_limitar(self, db_bridas, monkeypatch):
+        monkeypatch.setattr(svc, "LIMITE_CANDIDATOS", 2)
+        codigos = [m["codigo"] for m in svc.buscar_por_descripcion(self.FRASE)]
+        assert codigos[0] == "0803-0000003"
+
+    def test_numero_no_coincide_dentro_de_otro(self, db_bridas):
+        codigos = [m["codigo"] for m in svc.buscar_por_descripcion("brida 12")]
+        assert "0803-0000001" not in codigos[:3]  # 12,70MM no es una brida de 12"
+        assert codigos[0] in {"0803-0000002", "0803-0000003", "0803-0000004"}
+
+    def test_medida_de_una_cifra(self, db_bridas):
+        assert ["3"] in svc.terminos("BRIDA 3")
+        assert svc.buscar_por_descripcion("brida 3 pulgadas")[0]["codigo"] == "0803-0000005"
+
+    def test_fraccion_no_cuenta_como_medida(self, db_bridas):
+        conn = db_module._connect_sqlite(db_bridas)
+        conn.execute("INSERT INTO catalogo_materiales VALUES ('0803-0000006', 'BRIDA SO 1/2\" 150 A105', '', 'UNI', 1.0)")
+        conn.execute("INSERT INTO catalogo_materiales VALUES ('0803-0000007', 'BRIDA SO 2\" 150 A105 RF', '', 'UNI', 1.0)")
+        conn.commit()
+        conn.close()
+        codigos = [m["codigo"] for m in svc.buscar_por_descripcion("brida 2 pulgadas")]
+        assert codigos[0] == "0803-0000007"
+        assert codigos.index("0803-0000006") > codigos.index("0803-0000007")
