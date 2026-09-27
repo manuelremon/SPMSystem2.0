@@ -128,9 +128,21 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
    * @param {Object} material - The selected material object
    * @param {Object} detailCache - Cache of material details (for pre-fetching)
    * @param {Function} loadDetail - Function to load material details
+   * @returns {Promise<boolean>} true si se agrego; false si no (p. ej. material sin precio)
    */
   const handleAdd = useCallback(async (material, detailCache, loadDetail) => {
-    if (!material) return
+    if (!material) return false
+
+    // Sin precio de referencia (precio SAP) no se puede solicitar: el backend lo rechazaria
+    if (material.precio_usd == null) {
+      setActionMsg(
+        t(
+          'materials_sin_precio_no_agregar',
+          'Este material no tiene precio de referencia; no se puede solicitar hasta que se cargue.'
+        )
+      )
+      return false
+    }
 
     if (!detailCache[material.codigo]) {
       await loadDetail(material.codigo, false)
@@ -151,12 +163,13 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
             descripcion_larga: material.descripcion_larga,
             unidad: material.unidad_medida || material.unidad || 'UNI',
             cantidad: 1,
-            precio_unitario: material.precio_usd || 0,
+            precio_unitario: material.precio_usd,
           },
         ]
 
     setItems(nextItems)
     setActionMsg(t('materials_added', 'Material agregado al listado.'))
+    return true
   }, [items, t, setActionMsg])
 
   const handleAddSuggestedItems = useCallback((suggestedItems) => {

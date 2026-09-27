@@ -535,6 +535,8 @@ const translations = {
   materials_asistente_ia_tooltip: { es: "Describe lo que necesitas y la IA sugiere materiales del catálogo", en: "Describe what you need and AI suggests catalog materials" },
   materials_agregar_tooltip: { es: "Agregar este material a la solicitud", en: "Add this material to the request" },
   materials_agregar_disabled_tooltip: { es: "Primero revisa los detalles del material", en: "Review the material details first" },
+  materials_sin_precio: { es: "Sin precio", en: "No price" },
+  materials_sin_precio_no_agregar: { es: "Este material no tiene precio de referencia; no se puede solicitar hasta que se cargue.", en: "This material has no reference price; it cannot be requested until one is loaded." },
   materials_planificado_mrp_tt: { es: "Indica si el material se repone automaticamente mediante el sistema MRP", en: "Whether the material is auto-replenished via the MRP system" },
   materials_stock_seguridad_tt: { es: "Cantidad mínima que se mantiene en reserva para cubrir imprevistos de demanda o suministro", en: "Minimum quantity kept in reserve to cover demand or supply variability" },
   materials_punto_pedido_tt: { es: "Nivel de stock que dispara una nueva orden de reposición automática", en: "Stock level that triggers a new automatic replenishment order" },
