@@ -50,6 +50,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
+import Drawer from "@mui/material/Drawer";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import BuscadorMaterialesPanel from "../components/equivalencias/BuscadorMaterialesPanel";
 
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 300;
@@ -519,6 +523,39 @@ export default function CatalogoEquivalencias() {
   const [searchTipo, setSearchTipo] = useState("");
   const [tiposOptions, setTiposOptions] = useState([]);
 
+  // Buscador conversacional: columna derecha en escritorio, Drawer en tablet/movil
+  const esEscritorio = useMediaQuery((theme) => theme.breakpoints.up("lg"));
+  const [panelVisible, setPanelVisible] = useState(() => {
+    try {
+      return localStorage.getItem("spm_equiv_buscador_visible") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const [drawerAbierto, setDrawerAbierto] = useState(false);
+
+  const alternarPanel = useCallback(() => {
+    if (!esEscritorio) {
+      setDrawerAbierto(true);
+      return;
+    }
+    setPanelVisible((visible) => {
+      try {
+        localStorage.setItem("spm_equiv_buscador_visible", visible ? "0" : "1");
+      } catch {
+        // preferencia no persistida: no es critico
+      }
+      return !visible;
+    });
+  }, [esEscritorio]);
+
+  const filtrarTabla = useCallback((codigo) => {
+    setSearchCodigo(codigo);
+    setSearchDesc("");
+    setSearchTipo("");
+    setDrawerAbierto(false);
+  }, []);
+
   const debouncedCodigo = useDebouncedValue(searchCodigo, DEBOUNCE_MS);
   const debouncedDesc = useDebouncedValue(searchDesc, DEBOUNCE_MS);
 
@@ -894,12 +931,31 @@ export default function CatalogoEquivalencias() {
     <PageLayout
       title={t("equivalencias_titulo", "Catálogo de materiales alternativos")}
       subtitle={t("equivalencias_subtitulo", "Gestiona equivalencias y materiales sustitutos")}
-      actions={canManage ? (
-        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCreateModal} sx={{ textTransform: "none" }}>
-          {t('equiv_nueva', 'Nueva equivalencia')}
-        </Button>
-      ) : null}
+      actions={
+        <>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ForumOutlinedIcon />}
+            onClick={alternarPanel}
+            sx={{ textTransform: "none" }}
+          >
+            {esEscritorio
+              ? panelVisible
+                ? t("equiv_bot_ocultar", "Ocultar buscador")
+                : t("equiv_bot_mostrar", "Mostrar buscador")
+              : t("equiv_bot_boton", "Buscador")}
+          </Button>
+          {canManage && (
+            <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openCreateModal} sx={{ textTransform: "none" }}>
+              {t("equiv_nueva", "Nueva equivalencia")}
+            </Button>
+          )}
+        </>
+      }
     >
+        <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+          <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Alerts */}
         {error && (
           <Alert severity="error" onClose={() => setError("")}>
@@ -1071,6 +1127,31 @@ export default function CatalogoEquivalencias() {
             />
           )}
         </Paper>
+          </Box>
+          {esEscritorio && (
+            <Box
+              sx={{
+                display: panelVisible ? "block" : "none",
+                width: 380,
+                flexShrink: 0,
+                position: "sticky",
+                top: 16,
+                height: "calc(100vh - 160px)",
+                minHeight: 480,
+              }}
+            >
+              <BuscadorMaterialesPanel onFiltrarTabla={filtrarTabla} />
+            </Box>
+          )}
+        </Box>
+
+        {!esEscritorio && (
+          <Drawer anchor="right" open={drawerAbierto} onClose={() => setDrawerAbierto(false)} keepMounted>
+            <Box sx={{ width: { xs: "100vw", sm: 420 }, height: "100%" }}>
+              <BuscadorMaterialesPanel onFiltrarTabla={filtrarTabla} onCerrar={() => setDrawerAbierto(false)} />
+            </Box>
+          </Drawer>
+        )}
 
         {/* Form Modal */}
         <FormModal
