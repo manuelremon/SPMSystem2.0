@@ -201,7 +201,12 @@ export default function EquivalenciaFormModal({ open, onClose, onSaved, material
         onSaved(t("equiv_creada", "Equivalencia creada correctamente"));
       }
     } catch (err) {
-      setError(mensajeError(err, t));
+      if (editando && err?.response?.status === 404) {
+        // Ya la borro otra persona: cerrar y recargar la lista
+        onSaved(t("equiv_ya_no_existe", "La equivalencia ya no existe; se actualizó la lista."));
+      } else {
+        setError(mensajeError(err, t));
+      }
     } finally {
       setGuardando(false);
     }

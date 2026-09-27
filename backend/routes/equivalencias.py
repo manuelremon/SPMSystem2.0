@@ -110,10 +110,9 @@ def listar_equivalencias():
             total = count_row["total"] if isinstance(count_row, dict) else count_row[0]
 
             # Query para obtener resultados con paginación
-            _col_id = "id" if _PG else "ROWID"
             select_query = f"""
                 SELECT
-                    {_col_id} AS id,
+                    {_col_id()} AS id,
                     material_base,
                     texto_breve_base,
                     material_equivalente,
@@ -301,6 +300,13 @@ MAX_TEXTO_EQUIV = 500
 
 
 def _col_id() -> str:
+    """Columna que identifica una equivalencia en la API.
+
+    PG: id SERIAL de cat_equivalencias (estable). SQLite (solo dev): la tabla no
+    tiene id y se usa el rowid, que NO es estable: VACUUM o una reimportacion de
+    master_materiales.db pueden renumerarlo, asi que un id guardado en el cliente
+    puede apuntar a otra fila despues de esas operaciones.
+    """
     return "id" if _PG else "rowid"
 
 

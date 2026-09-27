@@ -55,6 +55,70 @@ def _filas(path):
         conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Camino PostgreSQL: conexion falsa que registra el SQL
+# ---------------------------------------------------------------------------
+
+
+class _CursorPGFalso:
+    """Registra cada (sql, params) y devuelve filas plausibles segun el SQL."""
+
+    def __init__(self, ejecutadas):
+        self.ejecutadas = ejecutadas
+        self._ultima = ""
+        self._params = ()
+
+    def execute(self, sql, params=()):
+        self._ultima = " ".join(sql.split())
+        self._params = tuple(params or ())
+        self.ejecutadas.append((self._ultima, self._params))
+        return self
+
+    def fetchone(self):
+        sql = self._ultima
+        if sql.startswith("SELECT codigo AS codigo, descripcion FROM catalogo_materiales"):
+            return {"codigo": self._params[0], "descripcion": f"DESC {self._params[0]}"}
+        if sql.startswith("SELECT 1 FROM cat_equivalencias"):
+            return None  # sin duplicado
+        if sql.startswith("INSERT INTO cat_equivalencias"):
+            return {"id": 42}
+        if sql.startswith("SELECT id AS id FROM cat_equivalencias WHERE id ="):
+            return {"id": self._params[0]}
+        raise AssertionError(f"SQL inesperado: {sql}")
+
+    def fetchall(self):
+        return []
+
+
+class _ConexionPGFalsa:
+    def __init__(self):
+        self.ejecutadas = []
+        self.commits = 0
+
+    def cursor(self):
+        return _CursorPGFalso(self.ejecutadas)
+
+    def commit(self):
+        self.commits += 1
+
+
+@pytest.fixture
+def db_pg_falsa(monkeypatch):
+    import backend.routes.equivalencias as rutas
+
+    conexion = _ConexionPGFalsa()
+
+    @contextmanager
+    def _conn(db_name="spm"):
+        yield conexion
+
+    monkeypatch.setattr(rutas, "get_db_connection", _conn)
+    monkeypatch.setattr(rutas, "_PG", True)
+    # insert_returning_id decide RETURNING con el is_using_postgresql de backend.core.db
+    monkeypatch.setattr(db_module, "is_using_postgresql", lambda: True)
+    return conexion
+
+
 class TestCrudEquivalencias:
     @pytest.fixture(scope="class")
     def app(self):
@@ -211,3 +275,28 @@ class TestCrudEquivalencias:
         assert solicitante.put("/api/equivalencias/1", json={"criterio": "x"}).status_code == 403
         assert solicitante.delete("/api/equivalencias/1").status_code == 403
         assert len(_filas(db_equiv)) == 1
+
+    def test_pg_escrituras_van_a_cat_equivalencias(self, admin, db_pg_falsa):
+        """Camino PG: la tabla base cat_equivalencias, INSERT ... RETURNING id, filtros por id."""
+        r = self._crear(admin)
+        assert r.status_code == 201, r.get_json()
+        assert r.get_json()["id"] == 42
+        assert admin.put("/api/equivalencias/7", json={"criterio": "Caudal"}).status_code == 200
+        assert admin.delete("/api/equivalencias/7").status_code == 200
+
+        sqls = [s for s, _ in db_pg_falsa.ejecutadas]
+        escrituras = [s for s in sqls if s.split()[0] in ("INSERT", "UPDATE", "DELETE")]
+        assert [s.split()[0] for s in escrituras] == ["INSERT", "UPDATE", "DELETE"]
+
+        insert, update, delete = escrituras
+        assert insert.startswith("INSERT INTO cat_equivalencias")
+        assert insert.endswith("RETURNING id")  # agregado por insert_returning_id
+        assert update.startswith("UPDATE cat_equivalencias SET criterio = ?")
+        assert update.endswith("WHERE id = ?")
+        assert delete == "DELETE FROM cat_equivalencias WHERE id = ?"
+        # la vista materiales_equivalencias nunca recibe escrituras
+        assert not any("materiales_equivalencias" in s for s in escrituras)
+        # UPDATE/DELETE filtran por el id pedido
+        params = {s: p for s, p in db_pg_falsa.ejecutadas}
+        assert params[update][-1] == 7 and params[delete] == (7,)
+        assert db_pg_falsa.commits == 3

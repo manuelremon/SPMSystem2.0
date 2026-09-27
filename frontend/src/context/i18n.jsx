@@ -754,6 +754,7 @@ const translations = {
   common_guardar: { es: "Guardar", en: "Save" },
   common_editar: { es: "Editar", en: "Edit" },
   common_eliminar: { es: "Eliminar", en: "Delete" },
+  common_eliminando: { es: "Eliminando...", en: "Deleting..." },
   common_ver: { es: "Ver", en: "View" },
   common_acciones: { es: "Acciones", en: "Actions" },
   common_fecha: { es: "Fecha", en: "Date" },
@@ -819,6 +820,7 @@ const translations = {
   common_creado: { es: "Creado", en: "Created" },
   common_seleccionar_todos: { es: "Seleccionar todos", en: "Select all" },
   common_limpiar_busqueda: { es: "Limpiar búsqueda", en: "Clear search" },
+  common_limpiar: { es: "Limpiar", en: "Clear" },
   common_confirmar_eliminar: { es: "¿Está seguro de eliminar?", en: "Are you sure you want to delete?" },
   common_nuevo: { es: "Nuevo", en: "New" },
   common_actualizar: { es: "Actualizar", en: "Update" },
@@ -2838,6 +2840,7 @@ const translations = {
   equiv_error_duplicado: { es: "Esa equivalencia ya existe con el mismo tipo.", en: "That equivalent already exists with the same type." },
   equiv_error_material: { es: "El material o la equivalencia ya no existe.", en: "The material or the equivalent no longer exists." },
   equiv_error_permiso: { es: "No tienes permiso para gestionar equivalencias.", en: "You are not allowed to manage equivalents." },
+  equiv_ya_no_existe: { es: "La equivalencia ya no existe; se actualizó la lista.", en: "The equivalent no longer exists; the list was refreshed." },
   mrp_portfolio_search_placeholder: { es: "Buscar por código o descripción...", en: "Search by code or description..." },
 };
 

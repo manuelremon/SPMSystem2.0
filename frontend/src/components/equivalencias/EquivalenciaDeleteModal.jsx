@@ -42,8 +42,16 @@ export default function EquivalenciaDeleteModal({ open, item, onClose, onDeleted
     try {
       await equivalencias.eliminar(item.id);
       onDeleted(t("equiv_eliminada", "Equivalencia eliminada correctamente"));
-    } catch {
-      setError(t("equiv_error_eliminar", "No se pudo eliminar la equivalencia. Intenta nuevamente."));
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        // Ya la borro otra persona: cerrar y recargar la lista
+        onDeleted(t("equiv_ya_no_existe", "La equivalencia ya no existe; se actualizó la lista."));
+      } else if (status === 403) {
+        setError(t("equiv_error_permiso", "No tienes permiso para gestionar equivalencias."));
+      } else {
+        setError(t("equiv_error_eliminar", "No se pudo eliminar la equivalencia. Intenta nuevamente."));
+      }
     } finally {
       setBorrando(false);
     }
