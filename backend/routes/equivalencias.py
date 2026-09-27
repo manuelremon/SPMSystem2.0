@@ -9,7 +9,6 @@ from flask import Blueprint, jsonify, request
 
 from backend.core.db import (
     get_db_connection,
-    get_db_transaction,
     insert_returning_id,
     is_using_postgresql,
 )
@@ -237,19 +236,18 @@ def get_tipos_equivalencia():
 @require_auth
 def equivalencias_por_material(codigo):
     """
-    Obtiene todas las equivalencias de un material específico.
+    Obtiene todas las equivalencias de un material específico (bidireccional).
 
-    Retorna materiales que pueden sustituir al código dado.
-    Busca en equivalentes.db tabla equivalencias.
+    Cada fila incluye `id` (PG: id; SQLite: rowid) y el sentido original
+    (`codigo_original`/`codigo_destino`) para poder editarla o borrarla.
     """
     try:
-        # Buscar equivalencias SAP (PG: cat_equivalencias, SQLite: equivalentes.db)
         with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
-            # Buscar donde el material es base O es equivalente (bidireccional)
             cursor.execute(
                 f"""
                 SELECT
+                    {_col_id()} AS id,
                     material_base,
                     texto_breve_base,
                     material_equivalente,
@@ -276,6 +274,9 @@ def equivalencias_por_material(codigo):
 
             equivalencias.append(
                 {
+                    "id": row["id"],
+                    "codigo_original": str(row["material_base"]),
+                    "codigo_destino": str(row["material_equivalente"]),
                     "codigo_equivalente": str(equiv_codigo),
                     "descripcion_equivalente": equiv_desc or "Sin descripción",
                     "tipo_equivalencia": row["tipo_equiv"],
@@ -290,170 +291,141 @@ def equivalencias_por_material(codigo):
         return safe_error_response(e, logger, context="equivalencias.equivalencias_por_material")
 
 
+# ---------------------------------------------------------------------------
+# CRUD: escribe en la misma tabla que leen el listado y el buscador.
+# SQLite: materiales_equivalencias (sin columna id -> rowid).
+# PostgreSQL: materiales_equivalencias es una vista sobre cat_equivalencias (id SERIAL).
+# ---------------------------------------------------------------------------
+TIPOS_VALIDOS = ("E0_DUPLICADO", "E1_ESTRICTA", "E2_SUPLIBLE")
+MAX_TEXTO_EQUIV = 500
+
+
+def _col_id() -> str:
+    return "id" if _PG else "rowid"
+
+
+def _tabla_escritura() -> str:
+    return "cat_equivalencias" if _PG else _TABLA_EQUIV
+
+
+def _error(status: int, code: str, message: str):
+    return jsonify({"ok": False, "error": {"code": code, "message": message}}), status
+
+
+def _texto_opcional(data: dict, campo: str):
+    """(valor normalizado, error). None si viene vacío; error si no es texto o supera el máximo."""
+    valor = data.get(campo)
+    if valor is None:
+        return None, None
+    if not isinstance(valor, str):
+        return None, f"{campo} debe ser texto"
+    valor = valor.strip()
+    if len(valor) > MAX_TEXTO_EQUIV:
+        return None, f"{campo} admite hasta {MAX_TEXTO_EQUIV} caracteres"
+    return valor or None, None
+
+
+def _existe_equivalencia(cursor, id_equivalencia: int) -> bool:
+    cursor.execute(
+        f"SELECT {_col_id()} AS id FROM {_tabla_escritura()} WHERE {_col_id()} = ?",
+        (id_equivalencia,),
+    )
+    return cursor.fetchone() is not None
+
+
 @bp.route("", methods=["POST"])
 @require_role(["admin", "planificador"])
 def crear_equivalencia():
     """
-    Crea una nueva equivalencia de material.
+    Crea una equivalencia de material.
 
     Body JSON:
-        codigo_original: Código SAP del material original (requerido)
+        codigo_original: Código SAP del material base (requerido)
         codigo_equivalente: Código SAP del material equivalente (requerido)
-        compatibilidad_pct: Porcentaje de compatibilidad 0-100 (requerido)
-        descripcion: Descripción de la equivalencia (opcional)
-        notas: Notas adicionales (opcional)
+        tipo_equivalencia: E0_DUPLICADO | E1_ESTRICTA | E2_SUPLIBLE (requerido)
+        criterio: texto opcional (<= 500)
+        motivo: texto opcional (<= 500)
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error(400, "invalid_body", "Se requiere body JSON")
 
-    if not data:
-        return (
-            jsonify(
-                {"ok": False, "error": {"code": "invalid_body", "message": "Se requiere body JSON"}}
-            ),
-            400,
-        )
-
-    codigo_original = data.get("codigo_original", "").strip()
-    codigo_equivalente = data.get("codigo_equivalente", "").strip()
-    compatibilidad_pct = data.get("compatibilidad_pct")
-    descripcion = data.get("descripcion", "").strip()
-    notas = data.get("notas", "").strip()
-
-    # Validaciones
+    codigo_original = data.get("codigo_original")
+    codigo_equivalente = data.get("codigo_equivalente")
+    tipo = data.get("tipo_equivalencia")
+    if not isinstance(codigo_original, str) or not isinstance(codigo_equivalente, str):
+        return _error(400, "missing_fields", "Se requiere codigo_original y codigo_equivalente")
+    codigo_original = codigo_original.strip()
+    codigo_equivalente = codigo_equivalente.strip()
     if not codigo_original or not codigo_equivalente:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "missing_fields",
-                        "message": "Se requiere codigo_original y codigo_equivalente",
-                    },
-                }
-            ),
-            400,
-        )
-
+        return _error(400, "missing_fields", "Se requiere codigo_original y codigo_equivalente")
     if codigo_original == codigo_equivalente:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "invalid_data",
-                        "message": "El material no puede ser equivalente a sí mismo",
-                    },
-                }
-            ),
-            400,
-        )
+        return _error(400, "invalid_data", "El material no puede ser equivalente a sí mismo")
+    if tipo not in TIPOS_VALIDOS:
+        return _error(400, "invalid_data", "tipo_equivalencia no válido")
+    criterio, err = _texto_opcional(data, "criterio")
+    if err:
+        return _error(400, "invalid_data", err)
+    motivo, err = _texto_opcional(data, "motivo")
+    if err:
+        return _error(400, "invalid_data", err)
 
-    if compatibilidad_pct is None or not (0 <= compatibilidad_pct <= 100):
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "invalid_data",
-                        "message": "compatibilidad_pct debe estar entre 0 y 100",
-                    },
-                }
-            ),
-            400,
-        )
-
-    # Fase 1: Verificar que los materiales existen en catálogo
     try:
         with get_db_connection(_DB_CATALOGO) as conn:
             cursor = conn.cursor()
-            cursor.execute(f"SELECT {_COL_MAT_ID} FROM {_TABLA_CATALOGO} WHERE {_COL_MAT_ID} = ?", (codigo_original,))
-            original_exists = cursor.fetchone() is not None
-
-            cursor.execute(f"SELECT {_COL_MAT_ID} FROM {_TABLA_CATALOGO} WHERE {_COL_MAT_ID} = ?", (codigo_equivalente,))
-            equivalente_exists = cursor.fetchone() is not None
-
+            descripciones = {}
+            for codigo in (codigo_original, codigo_equivalente):
+                cursor.execute(
+                    f"SELECT {_COL_MAT_ID} AS codigo, descripcion FROM {_TABLA_CATALOGO} WHERE {_COL_MAT_ID} = ?",
+                    (codigo,),
+                )
+                fila = cursor.fetchone()
+                if fila is not None:
+                    descripciones[codigo] = fila["descripcion"]
     except Exception as e:
         return safe_error_response(e, logger, context="equivalencias.crear_equivalencia.verify_materials")
 
-    # Fase 1b: Verificar que no exista ya la equivalencia en spm.db
+    for codigo, etiqueta in ((codigo_original, "original"), (codigo_equivalente, "equivalente")):
+        if codigo not in descripciones:
+            return _error(404, "not_found", f"Material {etiqueta} {codigo} no encontrado")
+
     try:
-        with get_db_connection() as conn:
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
+            # Mismo par (en cualquier sentido) con el mismo tipo -> duplicado
             cursor.execute(
-                """
-                SELECT id_equivalencia FROM material_equivalencias
-                WHERE codigo_original = ? AND codigo_equivalente = ?
-            """,
-                (codigo_original, codigo_equivalente),
+                f"""
+                SELECT 1 FROM {_tabla_escritura()}
+                WHERE tipo_equiv = ?
+                  AND ((material_base = ? AND material_equivalente = ?)
+                    OR (material_base = ? AND material_equivalente = ?))
+                """,
+                (tipo, codigo_original, codigo_equivalente, codigo_equivalente, codigo_original),
             )
-            already_exists = cursor.fetchone() is not None
+            if cursor.fetchone() is not None:
+                return _error(409, "duplicate", "Esta equivalencia ya existe")
 
-    except Exception as e:
-        return safe_error_response(e, logger, context="equivalencias.crear_equivalencia.check_duplicate")
-
-    if not original_exists:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "not_found",
-                        "message": f"Material original {codigo_original} no encontrado",
-                    },
-                }
-            ),
-            404,
-        )
-
-    if not equivalente_exists:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "not_found",
-                        "message": f"Material equivalente {codigo_equivalente} no encontrado",
-                    },
-                }
-            ),
-            404,
-        )
-
-    if already_exists:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "duplicate", "message": "Esta equivalencia ya existe"},
-                }
-            ),
-            409,
-        )
-
-    # Fase 2: Insertar (WRITE)
-    try:
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
             new_id = insert_returning_id(
                 cursor,
-                """
-                INSERT INTO material_equivalencias
-                (codigo_original, codigo_equivalente, compatibilidad_pct, descripcion, notas, activo)
-                VALUES (?, ?, ?, ?, ?, TRUE)
-            """,
+                f"""
+                INSERT INTO {_tabla_escritura()}
+                (material_base, texto_breve_base, material_equivalente, texto_breve_equivalente,
+                 tipo_equiv, criterio, motivo_equivalencia)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
                 (
                     codigo_original,
+                    descripciones[codigo_original],
                     codigo_equivalente,
-                    compatibilidad_pct,
-                    descripcion or None,
-                    notas or None,
+                    descripciones[codigo_equivalente],
+                    tipo,
+                    criterio,
+                    motivo,
                 ),
             )
+            conn.commit()
 
-        return (
-            jsonify({"ok": True, "message": "Equivalencia creada exitosamente", "id": new_id}),
-            201,
-        )
+        return jsonify({"ok": True, "message": "Equivalencia creada exitosamente", "id": new_id}), 201
 
     except Exception as e:
         return safe_error_response(e, logger, context="equivalencias.crear_equivalencia")
@@ -463,104 +435,42 @@ def crear_equivalencia():
 @require_role(["admin", "planificador"])
 def actualizar_equivalencia(id_equivalencia):
     """
-    Actualiza una equivalencia existente.
+    Actualiza tipo, criterio y/o motivo de una equivalencia.
 
-    Body JSON (todos opcionales):
-        compatibilidad_pct: Nuevo porcentaje de compatibilidad
-        descripcion: Nueva descripción
-        notas: Nuevas notas
-        activo: Estado activo/inactivo
+    Body JSON (al menos uno): tipo_equivalencia, criterio, motivo
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error(400, "invalid_body", "Se requiere body JSON")
 
-    if not data:
-        return (
-            jsonify(
-                {"ok": False, "error": {"code": "invalid_body", "message": "Se requiere body JSON"}}
-            ),
-            400,
-        )
-
-    # Fase 1: Verificar que existe (READ)
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id_equivalencia FROM material_equivalencias WHERE id_equivalencia = ?",
-                (id_equivalencia,),
-            )
-            exists = cursor.fetchone() is not None
-
-    except Exception as e:
-        return safe_error_response(e, logger, context="equivalencias.actualizar_equivalencia.verify")
-
-    if not exists:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "not_found", "message": "Equivalencia no encontrada"},
-                }
-            ),
-            404,
-        )
-
-    # Construir UPDATE dinámico
     updates = []
     params = []
-
-    if "compatibilidad_pct" in data:
-        pct = data["compatibilidad_pct"]
-        if not (0 <= pct <= 100):
-            return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": {
-                            "code": "invalid_data",
-                            "message": "compatibilidad_pct debe estar entre 0 y 100",
-                        },
-                    }
-                ),
-                400,
-            )
-        updates.append("compatibilidad_pct = ?")
-        params.append(pct)
-
-    if "descripcion" in data:
-        updates.append("descripcion = ?")
-        params.append(data["descripcion"].strip() or None)
-
-    if "notas" in data:
-        updates.append("notas = ?")
-        params.append(data["notas"].strip() or None)
-
-    if "activo" in data:
-        updates.append("activo = ?")
-        params.append(bool(data["activo"]))
+    if "tipo_equivalencia" in data:
+        if data["tipo_equivalencia"] not in TIPOS_VALIDOS:
+            return _error(400, "invalid_data", "tipo_equivalencia no válido")
+        updates.append("tipo_equiv = ?")
+        params.append(data["tipo_equivalencia"])
+    for campo, columna in (("criterio", "criterio"), ("motivo", "motivo_equivalencia")):
+        if campo in data:
+            valor, err = _texto_opcional(data, campo)
+            if err:
+                return _error(400, "invalid_data", err)
+            updates.append(f"{columna} = ?")
+            params.append(valor)
 
     if not updates:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "no_changes",
-                        "message": "No se especificaron campos para actualizar",
-                    },
-                }
-            ),
-            400,
-        )
+        return _error(400, "no_changes", "No se especificaron campos para actualizar")
 
-    # Fase 2: UPDATE (WRITE)
     try:
-        params.append(id_equivalencia)
-        query = f"UPDATE material_equivalencias SET {', '.join(updates)} WHERE id_equivalencia = ?"
-
-        with get_db_transaction() as conn:
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
-            cursor.execute(query, params)
+            if not _existe_equivalencia(cursor, id_equivalencia):
+                return _error(404, "not_found", "Equivalencia no encontrada")
+            cursor.execute(
+                f"UPDATE {_tabla_escritura()} SET {', '.join(updates)} WHERE {_col_id()} = ?",
+                (*params, id_equivalencia),
+            )
+            conn.commit()
 
         return jsonify({"ok": True, "message": "Equivalencia actualizada exitosamente"})
 
@@ -571,43 +481,17 @@ def actualizar_equivalencia(id_equivalencia):
 @bp.route("/<int:id_equivalencia>", methods=["DELETE"])
 @require_role(["admin", "planificador"])
 def eliminar_equivalencia(id_equivalencia):
-    """
-    Elimina (desactiva) una equivalencia.
-
-    Soft delete: marca activo = 0 en lugar de eliminar.
-    """
-    # Fase 1: Verificar que existe (READ)
+    """Elimina (borrado físico) una equivalencia: la tabla no tiene columna `activo`."""
     try:
-        with get_db_connection() as conn:
+        with get_db_connection(_DB_EQUIV) as conn:
             cursor = conn.cursor()
+            if not _existe_equivalencia(cursor, id_equivalencia):
+                return _error(404, "not_found", "Equivalencia no encontrada")
             cursor.execute(
-                "SELECT id_equivalencia FROM material_equivalencias WHERE id_equivalencia = ?",
+                f"DELETE FROM {_tabla_escritura()} WHERE {_col_id()} = ?",
                 (id_equivalencia,),
             )
-            exists = cursor.fetchone() is not None
-
-    except Exception as e:
-        return safe_error_response(e, logger, context="equivalencias.eliminar_equivalencia.verify")
-
-    if not exists:
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": {"code": "not_found", "message": "Equivalencia no encontrada"},
-                }
-            ),
-            404,
-        )
-
-    # Fase 2: Soft delete (WRITE)
-    try:
-        with get_db_transaction() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE material_equivalencias SET activo = FALSE WHERE id_equivalencia = ?",
-                (id_equivalencia,),
-            )
+            conn.commit()
 
         return jsonify({"ok": True, "message": "Equivalencia eliminada exitosamente"})
 
