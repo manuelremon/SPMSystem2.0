@@ -14,8 +14,10 @@ from backend.core.db import (
     is_using_postgresql,
 )
 from backend.core.helpers import safe_error_response
+from backend.core.rate_limit import rate_limit
 from backend.core.roles import require_auth, require_role
 from backend.core.search_utils import build_description_search
+from backend.services.buscador_materiales_service import responder as responder_buscador
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,35 @@ def listar_equivalencias():
 
     except Exception as e:
         return safe_error_response(e, logger, context="equivalencias.listar_equivalencias")
+
+
+MAX_MENSAJE_ASISTENTE = 300
+
+
+@bp.route("/asistente", methods=["POST"])
+@require_auth
+@rate_limit(requests=30, window_seconds=60)
+def asistente_materiales():
+    """Buscador conversacional de materiales (sin LLM)."""
+    data = request.get_json(silent=True)
+    mensaje = data.get("mensaje", "") if isinstance(data, dict) else None
+    if not isinstance(mensaje, str) or len(mensaje.strip()) > MAX_MENSAJE_ASISTENTE:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "validation_error",
+                        "message": f"El mensaje debe ser un texto de hasta {MAX_MENSAJE_ASISTENTE} caracteres",
+                    },
+                }
+            ),
+            400,
+        )
+    try:
+        return jsonify({"ok": True, **responder_buscador(mensaje.strip())})
+    except Exception as e:
+        return safe_error_response(e, logger, 500, "asistente_materiales")
 
 
 @bp.route("/tipos", methods=["GET"])

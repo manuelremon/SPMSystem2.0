@@ -186,3 +186,98 @@ class TestEquivalenciasYResponder:
     def test_responder_sin_resultados(self, db_materiales):
         r = svc.responder("zzzz qqqq")
         assert r["intencion"] == "sin_resultados" and r["materiales"] == []
+
+
+class TestEndpointAsistente:
+    @pytest.fixture(scope="class")
+    def app(self):
+        """Override tests/unit/conftest.py's ``app`` fixture for this class.
+
+        That fixture (tests/unit/conftest.py) reloads backend.core.config and
+        backend.app on every test via importlib.reload(). Reloading backend.core.config
+        creates a brand-new Settings() instance with a freshly-generated random
+        JWT_SECRET_KEY (no env var is set in this repo for tests), but
+        backend.core.auth_middleware is imported once and never reloaded, so it keeps
+        a reference to the *previous* Settings instance. A token minted with the
+        post-reload secret (tests.integration.auth_utils.mint_access_token re-imports
+        settings fresh) then fails signature verification inside auth_middleware's
+        stale-secret decode, and every "authenticated" request silently becomes a 401 -
+        this is NOT the CSRF check, it only surfaces once CSRF is bypassed via the
+        Bearer prefix. We use the plain, non-reloading session-style app fixture from
+        tests/conftest.py instead (in-memory SQLite, no reload), scoped to this class
+        so the JWT secret stays the same object throughout every test here.
+        """
+        mp = pytest.MonkeyPatch()
+        from backend.core.config import settings
+
+        mp.setattr(settings, "DATABASE_URL", "sqlite:///:memory:")
+        from backend.app import create_app
+
+        flask_app = create_app(
+            {
+                "TESTING": True,
+                "DATABASE_URL": settings.DATABASE_URL,
+                "WTF_CSRF_ENABLED": False,
+                "RATE_LIMIT_ENABLED": False,
+            }
+        )
+        with flask_app.app_context():
+            from backend.core.db import init_db
+
+            init_db()
+        yield flask_app
+        mp.undo()
+
+    @pytest.fixture
+    def client(self, app):
+        return app.test_client()
+
+    @pytest.fixture
+    def auth_client(self, app, client, monkeypatch):
+        import backend.core.auth_middleware as mw
+        from tests.integration.auth_utils import mint_access_token
+
+        monkeypatch.setattr(
+            mw, "_get_user_by_id_cached", lambda uid: {"id_spm": uid, "user_id": uid, "rol": "Solicitante"}
+        )
+        with app.app_context():
+            token = mint_access_token(app, "901")
+        client.environ_base["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        return client
+
+    def test_sin_sesion_401(self, client):
+        # Se envia un header "Authorization: Bearer <token invalido>" para que el
+        # middleware CSRF (backend/core/csrf.py) exima la peticion, tal como hace con
+        # peticiones Bearer legitimas (ver tests/unit/test_csrf.py). El token es invalido
+        # a proposito para que el middleware de auth deje g.user en None y @require_auth
+        # devuelva 401 en lugar de que CSRF devuelva 403 primero.
+        r = client.post(
+            "/api/equivalencias/asistente",
+            json={"mensaje": "bomba"},
+            headers={"Authorization": "Bearer invalid-token"},
+        )
+        assert r.status_code == 401
+
+    @pytest.mark.parametrize("body", [{"mensaje": 5}, {"mensaje": "x" * 301}, ["bomba"]])
+    def test_mensaje_invalido_400(self, auth_client, body):
+        r = auth_client.post("/api/equivalencias/asistente", json=body)
+        assert r.status_code == 400
+        assert r.get_json()["error"]["code"] == "validation_error"
+
+    def test_ok(self, auth_client, db_materiales):
+        r = auth_client.post("/api/equivalencias/asistente", json={"mensaje": "bomba centrifuga"})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["ok"] is True and data["intencion"] == "descripcion"
+        assert data["materiales"][0]["codigo"] == "0101-0000080"
+
+    def test_error_interno_generico(self, auth_client, monkeypatch):
+        import backend.routes.equivalencias as rutas
+
+        def _falla(_mensaje):
+            raise RuntimeError("detalle interno")
+
+        monkeypatch.setattr(rutas, "responder_buscador", _falla)
+        r = auth_client.post("/api/equivalencias/asistente", json={"mensaje": "bomba"})
+        assert r.status_code == 500
+        assert "detalle interno" not in r.get_data(as_text=True)
