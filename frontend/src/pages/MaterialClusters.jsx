@@ -33,7 +33,7 @@ export default function MaterialClusters() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Box sx={{ width: "100%" }}>
       <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary" sx={{ mb: 1 }}>
         {t('clusters_title', 'Clustering de Materiales')}
       </Typography>

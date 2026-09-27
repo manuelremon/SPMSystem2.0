@@ -106,7 +106,7 @@ export default function CAPADetail() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', gap: 3 }}>
       <div className="flex items-center justify-between">
         <div>
           <button onClick={() => navigate('/quality/capa')} className="text-sm text-blue-600 hover:underline mb-1">

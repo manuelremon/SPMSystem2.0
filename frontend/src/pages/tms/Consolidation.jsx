@@ -106,7 +106,7 @@ export default function Consolidation() {
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <Box sx={{ width: "100%", display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -117,7 +117,7 @@ export default function Consolidation() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Box sx={{ width: "100%" }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

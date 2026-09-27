@@ -271,7 +271,7 @@ export default function VMIDetail() {
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Skeleton variant="rectangular" height={40} width={300} />
           <Skeleton variant="rectangular" height={180} />
           <Skeleton variant="rectangular" height={300} />
@@ -283,7 +283,7 @@ export default function VMIDetail() {
   if (!programa) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 4 }}>
+        <Box sx={{ width: "100%" }}>
           <Alert severity="error">{t('vmi_not_found', 'Programa VMI no encontrado')}</Alert>
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/operations/vmi')} sx={{ mt: 2 }}>
             {t('common_volver', 'Volver')}
@@ -301,7 +301,7 @@ export default function VMIDetail() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Header */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={2}>

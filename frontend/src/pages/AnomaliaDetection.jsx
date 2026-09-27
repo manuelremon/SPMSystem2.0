@@ -74,7 +74,7 @@ export default function AnomaliaDetection() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
           {t('anomalias_title', 'Deteccion de Anomalias')}
         </Typography>
