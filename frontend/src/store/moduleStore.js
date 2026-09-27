@@ -16,6 +16,7 @@ const MODULE_ROUTE_PREFIXES = {
   'inventario.conteo_ciclico': ['/operations/cycle-count'],
   'inventario.ubicaciones': ['/operations/putaway'],
   'inventario.slob': ['/operations/slob'],
+  'inventario.recepcion': ['/operations/warehouse'],
   compras: ['/procurement', '/admin/supplier-portal', '/admin/supplier-onboarding'],
   logistica: ['/tms', '/fms', '/operations/customs', '/operations/packaging', '/operations/returns', '/operations/warranty'],
   calidad: ['/quality', '/engineering', '/operations/kitting'],

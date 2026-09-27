@@ -413,7 +413,7 @@ describe('ProtectedRoute', () => {
     })
 
     it('permite rutas de modulos habilitados', () => {
-      renderAt('/operations/warehouse')
+      renderAt('/materiales/stock')
       expect(screen.getByText('Protected Content')).toBeInTheDocument()
     })
 
@@ -452,13 +452,16 @@ describe('ProtectedRoute', () => {
       expect(getModuleForPath('/operations/production/2')).toBe('planificacion.mps')
       expect(getModuleForPath('/operations/kanban/config')).toBe('planificacion.kanban')
       expect(getModuleForPath('/operations/cycle-count')).toBe('inventario.conteo_ciclico')
+      expect(getModuleForPath('/operations/warehouse')).toBe('inventario.recepcion')
+      expect(getModuleForPath('/operations/putaway')).toBe('inventario.ubicaciones')
+      expect(getModuleForPath('/operations/slob')).toBe('inventario.slob')
       expect(getModuleForPath('/fms/vehicles/3')).toBe('logistica')
       expect(getModuleForPath('/operations/kitting/boms')).toBe('calidad')
       expect(getModuleForPath('/procurement/savings')).toBe('compras')
       expect(getModuleForPath('/admin/supplier-portal/preview')).toBe('compras')
       expect(getModuleForPath('/admin/proveedores')).toBeNull()
       expect(getModuleForPath('/tmsx')).toBeNull()
-      expect(getModuleForPath('/operations/warehouse')).toBeNull()
+      expect(getModuleForPath('/materiales/stock')).toBeNull()
     })
   })
 })

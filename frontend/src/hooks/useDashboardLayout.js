@@ -50,32 +50,16 @@ export const DASHBOARD_CATEGORIES = [
       { id: 'kpi_row3', label: 'Materiales y Stock', visible: true },
     ],
   },
-  {
-    id: 'advanced_metrics',
-    label: 'Métricas Avanzadas',
-    icon: 'AdvancedMetrics',
-    color: '#059669',
-    subtitle: 'Análisis operativo, táctico y estratégico',
-    cards: [
-      { id: 'kpi_row4', label: 'KPIs Avanzados (3 Tiers)', visible: true },
-    ],
-  },
-  {
-    id: 'operations',
-    label: 'Operaciones Cross-Module',
-    icon: 'Operations',
-    color: '#6366f1',
-    subtitle: 'Transporte, flota, calidad y MRP',
-    cards: [
-      { id: 'operations', label: 'Vista Operaciones', visible: true },
-    ],
-  },
 ];
 
 // Flatten all cards for backwards compatibility
 const ALL_DEFAULT_CARDS = DASHBOARD_CATEGORIES.flatMap(cat =>
   cat.cards.map(c => ({ ...c, category: cat.id }))
 );
+
+// Ids validos: tarjetas guardadas de versiones anteriores que ya no existen
+// (p.ej. kpi_row4 / operations) se descartan al cargar el layout.
+const VALID_IDS = new Set(ALL_DEFAULT_CARDS.map(c => c.id));
 
 /**
  * Hook for managing dashboard card layout persistence.
@@ -89,7 +73,7 @@ export function useDashboardLayout() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(stored).filter(c => VALID_IDS.has(c.id));
         // Merge with defaults to handle new cards added in future versions
         const existingIds = new Set(parsed.map(c => c.id));
         const merged = [...parsed];
@@ -103,7 +87,7 @@ export function useDashboardLayout() {
       // Try migrating from v1 format
       const v1Stored = localStorage.getItem('spm_dashboard_layout');
       if (v1Stored) {
-        const v1Parsed = JSON.parse(v1Stored);
+        const v1Parsed = JSON.parse(v1Stored).filter(c => VALID_IDS.has(c.id));
         // Map old cards to new format with categories
         const categoryMap = {};
         for (const cat of DASHBOARD_CATEGORIES) {
