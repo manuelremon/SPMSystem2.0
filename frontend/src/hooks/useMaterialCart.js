@@ -4,8 +4,19 @@
  * Manages the list of items in a solicitud, including add, remove,
  * quantity changes, comments, and suggested items from the assistant.
  */
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useI18n } from '../context/i18n'
+
+function normalizarSugerido(it) {
+  return {
+    codigo: it.codigo || it.codigo_sap,
+    descripcion: it.descripcion,
+    descripcion_larga: it.descripcion_larga,
+    unidad: it.unidad || 'UNI',
+    cantidad: it.cantidad || 1,
+    precio_unitario: it.precio_unitario || 0,
+  }
+}
 
 /**
  * @param {Object} params
@@ -18,47 +29,45 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
   const [items, setItems] = useState([])
   const [lastSavedItems, setLastSavedItems] = useState([])
   const [commentModal, setCommentModal] = useState({ open: false, codigo: null, comment: '' })
+  // Sobrevive a recargas de initialItems (p. ej. doble efecto de useMaterialForm en
+  // StrictMode) para que los sugeridos del asistente no se pierdan si initialItems
+  // cambia de instancia despues de haberlos mezclado una vez.
+  const pendingSuggestedRef = useRef([])
+  const mensajeSugeridosMostradoRef = useRef(false)
 
-  // Sync when initial items are loaded from API
+  // Sync cuando se cargan/recargan los items iniciales de la solicitud, mezclando
+  // cualquier sugerido pendiente del asistente conversacional (sessionStorage).
   useEffect(() => {
-    if (initialItems !== null) {
-      setItems(initialItems)
-      setLastSavedItems(initialItems)
-    }
-  }, [initialItems])
+    if (initialItems === null) return
 
-  // Load suggested items from NLP assistant (sessionStorage)
-  useEffect(() => {
-    const suggestedJson = sessionStorage.getItem('suggested_items')
-    if (suggestedJson) {
-      try {
-        const suggestedItems = JSON.parse(suggestedJson)
-        if (Array.isArray(suggestedItems) && suggestedItems.length > 0) {
-          setItems((prev) => {
-            const existingCodes = new Set(prev.map((it) => it.codigo))
-            const newItems = suggestedItems.filter((it) => !existingCodes.has(it.codigo))
-            if (newItems.length > 0) {
-              setActionMsg(t('materials_suggestions_loaded', `${newItems.length} material(es) sugeridos agregados`))
-              return [...prev, ...newItems.map((it) => ({
-                codigo: it.codigo || it.codigo_sap,
-                descripcion: it.descripcion,
-                descripcion_larga: it.descripcion_larga,
-                unidad: it.unidad || 'UNI',
-                cantidad: it.cantidad || 1,
-                precio_unitario: it.precio_unitario || 0,
-              }))]
-            }
-            return prev
-          })
+    if (pendingSuggestedRef.current.length === 0) {
+      const suggestedJson = sessionStorage.getItem('suggested_items')
+      if (suggestedJson) {
+        try {
+          const suggestedItems = JSON.parse(suggestedJson)
+          if (Array.isArray(suggestedItems) && suggestedItems.length > 0) {
+            pendingSuggestedRef.current = suggestedItems.map(normalizarSugerido)
+          }
+        } catch (err) {
+          // Ignorar: items sugeridos malformados en sessionStorage no deben romper la carga
+          console.debug('[useMaterialCart] suggested_items invalido:', err)
+        } finally {
+          sessionStorage.removeItem('suggested_items')
         }
-      } catch (err) {
-        // Ignorar: items sugeridos malformados en sessionStorage no deben romper la carga
-        console.debug('[useMaterialCart] suggested_items invalido:', err)
-      } finally {
-        sessionStorage.removeItem('suggested_items')
       }
     }
-  }, [t, setActionMsg])
+
+    const existingCodes = new Set(initialItems.map((it) => it.codigo))
+    const newItems = pendingSuggestedRef.current.filter((it) => !existingCodes.has(it.codigo))
+
+    setItems([...initialItems, ...newItems])
+    setLastSavedItems(initialItems)
+
+    if (newItems.length > 0 && !mensajeSugeridosMostradoRef.current) {
+      mensajeSugeridosMostradoRef.current = true
+      setActionMsg(`${newItems.length} ${t('materials_suggestions_loaded', 'material(es) sugeridos agregados')}`)
+    }
+  }, [initialItems, t, setActionMsg])
 
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(items) !== JSON.stringify(lastSavedItems)
@@ -158,7 +167,7 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
       const newItems = suggestedItems.filter((it) => !existingCodes.has(it.codigo || it.codigo_sap))
 
       if (newItems.length > 0) {
-        setActionMsg(t('materials_suggestions_loaded', `${newItems.length} material(es) sugeridos agregados`))
+        setActionMsg(`${newItems.length} ${t('materials_suggestions_loaded', 'material(es) sugeridos agregados')}`)
         return [...prev, ...newItems.map((it) => ({
           codigo: it.codigo || it.codigo_sap,
           descripcion: it.descripcion,
