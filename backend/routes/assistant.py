@@ -11,11 +11,10 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from backend.core.helpers import safe_error_response
-from backend.core.roles import require_auth
-
 from backend.agent.tools.material_matcher import MaterialMatcher
 from backend.agent.tools.nlp_processor import NLPProcessor
+from backend.core.helpers import safe_error_response
+from backend.core.roles import require_auth
 
 # Importar RAG si está disponible
 try:
@@ -151,7 +150,8 @@ def sugerir_materiales():
                     "descripcion_larga": mat.get("descripcion_larga"),
                     "cantidad_sugerida": cantidad,
                     "unidad": unidad,
-                    "precio_unitario": mat.get("precio_usd") or 0,
+                    # None si el catalogo no tiene precio: no se puede solicitar
+                    "precio_unitario": mat.get("precio_usd"),
                     "motivo": f"Coincide con '{mat.get('match_query', '')}'",
                     "score": round(mat.get("match_score", 0), 2),
                 }

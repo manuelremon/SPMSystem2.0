@@ -508,6 +508,8 @@ function SearchSection({ m, t }) {
 }
 
 function SelectedMaterialSection({ m, t }) {
+  // Sin precio de referencia (precio SAP) el material no se puede solicitar
+  const sinPrecio = m.selectedMaterial != null && m.selectedMaterial.precio_usd == null;
   return (
     <Box sx={{ display: "flex", flexDirection: "column" }}>
       <Typography
@@ -560,14 +562,18 @@ function SelectedMaterialSection({ m, t }) {
             {m.selectedMaterial.descripcion}
           </Typography>
 
-          {m.selectedMaterial.precio_usd > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              {t("materials_precio", "Precio")}:{" "}
+          <Typography variant="body2" color="text.secondary">
+            {t("materials_precio", "Precio")}:{" "}
+            {sinPrecio ? (
+              <Box component="span" sx={{ fontWeight: 500, color: "warning.dark" }}>
+                {t("materials_sin_precio", "Sin precio")}
+              </Box>
+            ) : (
               <Box component="span" sx={{ fontWeight: 500, color: "text.primary" }}>
                 {formatCurrency(m.selectedMaterial.precio_usd)}
               </Box>
-            </Typography>
-          )}
+            )}
+          </Typography>
 
           {!m.detailViewed && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
@@ -601,9 +607,14 @@ function SelectedMaterialSection({ m, t }) {
             </Button>
             <Tooltip
               title={
-                m.detailViewed
-                  ? t("materials_agregar_tooltip", "Agregar este material a la solicitud")
-                  : t("materials_agregar_disabled_tooltip", "Primero revisa los detalles del material")
+                sinPrecio
+                  ? t(
+                      "materials_sin_precio_no_agregar",
+                      "Este material no tiene precio de referencia; no se puede solicitar hasta que se cargue."
+                    )
+                  : m.detailViewed
+                    ? t("materials_agregar_tooltip", "Agregar este material a la solicitud")
+                    : t("materials_agregar_disabled_tooltip", "Primero revisa los detalles del material")
               }
             >
               {/* span necesario para que el Tooltip funcione con el boton deshabilitado */}
@@ -613,7 +624,7 @@ function SelectedMaterialSection({ m, t }) {
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={m.handleAdd}
-                  disabled={!m.detailViewed}
+                  disabled={!m.detailViewed || sinPrecio}
                   aria-label={`${t("materials_agregar", "Agregar")} ${m.selectedMaterial?.codigo || ''}`}
                   sx={{ flex: 1, textTransform: "none" }}
                 >

@@ -35,9 +35,9 @@ const Foro = lazy(() => import('./pages/Foro'))
 const CompleteRegistration = lazy(() => import('./pages/CompleteRegistration'))
 const NuevoUsuario = lazy(() => import('./pages/NuevoUsuario'))
 const CatalogoMateriales = lazy(() => import('./pages/CatalogoMateriales'))
-const CatalogoEquivalencias = lazy(() => import('./pages/CatalogoEquivalencias'))
 const Stock = lazy(() => import('./pages/Stock'))
 const StockIndividual = lazy(() => import('./pages/StockIndividual'))
+const ConsumoHistorico = lazy(() => import('./pages/ConsumoHistorico'))
 const TodasLasSolicitudes = lazy(() => import('./pages/TodasLasSolicitudes'))
 
 // MRP pages (lazy-loaded)
@@ -253,9 +253,10 @@ function App() {
             <Route path="/presupuestos/:id" element={<ProtectedRoute roles={['administrador', 'admin', 'jefe', 'coordinador', 'aprobador presupuestos', 'aprobador_presupuestos', 'aprobador de presupuesto']}><BudgetRequestDetail /></ProtectedRoute>} />
             <Route path="/kpi" element={<ProtectedRoute><KPI /></ProtectedRoute>} />
             <Route path="/materiales/catalogo" element={<ProtectedRoute><CatalogoMateriales /></ProtectedRoute>} />
-            <Route path="/materiales/equivalencias" element={<ProtectedRoute><CatalogoEquivalencias /></ProtectedRoute>} />
+            <Route path="/materiales/equivalencias" element={<Navigate to="/materiales/catalogo" replace />} />
             <Route path="/materiales/stock" element={<ProtectedRoute><Stock /></ProtectedRoute>} />
             <Route path="/materiales/stock-individual" element={<ProtectedRoute><StockIndividual /></ProtectedRoute>} />
+            <Route path="/inventario/consumo-historico" element={<ProtectedRoute><ConsumoHistorico /></ProtectedRoute>} />
             <Route path="/mensajes" element={<ProtectedRoute><Mensajes /></ProtectedRoute>} />
             <Route path="/notificaciones" element={<ProtectedRoute><Notificaciones /></ProtectedRoute>} />
             <Route path="/centro-interaccion" element={<ProtectedRoute><CentroInteraccion /></ProtectedRoute>} />

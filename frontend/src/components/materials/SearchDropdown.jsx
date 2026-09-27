@@ -312,7 +312,9 @@ export function SearchDropdown({
                         display: 'inline-block',
                       }}
                     >
-                      {formatCurrency(m.precio_usd || 0)}
+                      {m.precio_usd == null
+                        ? t('materials_sin_precio', 'Sin precio')
+                        : formatCurrency(m.precio_usd)}
                     </Typography>
                   </Box>
                 </Box>

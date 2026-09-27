@@ -134,7 +134,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
     labelKey: 'nav_inventario',
     labelFallback: 'Inventario',
     visible: canSeePlanner,
-    activePrefixes: ['/materiales', '/operations/warehouse', '/operations/putaway', '/operations/cycle-count', '/operations/slob', '/operations/vmi', '/operations/consignment', '/operations/lots', '/operations/recalls', '/operations/inventory-optimization', '/operations/niveles-de-servicio'],
+    activePrefixes: ['/materiales', '/inventario', '/operations/warehouse', '/operations/putaway', '/operations/cycle-count', '/operations/slob', '/operations/vmi', '/operations/consignment', '/operations/lots', '/operations/recalls', '/operations/inventory-optimization', '/operations/niveles-de-servicio'],
     minWidth: 210,
     sections: [
       {
@@ -149,8 +149,8 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
         header: { key: 'nav_header_stock', fallback: 'STOCK' },
         items: [
           { to: '/materiales/catalogo', labelKey: 'nav_catalogo_materiales', labelFallback: 'Catalogo' },
-          { to: '/materiales/equivalencias', labelKey: 'nav_equivalencias', labelFallback: 'Alternativos' },
           { to: '/materiales/stock', labelKey: 'nav_stock', labelFallback: 'Stock' },
+          { to: '/inventario/consumo-historico', labelKey: 'nav_consumo_historico', labelFallback: 'Consumo histórico' },
           { to: '/operations/slob', labelKey: 'nav_slob', labelFallback: 'Antigüedad e Inmovilizado' },
         ],
       },

@@ -79,7 +79,8 @@ export function PageTitleBar({ title, subtitle, actions, status, backTo }) {
 
 /**
  * Layout canonico de pagina. El fondo y el padding exterior los pone Layout.jsx;
- * esta caja solo centra el contenido (maxWidth) y separa las secciones.
+ * esta caja separa las secciones y ocupa todo el ancho de la ventana.
+ * maxWidth solo para vistas angostas por diseño (p. ej. formularios).
  */
 export default function PageLayout({
   title,
@@ -87,7 +88,7 @@ export default function PageLayout({
   actions,
   status,
   backTo,
-  maxWidth = 1700,
+  maxWidth = "none",
   gap = 3,
   children,
 }) {

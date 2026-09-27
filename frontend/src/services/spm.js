@@ -30,6 +30,10 @@ export const materiales = {
   removeFavorito: (codigo) => api.delete(`/materiales/favoritos/${codigo}`),
 }
 
+export const consumoHistorico = {
+  listar: (params = {}) => api.get('/consumo-historico', { params }),
+}
+
 export const equivalencias = {
   listar: (params = {}) => api.get('/equivalencias', { params }),
   porMaterial: (codigo) => api.get(`/equivalencias/${codigo}`),

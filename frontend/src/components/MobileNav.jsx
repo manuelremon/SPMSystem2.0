@@ -96,6 +96,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
         items: [
           { to: '/materiales/catalogo', labelKey: 'nav_catalogo_materiales', labelFallback: 'Catalogo' },
           { to: '/materiales/stock', labelKey: 'nav_stock', labelFallback: 'Stock' },
+          { to: '/inventario/consumo-historico', labelKey: 'nav_consumo_historico', labelFallback: 'Consumo histórico' },
           { to: '/operations/slob', labelKey: 'nav_slob', labelFallback: 'Inmovilizado' },
         ],
       },

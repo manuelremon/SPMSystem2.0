@@ -1,7 +1,7 @@
 /**
  * CatalogoMateriales - Catalogo de materiales SAP
- * Enterprise Design - MUI components
- * Mantiene MUI DataGrid para performance con 28K+ items
+ * Tabla del catalogo + buscador conversacional (columna derecha en lg+, Drawer en <lg).
+ * El detalle de cada material muestra y permite gestionar sus equivalencias.
  */
 
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -13,6 +13,11 @@ import PageLayout from "../components/ui/PageLayout";
 import EmptyState from "../components/ui/EmptyState";
 import StatusBadge from "../components/ui/StatusBadge";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useUserRoles } from "../hooks/useUserRoles";
+import BuscadorMaterialesPanel from "../components/equivalencias/BuscadorMaterialesPanel";
+import EquivalenciaFormModal from "../components/equivalencias/EquivalenciaFormModal";
+import EquivalenciaDeleteModal from "../components/equivalencias/EquivalenciaDeleteModal";
+import { TIPO_CONFIG } from "../components/equivalencias/EquivalenciasResultado";
 import {
   Box,
   Paper,
@@ -30,7 +35,12 @@ import {
   List,
   ListItem,
   Autocomplete,
+  Alert,
+  Tooltip,
+  Drawer,
 } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -42,9 +52,27 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import DescriptionIcon from "@mui/icons-material/Description";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 500;
+const PANEL_PREF_KEY = "spm_equiv_buscador_visible";
+const ORDEN_TIPOS = ["E0_DUPLICADO", "E1_ESTRICTA", "E2_SUPLIBLE"];
+
+/** Agrupa las equivalencias del material por tipo (orden: duplicado, estricta, suplible, otros). */
+function agruparPorTipo(lista) {
+  const grupos = new Map();
+  for (const eq of lista) {
+    const tipo = eq.tipo_equivalencia || "SIN_TIPO";
+    if (!grupos.has(tipo)) grupos.set(tipo, []);
+    grupos.get(tipo).push(eq);
+  }
+  const rango = (tipo) => (ORDEN_TIPOS.includes(tipo) ? ORDEN_TIPOS.indexOf(tipo) : ORDEN_TIPOS.length);
+  return [...grupos.entries()].sort(([a], [b]) => rango(a) - rango(b));
+}
 
 /* ─────────────────────────────────────────────────────────────
    Collapsible Section
@@ -119,7 +147,24 @@ function CollapsibleSection({ title, icon, expanded, onToggle, variant = "defaul
 /* ─────────────────────────────────────────────────────────────
    Detail Modal
 ───────────────────────────────────────────────────────────── */
-function DetailModal({ open, material, detail, loadingDetail, solicitudesData, loadingSolicitudes, equivalenciasData, loadingEquivalencias, onClose, t }) {
+function DetailModal({
+  open,
+  material,
+  detail,
+  loadingDetail,
+  solicitudesData,
+  loadingSolicitudes,
+  equivalenciasData,
+  loadingEquivalencias,
+  canManage,
+  avisoEquiv,
+  onCerrarAviso,
+  onNuevaEquivalencia,
+  onEditarEquivalencia,
+  onBorrarEquivalencia,
+  onClose,
+  t,
+}) {
   const [expandedSections, setExpandedSections] = useState({
     stock: true,
     mrp: true,
@@ -211,7 +256,9 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
                     {t("catalogo_precio_usd", "Precio USD")}
                   </Typography>
                   <Typography variant="body2" fontWeight={600} color="text.primary">
-                    {formatCurrency(material.precio_usd || 0)}
+                    {material.precio_usd == null
+                      ? t("materials_sin_precio", "Sin precio")
+                      : formatCurrency(material.precio_usd)}
                   </Typography>
                 </Box>
               </Paper>
@@ -398,31 +445,64 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
               badge={equivalenciasData.length}
               loading={loadingEquivalencias}
             >
+              {avisoEquiv && (
+                <Alert severity="success" onClose={onCerrarAviso} sx={{ mb: 1.5 }}>
+                  {avisoEquiv}
+                </Alert>
+              )}
+              {canManage && (
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+                  <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={onNuevaEquivalencia} sx={{ textTransform: "none" }}>
+                    {t("equiv_nueva", "Nueva equivalencia")}
+                  </Button>
+                </Box>
+              )}
               {equivalenciasData.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   {t("catalogo_sin_equivalencias", "No hay materiales equivalentes registrados")}
                 </Typography>
               ) : (
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
-                  {equivalenciasData.map((eq, idx) => (
-                    <Paper key={eq.codigo_equivalente || idx} variant="outlined" sx={{ p: 1.5 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                        <Typography variant="body2" fontFamily="monospace" fontWeight={600} color="primary.main">
-                          {eq.codigo_equivalente}
-                        </Typography>
-                        {eq.tipo_equivalencia && (
-                          <Chip label={eq.tipo_equivalencia} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
-                        )}
-                      </Stack>
-                      <Typography variant="body2" color="text.primary">{eq.descripcion_equivalente}</Typography>
-                      {eq.criterio && (
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-                          {t("catalogo_criterio", "Criterio")}: {eq.criterio}
-                        </Typography>
-                      )}
-                    </Paper>
-                  ))}
-                </Box>
+                <Stack spacing={2} data-testid="catalogo-equivalencias">
+                  {agruparPorTipo(equivalenciasData).map(([tipo, items]) => {
+                    const cfg = TIPO_CONFIG[tipo] || { labelKey: tipo, fallback: tipo, color: "default" };
+                    return (
+                      <Box key={tipo}>
+                        <Chip size="small" color={cfg.color} label={`${t(cfg.labelKey, cfg.fallback)} (${items.length})`} sx={{ fontWeight: 600, mb: 1 }} />
+                        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 1.5 }}>
+                          {items.map((eq, idx) => (
+                            <Paper key={eq.id ?? `${eq.codigo_equivalente}-${idx}`} variant="outlined" sx={{ p: 1.5, display: "flex", gap: 1 }}>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" fontFamily="monospace" fontWeight={600} color="primary.main">
+                                  {eq.codigo_equivalente}
+                                </Typography>
+                                <Typography variant="body2" color="text.primary">{eq.descripcion_equivalente}</Typography>
+                                {(eq.criterio || eq.motivo) && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                                    {[eq.criterio && `${t("catalogo_criterio", "Criterio")}: ${eq.criterio}`, eq.motivo].filter(Boolean).join(" · ")}
+                                  </Typography>
+                                )}
+                              </Box>
+                              {canManage && eq.id != null && (
+                                <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                                  <Tooltip title={t("common_editar", "Editar")}>
+                                    <IconButton size="small" aria-label={t("common_editar", "Editar")} onClick={() => onEditarEquivalencia(eq)}>
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title={t("common_eliminar", "Eliminar")}>
+                                    <IconButton size="small" color="error" aria-label={t("common_eliminar", "Eliminar")} onClick={() => onBorrarEquivalencia(eq)}>
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Stack>
+                              )}
+                            </Paper>
+                          ))}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Stack>
               )}
             </CollapsibleSection>
           </Stack>
@@ -437,6 +517,35 @@ function DetailModal({ open, material, detail, loadingDetail, solicitudesData, l
 ───────────────────────────────────────────────────────────── */
 export default function CatalogoMateriales() {
   const { t } = useI18n();
+  const { isAdmin, isPlanner } = useUserRoles();
+  const canManage = isAdmin || isPlanner;
+
+  // Buscador conversacional: columna derecha en escritorio, Drawer en tablet/movil
+  const theme = useTheme();
+  const esEscritorio = useMediaQuery(theme.breakpoints.up("lg"));
+  const [panelVisible, setPanelVisible] = useState(() => {
+    try {
+      return localStorage.getItem(PANEL_PREF_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const [drawerAbierto, setDrawerAbierto] = useState(false);
+
+  const alternarPanel = useCallback(() => {
+    if (!esEscritorio) {
+      setDrawerAbierto(true);
+      return;
+    }
+    setPanelVisible((visible) => {
+      try {
+        localStorage.setItem(PANEL_PREF_KEY, visible ? "0" : "1");
+      } catch {
+        // preferencia no persistida: no es critico
+      }
+      return !visible;
+    });
+  }, [esEscritorio]);
 
   // Search state
   const [searchCodigo, setSearchCodigo] = useState("");
@@ -466,6 +575,9 @@ export default function CatalogoMateriales() {
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
   const [equivalenciasData, setEquivalenciasData] = useState([]);
   const [loadingEquivalencias, setLoadingEquivalencias] = useState(false);
+  const [avisoEquiv, setAvisoEquiv] = useState("");
+  const [formEquiv, setFormEquiv] = useState({ open: false, item: null });
+  const [borrarEquiv, setBorrarEquiv] = useState({ open: false, item: null });
 
   // Load grupos options
   useEffect(() => {
@@ -508,6 +620,18 @@ export default function CatalogoMateriales() {
       .finally(() => setLoading(false));
   }, [debouncedCodigo, debouncedDesc, debouncedKeyword, searchGrupo, hasSearched, t]);
 
+  const cargarEquivalencias = useCallback(async (codigo) => {
+    setLoadingEquivalencias(true);
+    try {
+      const res = await equivalencias.porMaterial(codigo);
+      setEquivalenciasData(res.data?.equivalencias || []);
+    } catch {
+      setEquivalenciasData([]);
+    } finally {
+      setLoadingEquivalencias(false);
+    }
+  }, []);
+
   // Load material detail
   const loadDetail = useCallback(async (mat) => {
     setSelectedMaterial(mat);
@@ -516,6 +640,7 @@ export default function CatalogoMateriales() {
     setDetail(null);
     setSolicitudesData([]);
     setEquivalenciasData([]);
+    setAvisoEquiv("");
 
     try {
       const res = await materiales.detalle(mat.codigo);
@@ -536,16 +661,59 @@ export default function CatalogoMateriales() {
       setLoadingSolicitudes(false);
     }
 
-    setLoadingEquivalencias(true);
-    try {
-      const res = await equivalencias.porMaterial(mat.codigo);
-      setEquivalenciasData(res.data?.equivalencias || []);
-    } catch (err) {
-      setEquivalenciasData([]);
-    } finally {
-      setLoadingEquivalencias(false);
-    }
+    await cargarEquivalencias(mat.codigo);
+  }, [cargarEquivalencias]);
+
+  // "Filtrar tabla" del buscador: busca el codigo en el catalogo
+  const filtrarTabla = useCallback((codigo) => {
+    setSearchCodigo(codigo);
+    setSearchDesc("");
+    setSearchKeyword("");
+    setSearchGrupo("");
+    setDrawerAbierto(false);
   }, []);
+
+  const abrirNuevaEquivalencia = useCallback(() => {
+    setAvisoEquiv("");
+    setFormEquiv({ open: true, item: null });
+  }, []);
+
+  // porMaterial devuelve el sentido real de la fila (codigo_original -> codigo_destino)
+  const abrirEditarEquivalencia = useCallback((eq) => {
+    setAvisoEquiv("");
+    setFormEquiv({
+      open: true,
+      item: {
+        id: eq.id,
+        codigo_original: eq.codigo_original,
+        codigo_equivalente: eq.codigo_destino,
+        tipo_equivalencia: eq.tipo_equivalencia,
+        criterio: eq.criterio,
+        motivo: eq.motivo,
+      },
+    });
+  }, []);
+
+  const abrirBorrarEquivalencia = useCallback(
+    (eq) => {
+      setAvisoEquiv("");
+      setBorrarEquiv({
+        open: true,
+        item: { id: eq.id, codigo_original: selectedMaterial?.codigo, codigo_equivalente: eq.codigo_equivalente },
+      });
+    },
+    [selectedMaterial]
+  );
+
+  const trasGuardarEquivalencia = useCallback(
+    (mensaje) => {
+      setFormEquiv({ open: false, item: null });
+      setBorrarEquiv({ open: false, item: null });
+      setAvisoEquiv(mensaje);
+      if (selectedMaterial) cargarEquivalencias(selectedMaterial.codigo);
+    },
+    [selectedMaterial, cargarEquivalencias]
+  );
 
   const handleClearSearch = useCallback(() => {
     setSearchCodigo("");
@@ -612,7 +780,9 @@ export default function CatalogoMateriales() {
         cellStyle: { textAlign: 'right' },
         headerClass: 'ag-right-aligned-header',
         cellRenderer: (params) => (
-          <Typography variant="body2">{formatCurrency(params.value || 0)}</Typography>
+          <Typography variant="body2" color={params.value == null ? "text.secondary" : undefined}>
+            {params.value == null ? t("materials_sin_precio", "Sin precio") : formatCurrency(params.value)}
+          </Typography>
         ),
       },
       {
@@ -645,8 +815,19 @@ export default function CatalogoMateriales() {
   return (
     <PageLayout
       title={t("catalogo_materiales_titulo", "Catálogo de materiales")}
-      subtitle={t("catalogo_materiales_subtitulo", "Busca y consulta información de materiales SAP")}
+      subtitle={t("catalogo_materiales_subtitulo", "Busca materiales SAP, consulta su detalle y gestiona sus equivalencias")}
+      actions={
+        <Button variant="outlined" size="small" startIcon={<ForumOutlinedIcon />} onClick={alternarPanel} sx={{ textTransform: "none" }}>
+          {esEscritorio
+            ? panelVisible
+              ? t("equiv_bot_ocultar", "Ocultar buscador")
+              : t("equiv_bot_mostrar", "Mostrar buscador")
+            : t("equiv_bot_boton", "Buscador")}
+        </Button>
+      }
     >
+      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
+        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Search Card */}
         <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}>
@@ -826,6 +1007,31 @@ export default function CatalogoMateriales() {
             />
           )}
         </Paper>
+        </Box>
+        {esEscritorio && (
+          <Box
+            sx={{
+              display: panelVisible ? "block" : "none",
+              width: 380,
+              flexShrink: 0,
+              position: "sticky",
+              top: 16,
+              height: "calc(100vh - 160px)",
+              minHeight: 480,
+            }}
+          >
+            <BuscadorMaterialesPanel onFiltrarTabla={filtrarTabla} />
+          </Box>
+        )}
+      </Box>
+
+      {!esEscritorio && (
+        <Drawer anchor="right" open={drawerAbierto} onClose={() => setDrawerAbierto(false)} keepMounted>
+          <Box sx={{ width: { xs: "100vw", md: 420 }, height: "100%" }}>
+            <BuscadorMaterialesPanel onFiltrarTabla={filtrarTabla} onCerrar={() => setDrawerAbierto(false)} />
+          </Box>
+        </Drawer>
+      )}
 
         {/* Detail Modal */}
         <DetailModal
@@ -837,9 +1043,33 @@ export default function CatalogoMateriales() {
           loadingSolicitudes={loadingSolicitudes}
           equivalenciasData={equivalenciasData}
           loadingEquivalencias={loadingEquivalencias}
+          canManage={canManage}
+          avisoEquiv={avisoEquiv}
+          onCerrarAviso={() => setAvisoEquiv("")}
+          onNuevaEquivalencia={abrirNuevaEquivalencia}
+          onEditarEquivalencia={abrirEditarEquivalencia}
+          onBorrarEquivalencia={abrirBorrarEquivalencia}
           onClose={handleCloseModal}
           t={t}
         />
+
+        {canManage && (
+          <>
+            <EquivalenciaFormModal
+              open={formEquiv.open}
+              item={formEquiv.item}
+              material={selectedMaterial}
+              onClose={() => setFormEquiv({ open: false, item: null })}
+              onSaved={trasGuardarEquivalencia}
+            />
+            <EquivalenciaDeleteModal
+              open={borrarEquiv.open}
+              item={borrarEquiv.item}
+              onClose={() => setBorrarEquiv({ open: false, item: null })}
+              onDeleted={trasGuardarEquivalencia}
+            />
+          </>
+        )}
     </PageLayout>
   );
 }

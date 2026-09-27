@@ -156,7 +156,11 @@ export function MaterialDetailModal({
               />
               <InfoRow
                 label={t('materials_precio_usd', 'Precio')}
-                value={formatCurrency(selectedMaterial.precio_usd || 0)}
+                value={
+                  selectedMaterial.precio_usd == null
+                    ? t('materials_sin_precio', 'Sin precio')
+                    : formatCurrency(selectedMaterial.precio_usd)
+                }
               />
               <InfoRow
                 label={t('materials_centro', 'Centro consultado')}

@@ -176,7 +176,7 @@ export default function VehicleDetail() {
   if (loading) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
           <CircularProgress />
         </Box>
       </Box>
@@ -186,7 +186,7 @@ export default function VehicleDetail() {
   if (!v) {
     return (
       <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+        <Box sx={{ width: "100%" }}>
         <Alert severity="error">{t('fms_vehicle_not_found', 'Vehículo no encontrado')}</Alert>
         <Button startIcon={<ArrowLeft />} onClick={() => navigate('/fms/vehicles')} sx={{ mt: 2 }}>
           {t('fms_back', 'Volver')}
@@ -198,7 +198,7 @@ export default function VehicleDetail() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
+      <Box sx={{ width: "100%" }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <IconButton onClick={() => navigate('/fms/vehicles')}>

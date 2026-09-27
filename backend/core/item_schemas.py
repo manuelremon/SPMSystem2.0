@@ -12,8 +12,9 @@ Valida:
 
 import logging
 import math
+import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,22 @@ CRITICIDADES_VALIDAS = {"Baja", "Normal", "Alta", "Critica", "Urgente"}
 # Tope de cantidad por item (evita totales desbordados a infinito)
 CANTIDAD_MAXIMA = 1_000_000
 
-# Cache codigo normalizado -> precio de catalogo (evita consultas repetidas)
-_materiales_validados_cache: Dict[str, float] = {}
+# Cache codigo normalizado -> (precio de catalogo, vence_en) para evitar consultas
+# repetidas. Cada entrada vence a los _CACHE_TTL_SEGUNDOS (reloj monotonic): un
+# cambio de precio hecho por otro proceso (p. ej. la migracion 104, que el deploy
+# corre DESPUES de reiniciar los contenedores) se ve como mucho a los 5 minutos
+# en cada worker. Tambien se vacia al reiniciar el backend o con
+# limpiar_cache_materiales(). Solo guarda materiales CON precio: los que no
+# tienen precio se consultan siempre, asi un precio cargado despues se ve al instante.
+_CACHE_TTL_SEGUNDOS = 300
+_materiales_validados_cache: Dict[str, Tuple[float, float]] = {}
 
 # Resultado de _precio_catalogo cuando la BD no responde
 _PRECIO_NO_VERIFICABLE = object()
+
+# Resultado de _precio_catalogo cuando el material existe pero no tiene precio
+# de referencia (precio_usd NULL): no se puede solicitar hasta que se cargue
+_SIN_PRECIO = object()
 
 
 def _precio_catalogo(material_id: str):
@@ -62,7 +74,8 @@ def _precio_catalogo(material_id: str):
     Precio unitario (USD) del material segun el catalogo.
 
     Returns:
-        float si el material existe, None si no existe,
+        float si el material existe y tiene precio, None si no existe,
+        _SIN_PRECIO si existe sin precio (precio_usd NULL),
         _PRECIO_NO_VERIFICABLE si no se pudo consultar la BD.
     """
     if not material_id:
@@ -74,8 +87,12 @@ def _precio_catalogo(material_id: str):
         codigo_norm = codigo_norm[:-2]
     codigo_norm = codigo_norm.lstrip("0")
 
-    if codigo_norm in _materiales_validados_cache:
-        return _materiales_validados_cache[codigo_norm]
+    en_cache = _materiales_validados_cache.get(codigo_norm)
+    if en_cache is not None:
+        precio_cache, vence_en = en_cache
+        if time.monotonic() < vence_en:
+            return precio_cache
+        _materiales_validados_cache.pop(codigo_norm, None)
 
     try:
         # Import diferido para evitar dependencias circulares
@@ -102,8 +119,10 @@ def _precio_catalogo(material_id: str):
 
     if row is None:
         return None
-    precio = round(float(row[0] or 0), 2)
-    _materiales_validados_cache[codigo_norm] = precio
+    if row[0] is None:
+        return _SIN_PRECIO  # no se cachea: un precio cargado despues se ve enseguida
+    precio = round(float(row[0]), 2)
+    _materiales_validados_cache[codigo_norm] = (precio, time.monotonic() + _CACHE_TTL_SEGUNDOS)
     return precio
 
 
@@ -480,6 +499,19 @@ def validar_items(items: List[Dict[str, Any]]) -> Dict[str, Any]:
                         "indice": idx,
                         "campo": "material_id",
                         "mensaje": f"Material '{item.material_id}' no existe en el catálogo",
+                        "datos": item_data,
+                    }
+                )
+                continue
+            if precio is _SIN_PRECIO:
+                errores.append(
+                    {
+                        "indice": idx,
+                        "campo": "material_id",
+                        "mensaje": (
+                            f"El material {item.material_id} no tiene precio de referencia; "
+                            "no se puede solicitar hasta que se cargue"
+                        ),
                         "datos": item_data,
                     }
                 )

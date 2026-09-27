@@ -103,7 +103,8 @@ export function useMaterials() {
   // Cross-cutting handlers
   const handleAdd = useCallback(async () => {
     if (!selectedMaterial) return
-    await cart.handleAdd(selectedMaterial, detailCache, loadDetail)
+    const agregado = await cart.handleAdd(selectedMaterial, detailCache, loadDetail)
+    if (!agregado) return // p. ej. sin precio: se mantiene la seleccion y el aviso
     setSelectedMaterial(null)
     setDetailViewed(false)
     setDetail(null)

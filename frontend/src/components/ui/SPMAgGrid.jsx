@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { useAlturaDisponible } from '../../hooks/useAlturaDisponible';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import Box from '@mui/material/Box';
@@ -115,7 +116,9 @@ const AG_GRID_LOCALE_ES = {
  * @param {Array} rowData - Datos a mostrar (array de objetos)
  * @param {Array} columnDefs - Definición de columnas (formato AG Grid)
  * @param {boolean} loading - Estado de carga
- * @param {string|number} height - Altura del grid (default: 520)
+ * @param {string|number} height - Altura del grid (default: 520). Si es numerica y >= 400 es la
+ *   altura MINIMA: el grid crece hasta el borde inferior de la ventana (ver `fill`)
+ * @param {boolean} fill - Crecer hasta el borde inferior de la ventana (default: height numerica >= 400)
  * @param {boolean} pagination - Habilitar paginación
  * @param {number} paginationPageSize - Filas por página (default: 25)
  * @param {Array} paginationPageSizeSelector - Opciones de tamaño de página
@@ -135,6 +138,7 @@ export function SPMAgGrid({
   columnDefs = [],
   loading = false,
   height = 520,
+  fill,
   pagination = true,
   paginationPageSize = 25,
   paginationPageSizeSelector = [10, 25, 50, 100],
@@ -266,11 +270,14 @@ export function SPMAgGrid({
     </div>`
   ), [t]);
 
-  // Normalizar altura
-  const normalizedHeight = typeof height === 'number' ? `${height}px` : height;
+  // Altura: las tablas principales llenan la ventana; la altura pedida queda como minima
+  const llenar = fill ?? (typeof height === 'number' && height >= 400);
+  const contenedorRef = useRef(null);
+  const altoDisponible = useAlturaDisponible(contenedorRef, typeof height === 'number' ? height : 0, llenar);
+  const normalizedHeight = llenar ? `${altoDisponible}px` : typeof height === 'number' ? `${height}px` : height;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: normalizedHeight, minHeight: 200, ...sx }}>
+    <Box ref={contenedorRef} sx={{ display: 'flex', flexDirection: 'column', height: normalizedHeight, minHeight: 200, ...sx }}>
       {/* Toolbar */}
       {enableQuickFilter && (
         <Box
@@ -367,6 +374,7 @@ SPMAgGrid.propTypes = {
   columnDefs: PropTypes.array.isRequired,
   loading: PropTypes.bool,
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  fill: PropTypes.bool,
   pagination: PropTypes.bool,
   paginationPageSize: PropTypes.number,
   paginationPageSizeSelector: PropTypes.arrayOf(PropTypes.number),

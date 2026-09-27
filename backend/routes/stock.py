@@ -2,12 +2,12 @@
 Stock management endpoints.
 Provides stock data with filters, inmovilizado and MRP indicators.
 
-Uses materialized view `stock_vista` (migration 094) for fast queries.
+Uses materialized view `stock_vista` (migrations 094/103) for fast queries.
+Inmovilizado: definicion unica en backend/services/inmovilizado_service.py.
 Falls back to raw tables if the view doesn't exist.
 """
 
 import logging
-from datetime import datetime, timedelta, date
 
 from flask import Blueprint, jsonify, request
 
@@ -15,6 +15,7 @@ from backend.core.db import get_db_connection, is_using_postgresql
 from backend.core.helpers import safe_error_response
 from backend.core.roles import require_admin, require_auth
 from backend.core.search_utils import build_description_search_with_catalog
+from backend.services import inmovilizado_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +24,7 @@ bp = Blueprint("stock", __name__, url_prefix="/api/stock")
 
 def _has_stock_vista(cur):
     """Check if stock_vista materialized view exists."""
-    try:
-        cur.execute(
-            "SELECT 1 FROM pg_matviews WHERE matviewname = 'stock_vista' LIMIT 1"
-        )
-        return cur.fetchone() is not None
-    except Exception:
-        return False
+    return inmovilizado_service.tiene_stock_vista(cur)
 
 
 def _build_stock_where(centro, almacen, material, descripcion,
@@ -70,7 +65,7 @@ def _build_stock_where(centro, almacen, material, descripcion,
 @require_auth
 def get_stock():
     """
-    Get stock data with server-side pagination.
+    Get stock data with server-side pagination (una fila por material+centro+almacen).
 
     Query params:
     - centro, almacen, material, descripcion: filters
@@ -80,11 +75,17 @@ def get_stock():
     - sort: column name (default stock_valorizado)
     - order: asc/desc (default desc)
 
+    Inmovilizado = sin consumo en los 12 meses previos a la fecha de corte del
+    stock (ver backend/services/inmovilizado_service.py). La marca SAP viene
+    como `inmovilizado_sap` (informativa). `dias_sin_movimiento` es null si la
+    clave nunca tuvo consumo.
+
     Returns:
     {
         ok: true,
         data: [rows],
         total: count,
+        fecha_corte: "YYYY-MM-DD",
         filtros: {centros: [], almacenes: []}
     }
     """
@@ -99,12 +100,7 @@ def get_stock():
     sort_col = request.args.get("sort", "stock_valorizado").strip()
     sort_order = request.args.get("order", "desc").strip().lower()
 
-    # Whitelist sortable columns
-    allowed_sorts = {
-        "material", "descripcion", "centro", "almacen", "stock",
-        "stock_valorizado", "dias_sin_movimiento", "inmovilizado", "mrp",
-    }
-    if sort_col not in allowed_sorts:
+    if sort_col not in inmovilizado_service.COLUMNAS_ORDEN:
         sort_col = "stock_valorizado"
     if sort_order not in ("asc", "desc"):
         sort_order = "desc"
@@ -119,13 +115,33 @@ def get_stock():
                     inmovilizado_filter, mrp_filter, limit, offset,
                     sort_col, sort_order)
 
-            # Fallback: original query for environments without the view
-            return _get_stock_legacy(
+            # Fallback: tablas crudas (SQLite dev / PG sin la vista)
+            corte = inmovilizado_service.fecha_corte(cur)
+            results, total = inmovilizado_service.listar_stock(
                 cur, centro, almacen, material, descripcion,
-                inmovilizado_filter, mrp_filter, limit, offset)
+                inmovilizado_filter, mrp_filter, limit, offset,
+                sort_col, sort_order, corte=corte)
+
+            cur.execute("SELECT DISTINCT centro FROM stock WHERE stock > 0 ORDER BY centro")
+            centros = [row["centro"] for row in cur.fetchall()]
+            cur.execute("SELECT DISTINCT almacen FROM stock WHERE stock > 0 ORDER BY almacen")
+            almacenes = [row["almacen"] for row in cur.fetchall()]
+
+            return jsonify({
+                "ok": True,
+                "data": results,
+                "total": total,
+                "fecha_corte": corte.isoformat(),
+                "filtros": {"centros": centros, "almacenes": almacenes}
+            })
 
     except Exception as e:
         return safe_error_response(e, logger, context="stock.get_stock")
+
+
+def _fecha_corte_vista(cur):
+    """Fecha de corte con la que se calculo stock_vista (migracion 103)."""
+    return inmovilizado_service.fecha_corte_vista(cur)
 
 
 def _get_stock_from_vista(cur, centro, almacen, material, descripcion,
@@ -140,41 +156,20 @@ def _get_stock_from_vista(cur, centro, almacen, material, descripcion,
     cur.execute(f"SELECT COUNT(*) FROM stock_vista sv WHERE {where_sql}", params)
     total = cur.fetchone()[0]
 
-    # Paginated data
-    order_clause = f"{sort_col} {sort_order}"
-    if sort_col == "dias_sin_movimiento":
-        order_clause = f"ultimo_consumo {'ASC' if sort_order == 'desc' else 'DESC'} NULLS FIRST"
-
+    order_clause = inmovilizado_service.orden_sql(sort_col, sort_order, alias="sv")
     cur.execute(f"""
         SELECT material, descripcion, centro, centro_descripcion, almacen,
-               stock, um, precio, stock_valorizado, inmovilizado, mrp,
-               ultimo_consumo
+               stock, um, precio, stock_valorizado, inmovilizado, inmovilizado_sap,
+               mrp, ultimo_consumo
         FROM stock_vista sv
         WHERE {where_sql}
         ORDER BY {order_clause}
         LIMIT ? OFFSET ?
     """, params + [limit, offset])
+    rows = cur.fetchall()
 
-    today = datetime.now()
-    results = []
-    for row in cur.fetchall():
-        item = dict(row)
-        uc = item.get("ultimo_consumo")
-        if uc:
-            if isinstance(uc, (date, datetime)):
-                delta = today - datetime.combine(uc, datetime.min.time()) if isinstance(uc, date) else today - uc
-                item["dias_sin_movimiento"] = delta.days
-            else:
-                try:
-                    item["dias_sin_movimiento"] = (today - datetime.strptime(str(uc), "%Y-%m-%d")).days
-                except (ValueError, TypeError):
-                    item["dias_sin_movimiento"] = None
-        else:
-            item["dias_sin_movimiento"] = 999
-        # Ensure booleans
-        item["inmovilizado"] = bool(item.get("inmovilizado", False))
-        item["mrp"] = bool(item.get("mrp", False))
-        results.append(item)
+    corte = _fecha_corte_vista(cur)
+    results = [inmovilizado_service.fila_stock(row, corte) for row in rows]
 
     # Filter options (cached in vista)
     cur.execute("SELECT DISTINCT centro FROM stock_vista ORDER BY centro")
@@ -186,114 +181,7 @@ def _get_stock_from_vista(cur, centro, almacen, material, descripcion,
         "ok": True,
         "data": results,
         "total": total,
-        "filtros": {"centros": centros, "almacenes": almacenes}
-    })
-
-
-def _get_stock_legacy(cur, centro, almacen, material, descripcion,
-                      inmovilizado_filter, mrp_filter, limit, offset):
-    """Fallback: original query with correlated subqueries."""
-    where_clauses = ["s.stock > 0"]
-    params = []
-
-    if centro:
-        where_clauses.append("s.centro = ?")
-        params.append(centro)
-    if almacen:
-        where_clauses.append("s.almacen = ?")
-        params.append(almacen)
-    if material:
-        where_clauses.append("s.material LIKE ?")
-        params.append(f"%{material}%")
-    if descripcion:
-        search = build_description_search_with_catalog(
-            descripcion, ["s.material_descripcion"], "s.material"
-        )
-        if search:
-            where_clauses.append(search.where_clause)
-            params.extend(search.params)
-
-    where_sql = " AND ".join(where_clauses)
-    fecha_limite = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-
-    query = f"""
-        SELECT
-            s.material,
-            s.material_descripcion as descripcion,
-            s.centro, s.centro_descripcion, s.almacen,
-            SUM(s.stock) as stock, s.um, s.precio,
-            SUM(s.stock_valorizado) as stock_valorizado,
-            CASE
-                WHEN s.inmovilizado = 'INMOVILIZADO' THEN 1
-                WHEN NOT EXISTS (
-                    SELECT 1 FROM consumo_historico ch
-                    WHERE ch.material = s.material AND ch.centro = s.centro
-                    AND ch.almacen = s.almacen AND ch.fecha >= ?
-                ) THEN 1 ELSE 0
-            END as inmovilizado,
-            CASE
-                WHEN EXISTS (
-                    SELECT 1 FROM materiales_bbdd m
-                    WHERE m.codigo_material = s.material AND m.centro = s.centro
-                    AND m.almacen = s.almacen
-                    AND (m.punto_de_pedido > 0 OR m.stock_de_seguridad > 0)
-                ) THEN 1 ELSE 0
-            END as mrp,
-            (SELECT MAX(fecha) FROM consumo_historico ch
-             WHERE ch.material = s.material AND ch.centro = s.centro
-             AND ch.almacen = s.almacen) as ultimo_consumo
-        FROM stock s
-        WHERE {where_sql}
-        GROUP BY s.material, s.material_descripcion, s.centro,
-                 s.centro_descripcion, s.almacen, s.um, s.precio, s.inmovilizado
-    """
-
-    having_clauses = []
-    if inmovilizado_filter == "true":
-        having_clauses.append("inmovilizado = 1")
-    elif inmovilizado_filter == "false":
-        having_clauses.append("inmovilizado = 0")
-    if mrp_filter == "true":
-        having_clauses.append("mrp = 1")
-    elif mrp_filter == "false":
-        having_clauses.append("mrp = 0")
-    if having_clauses:
-        query += " HAVING " + " AND ".join(having_clauses)
-
-    query += " ORDER BY stock_valorizado DESC"
-    all_params = [fecha_limite] + params
-
-    count_query = f"SELECT COUNT(*) as total FROM ({query}) sub"
-    cur.execute(count_query, all_params)
-    total = cur.fetchone()["total"]
-
-    query += f" LIMIT {limit} OFFSET {offset}"
-    cur.execute(query, all_params)
-
-    results = []
-    for row in cur.fetchall():
-        item = dict(row)
-        if item.get("ultimo_consumo"):
-            try:
-                ultimo = datetime.strptime(item["ultimo_consumo"], "%Y-%m-%d")
-                item["dias_sin_movimiento"] = (datetime.now() - ultimo).days
-            except (ValueError, TypeError):
-                item["dias_sin_movimiento"] = None
-        else:
-            item["dias_sin_movimiento"] = 999
-        item["inmovilizado"] = bool(item.get("inmovilizado", 0))
-        item["mrp"] = bool(item.get("mrp", 0))
-        results.append(item)
-
-    cur.execute("SELECT DISTINCT centro FROM stock WHERE stock > 0 ORDER BY centro")
-    centros = [row["centro"] for row in cur.fetchall()]
-    cur.execute("SELECT DISTINCT almacen FROM stock WHERE stock > 0 ORDER BY almacen")
-    almacenes = [row["almacen"] for row in cur.fetchall()]
-
-    return jsonify({
-        "ok": True,
-        "data": results,
-        "total": total,
+        "fecha_corte": corte.isoformat(),
         "filtros": {"centros": centros, "almacenes": almacenes}
     })
 
@@ -302,7 +190,7 @@ def _get_stock_legacy(cur, centro, almacen, material, descripcion,
 @require_auth
 def get_stock_resumen():
     """
-    Get stock summary statistics.
+    Get stock summary statistics (por material+centro+almacen).
 
     Query params:
     - centro: filter by plant code
@@ -314,7 +202,9 @@ def get_stock_resumen():
         data: {
             total_items, stock_total, valor_total,
             inmovilizado_items, inmovilizado_valor,
-            mrp_items, sin_consumo_365d
+            mrp_items,
+            sin_consumo_365d,   # sin consumo en los 12 meses al corte (= inmovilizado)
+            fecha_corte         # "YYYY-MM-DD"
         }
     }
     """
@@ -328,7 +218,8 @@ def get_stock_resumen():
             if is_using_postgresql() and _has_stock_vista(cur):
                 return _get_resumen_from_vista(cur, centro, almacen)
 
-            return _get_resumen_legacy(cur, centro, almacen)
+            data = inmovilizado_service.resumen_stock(cur, centro, almacen)
+            return jsonify({"ok": True, "data": data})
 
     except Exception as e:
         return safe_error_response(e, logger, context="stock.get_stock_resumen")
@@ -353,9 +244,7 @@ def _get_resumen_from_vista(cur, centro, almacen):
             COALESCE(SUM(stock_valorizado), 0) as valor_total,
             COUNT(*) FILTER (WHERE inmovilizado = true) as inmovilizado_items,
             COALESCE(SUM(stock_valorizado) FILTER (WHERE inmovilizado = true), 0) as inmovilizado_valor,
-            COUNT(*) FILTER (WHERE mrp = true) as mrp_items,
-            COUNT(*) FILTER (WHERE ultimo_consumo IS NULL
-                OR ultimo_consumo < CURRENT_DATE - INTERVAL '365 days') as sin_consumo_365d
+            COUNT(*) FILTER (WHERE mrp = true) as mrp_items
         FROM stock_vista
         WHERE {where_sql}
     """, params)
@@ -370,76 +259,9 @@ def _get_resumen_from_vista(cur, centro, almacen):
             "inmovilizado_items": row[3],
             "inmovilizado_valor": float(row[4]),
             "mrp_items": row[5],
-            "sin_consumo_365d": row[6]
-        }
-    })
-
-
-def _get_resumen_legacy(cur, centro, almacen):
-    """Fallback: multiple queries on raw tables."""
-    base_clauses = ["s.stock > 0"]
-    params = []
-    if centro:
-        base_clauses.append("s.centro = ?")
-        params.append(centro)
-    if almacen:
-        base_clauses.append("s.almacen = ?")
-        params.append(almacen)
-
-    where_sql = " AND ".join(base_clauses)
-    where_sql_no_alias = where_sql.replace("s.", "")
-    fecha_limite = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-
-    cur.execute(f"""
-        SELECT
-            COUNT(DISTINCT material || '-' || centro || '-' || almacen) as total_items,
-            COALESCE(SUM(stock), 0) as stock_total,
-            COALESCE(SUM(stock_valorizado), 0) as valor_total
-        FROM stock WHERE {where_sql_no_alias}
-    """, params)
-    totals = dict(cur.fetchone())
-
-    cur.execute(f"""
-        SELECT
-            COUNT(DISTINCT material || '-' || centro || '-' || almacen) as items,
-            COALESCE(SUM(stock_valorizado), 0) as valor
-        FROM stock WHERE {where_sql_no_alias} AND inmovilizado = 'INMOVILIZADO'
-    """, params)
-    inmovilizado = dict(cur.fetchone())
-
-    cur.execute(f"""
-        SELECT COUNT(DISTINCT s.material || '-' || s.centro || '-' || s.almacen) as items
-        FROM stock s WHERE {where_sql}
-        AND NOT EXISTS (
-            SELECT 1 FROM consumo_historico ch
-            WHERE ch.material = s.material AND ch.centro = s.centro
-            AND ch.almacen = s.almacen AND ch.fecha >= ?
-        )
-    """, params + [fecha_limite])
-    sin_consumo = cur.fetchone()["items"]
-
-    cur.execute(f"""
-        SELECT COUNT(DISTINCT s.material || '-' || s.centro || '-' || s.almacen) as items
-        FROM stock s WHERE {where_sql}
-        AND EXISTS (
-            SELECT 1 FROM materiales_bbdd m
-            WHERE m.codigo_material = s.material AND m.centro = s.centro
-            AND m.almacen = s.almacen
-            AND (m.punto_de_pedido > 0 OR m.stock_de_seguridad > 0)
-        )
-    """, params)
-    mrp_items = cur.fetchone()["items"]
-
-    return jsonify({
-        "ok": True,
-        "data": {
-            "total_items": totals["total_items"],
-            "stock_total": totals["stock_total"],
-            "valor_total": totals["valor_total"],
-            "inmovilizado_items": inmovilizado["items"],
-            "inmovilizado_valor": inmovilizado["valor"],
-            "mrp_items": mrp_items,
-            "sin_consumo_365d": sin_consumo
+            # Sin consumo en los 12 meses al corte (= inmovilizado)
+            "sin_consumo_365d": row[3],
+            "fecha_corte": _fecha_corte_vista(cur).isoformat(),
         }
     })
 
