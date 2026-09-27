@@ -205,6 +205,7 @@ class ItemSolicitud:
         """Convierte el item a diccionario."""
         return {
             "material_id": self.material_id,
+            "codigo": self.material_id,  # la UI (tablas de items, carrito) usa "codigo"
             "descripcion": self.descripcion,
             "cantidad": self.cantidad,
             "unidad": self.unidad,

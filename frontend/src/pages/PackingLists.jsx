@@ -265,7 +265,7 @@ const PackingLists = () => {
 
       {/* KPIs */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -280,7 +280,7 @@ const PackingLists = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -295,7 +295,7 @@ const PackingLists = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -310,7 +310,7 @@ const PackingLists = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -463,7 +463,7 @@ const PackingLists = () => {
             </TextField>
 
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField
                   label={t('pack_largo', 'Largo')}
                   type="number"
@@ -472,7 +472,7 @@ const PackingLists = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField
                   label={t('pack_ancho', 'Ancho')}
                   type="number"
@@ -481,7 +481,7 @@ const PackingLists = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField
                   label={t('pack_alto', 'Alto')}
                   type="number"
@@ -490,7 +490,7 @@ const PackingLists = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <TextField
                   select
                   label={t('pack_unidad', 'Unidad')}

@@ -6,6 +6,7 @@ import {
 } from '@mui/material'
 import { useModuleStore } from '../../store/moduleStore'
 import { useI18n } from '../../context/i18n'
+import PageLayout from '../../components/ui/PageLayout'
 
 export default function AdminModules() {
   const { t } = useI18n()
@@ -42,7 +43,7 @@ export default function AdminModules() {
         .filter((m, i) => modules[i] && m.enabled !== modules[i].enabled)
         .map(m => ({ module_key: m.module_key, enabled: m.enabled }))
       await updateModules(changed)
-      setMessage(t('admin_modules_saved', 'Modulos actualizados correctamente'))
+      setMessage(t('admin_modules_saved', 'Módulos actualizados correctamente'))
     } catch (err) {
       setError(err.response?.data?.error || t('common_error', 'Error al guardar'))
     } finally {
@@ -52,33 +53,40 @@ export default function AdminModules() {
 
   if (!isLoaded) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', justifyContent: 'center' }}>
+      <PageLayout title={t('admin_modules_title', 'Módulos del sistema')} backTo="/admin">
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
-      </Box>
+      </PageLayout>
     )
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-      <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary" gutterBottom>
-        {t('admin_modules_title', 'Modulos del Sistema')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {t('admin_modules_desc', 'Habilite o deshabilite los modulos disponibles en el sistema')}
-      </Typography>
+    <PageLayout
+      title={t('admin_modules_title', 'Módulos del sistema')}
+      subtitle={t('admin_modules_desc', 'Habilita o deshabilita los módulos disponibles en el sistema')}
+      backTo="/admin"
+      actions={
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleSave}
+          disabled={!hasChanges || saving}
+          sx={{ textTransform: 'none' }}
+        >
+          {saving ? <CircularProgress size={18} color="inherit" /> : t('common_save', 'Guardar')}
+        </Button>
+      }
+    >
+      {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
+      {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
 
-      {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>{t('common_module', 'Modulo')}</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>{t('common_description', 'Descripcion')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('common_module', 'Módulo')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('common_description', 'Descripción')}</TableCell>
               <TableCell align="center" sx={{ fontWeight: 700 }}>{t('common_status', 'Estado')}</TableCell>
             </TableRow>
           </TableHead>
@@ -118,17 +126,6 @@ export default function AdminModules() {
           </TableBody>
         </Table>
       </TableContainer>
-
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={!hasChanges || saving}
-        >
-          {saving ? <CircularProgress size={20} /> : t('common_save', 'Guardar')}
-        </Button>
-      </Box>
-      </Box>
-    </Box>
+    </PageLayout>
   )
 }

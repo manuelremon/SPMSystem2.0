@@ -104,7 +104,7 @@ def load_refs(conn, verbose=False) -> RefData:
         refs.sectores = [r[0] for r in cursor.fetchall()]
         _log(f"Sectores: {len(refs.sectores)}")
     except Exception:
-        refs.sectores = ["Operaciones", "Mantenimiento", "Produccion", "Logistica"]
+        refs.sectores = ["Operaciones", "Mantenimiento", "Producción", "Logística"]
 
     # Almacenes
     try:

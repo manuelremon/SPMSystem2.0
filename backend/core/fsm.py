@@ -676,7 +676,7 @@ def _disparar_notificaciones(
     elif estado_nuevo == "approved":
         notificaciones.append((
             solicitud_data.get("planner_id"),
-            f"Solicitud #{solicitud_id} aprobada y asignada para planificacion",
+            f"Solicitud #{solicitud_id} aprobada y asignada para planificación",
             "solicitud_approved",
         ))
         notificaciones.append((
@@ -691,7 +691,7 @@ def _disparar_notificaciones(
     elif estado_nuevo == "in_treatment":
         notificaciones.append((
             solicitante,
-            f"Solicitud #{solicitud_id} en tratamiento por planificacion",
+            f"Solicitud #{solicitud_id} en tratamiento por planificación",
             "solicitud_planned",
         ))
 

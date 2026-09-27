@@ -7,11 +7,12 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatNumber } from '../utils/formatters';
+import PageLayout from '../components/ui/PageLayout';
+import { MetricCard } from '../components/ui/MetricCard';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -27,38 +28,17 @@ import MenuItem from '@mui/material/MenuItem';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DescriptionIcon from '@mui/icons-material/Description';
-import GavelIcon from '@mui/icons-material/Gavel';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 
-const CATEGORIA_OPTIONS = [
-  { value: '', label: 'Todas' },
-  { value: 'procurement', label: 'Compras' },
-  { value: 'logistics', label: 'Logistica' },
-  { value: 'quality', label: 'Calidad' },
-  { value: 'planning', label: 'Planificacion' },
-  { value: 'finance', label: 'Finanzas' },
-];
-
-const SEVERIDAD_OPTIONS = [
-  { value: '', label: 'Todas' },
-  { value: 'critical', label: 'Critica' },
-  { value: 'warning', label: 'Alerta' },
-  { value: 'info', label: 'Informativa' },
-  { value: 'success', label: 'Exito' },
-];
+const CATEGORIA_VALUES = ['procurement', 'logistics', 'quality', 'planning', 'finance'];
+const SEVERIDAD_VALUES = ['critical', 'warning', 'info', 'success'];
 
 const SEVERIDAD_COLORS = {
   critical: 'error',
@@ -83,32 +63,39 @@ const CATEGORIA_COLORS = {
 };
 
 const CATEGORIA_LABELS = {
-  procurement: 'Compras',
-  logistics: 'Logistica',
-  quality: 'Calidad',
-  planning: 'Planificacion',
-  finance: 'Finanzas',
+  procurement: ['ct_cat_procurement', 'Compras'],
+  logistics: ['ct_cat_logistics', 'Logística'],
+  quality: ['ct_cat_quality', 'Calidad'],
+  planning: ['ct_cat_planning', 'Planificación'],
+  finance: ['ct_cat_finance', 'Finanzas'],
 };
 
 const SEVERIDAD_LABELS = {
-  critical: 'Critica',
-  warning: 'Alerta',
-  info: 'Informativa',
-  success: 'Exito',
+  critical: ['ct_sev_critical', 'Crítica'],
+  warning: ['ct_sev_warning', 'Alerta'],
+  info: ['ct_sev_info', 'Informativa'],
+  success: ['ct_sev_success', 'Éxito'],
 };
 
 const TIPO_EVENTO_LABELS = {
-  budget_exceeded: 'Presupuesto excedido',
-  supplier_risk: 'Riesgo proveedor',
-  ncr_opened: 'NCR abierto',
-  sla_breach: 'SLA vencido',
-  stock_critical: 'Stock critico',
-  quality_issue: 'Problema calidad',
-  delivery_delay: 'Demora entrega',
-  contract_expiry: 'Contrato por vencer',
-  inspection_fail: 'Inspeccion fallida',
-  price_change: 'Cambio de precio',
-  stock_alert: 'Alerta stock',
+  budget_exceeded: ['ct_tipo_budget_exceeded', 'Presupuesto excedido'],
+  supplier_risk: ['ct_tipo_supplier_risk', 'Riesgo de proveedor'],
+  ncr_opened: ['ct_tipo_ncr_opened', 'No conformidad abierta'],
+  sla_breach: ['ct_tipo_sla_breach', 'SLA vencido'],
+  stock_critical: ['ct_tipo_stock_critical', 'Stock crítico'],
+  quality_issue: ['ct_tipo_quality_issue', 'Problema de calidad'],
+  delivery_delay: ['ct_tipo_delivery_delay', 'Demora de entrega'],
+  contract_expiry: ['ct_tipo_contract_expiry', 'Contrato por vencer'],
+  inspection_fail: ['ct_tipo_inspection_fail', 'Inspección fallida'],
+  price_change: ['ct_tipo_price_change', 'Cambio de precio'],
+  stock_alert: ['ct_tipo_stock_alert', 'Alerta de stock'],
+};
+
+const PRIORIDAD_LABELS = {
+  critica: ['ct_prio_critica', 'Crítica'],
+  alta: ['ct_prio_alta', 'Alta'],
+  media: ['ct_prio_media', 'Media'],
+  baja: ['ct_prio_baja', 'Baja'],
 };
 
 const ALERTA_ESTADO_COLORS = {
@@ -118,15 +105,16 @@ const ALERTA_ESTADO_COLORS = {
 };
 
 const ALERTA_ESTADO_LABELS = {
-  active: 'Activa',
-  acknowledged: 'Reconocida',
-  resolved: 'Resuelta',
+  active: ['ct_estado_active', 'Activa'],
+  acknowledged: ['ct_estado_acknowledged', 'Reconocida'],
+  resolved: ['ct_estado_resolved', 'Resuelta'],
 };
 
 export default function ControlTower() {
   const { t } = useI18n();
   const toast = useToast();
-  const navigate = useNavigate();
+  // Traduce una etiqueta [clave, fallback] de los mapas de arriba
+  const lbl = useCallback((map, value) => (map[value] ? t(map[value][0], map[value][1]) : value || '-'), [t]);
   const toastRef = useRef(toast);
   toastRef.current = toast;
 
@@ -293,16 +281,16 @@ export default function ControlTower() {
       field: 'tipo',
       headerName: t('ct_col_tipo', 'Tipo'),
       width: 160,
-      valueFormatter: (p) => TIPO_EVENTO_LABELS[p.value] || p.value || '-',
+      valueFormatter: (p) => lbl(TIPO_EVENTO_LABELS, p.value),
     },
     {
       field: 'categoria',
-      headerName: t('ct_col_categoria', 'Categoria'),
+      headerName: t('ct_col_categoria', 'Categoría'),
       width: 140,
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={CATEGORIA_LABELS[p.value] || p.value || '-'}
+          label={lbl(CATEGORIA_LABELS, p.value)}
           color={CATEGORIA_COLORS[p.value] || 'default'}
           variant="outlined"
         />
@@ -315,21 +303,21 @@ export default function ControlTower() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={SEVERIDAD_LABELS[p.value] || p.value || '-'}
+          label={lbl(SEVERIDAD_LABELS, p.value)}
           color={SEVERIDAD_COLORS[p.value] || 'default'}
         />
       ),
     },
-    { field: 'titulo', headerName: t('ct_col_titulo', 'Titulo'), flex: 2, minWidth: 200 },
+    { field: 'titulo', headerName: t('ct_col_titulo', 'Título'), flex: 2, minWidth: 200 },
     { field: 'entidad', headerName: t('ct_col_entidad', 'Entidad'), flex: 1, minWidth: 140 },
-  ], [t]);
+  ], [t, lbl]);
 
   const alertColumnDefs = useMemo(() => [
     {
       field: 'tipo',
       headerName: t('ct_col_tipo', 'Tipo'),
       width: 160,
-      valueFormatter: (p) => TIPO_EVENTO_LABELS[p.value] || p.value || '-',
+      valueFormatter: (p) => lbl(TIPO_EVENTO_LABELS, p.value),
     },
     {
       field: 'prioridad',
@@ -338,7 +326,7 @@ export default function ControlTower() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={p.value || '-'}
+          label={lbl(PRIORIDAD_LABELS, p.value)}
           color={PRIORIDAD_COLORS[p.value] || 'default'}
         />
       ),
@@ -348,8 +336,9 @@ export default function ControlTower() {
       headerName: t('ct_col_cantidad', 'Cantidad'),
       width: 100,
       type: 'numericColumn',
+      valueFormatter: (p) => (p.value != null ? formatNumber(p.value) : '-'),
     },
-    { field: 'titulo', headerName: t('ct_col_titulo', 'Titulo'), flex: 2, minWidth: 200 },
+    { field: 'titulo', headerName: t('ct_col_titulo', 'Título'), flex: 2, minWidth: 200 },
     {
       field: 'estado',
       headerName: t('ct_col_estado', 'Estado'),
@@ -357,7 +346,7 @@ export default function ControlTower() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={ALERTA_ESTADO_LABELS[p.value] || p.value || '-'}
+          label={lbl(ALERTA_ESTADO_LABELS, p.value)}
           color={ALERTA_ESTADO_COLORS[p.value] || 'default'}
         />
       ),
@@ -381,6 +370,7 @@ export default function ControlTower() {
                 startIcon={isProcessing === 'ack' ? <CircularProgress size={14} /> : <VisibilityIcon />}
                 onClick={(e) => { e.stopPropagation(); handleAcknowledge(row.id); }}
                 disabled={!!isProcessing}
+                sx={{ textTransform: 'none' }}
               >
                 {t('ct_reconocer', 'Reconocer')}
               </Button>
@@ -393,6 +383,7 @@ export default function ControlTower() {
                 startIcon={isProcessing === 'resolve' ? <CircularProgress size={14} /> : <DoneAllIcon />}
                 onClick={(e) => { e.stopPropagation(); handleResolve(row.id); }}
                 disabled={!!isProcessing}
+                sx={{ textTransform: 'none' }}
               >
                 {t('ct_resolver', 'Resolver')}
               </Button>
@@ -401,19 +392,20 @@ export default function ControlTower() {
         );
       },
     },
-  ], [t, processing, handleAcknowledge, handleResolve]);
+  ], [t, lbl, processing, handleAcknowledge, handleResolve]);
 
   const trendColumnDefs = useMemo(() => [
     { field: 'nombre', headerName: t('ct_col_kpi_name', 'KPI'), flex: 1, minWidth: 180 },
     {
       field: 'valor_actual',
-      headerName: t('ct_col_valor_actual', 'Valor Actual'),
+      headerName: t('ct_col_valor_actual', 'Valor actual'),
       width: 130,
       type: 'numericColumn',
+      valueFormatter: (p) => (p.value != null ? formatNumber(p.value) : '-'),
     },
     {
       field: 'variacion',
-      headerName: t('ct_col_variacion', 'Variacion'),
+      headerName: t('ct_col_variacion', 'Variación'),
       width: 120,
       cellRenderer: (p) => {
         const val = p.value;
@@ -422,7 +414,7 @@ export default function ControlTower() {
         const prefix = val > 0 ? '+' : '';
         return (
           <Typography variant="body2" sx={{ color, fontWeight: 600 }}>
-            {prefix}{Number(val).toFixed(1)}%
+            {prefix}{formatNumber(Number(val).toFixed(1))} %
           </Typography>
         );
       },
@@ -444,127 +436,72 @@ export default function ControlTower() {
         );
       },
     },
-    { field: 'periodo', headerName: t('ct_col_periodo', 'Periodo'), width: 120 },
+    { field: 'periodo', headerName: t('ct_col_periodo', 'Período'), width: 120 },
   ], [t, renderSparkline]);
 
-  const KpiCard = ({ icon, label, value, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 150 }}>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
-        {icon}
-        <Typography variant="caption" color="text.secondary">{label}</Typography>
-      </Stack>
-      <Typography variant="h5" sx={{ fontWeight: 700, color: color || 'text.primary' }}>
-        {value != null ? value : '--'}
-      </Typography>
-    </Paper>
-  );
+  // Solo se muestran los KPI de modulos activos (compras, logistica, calidad y
+  // contratos estan deshabilitados, sus contadores siempre serian 0).
+  const slaValue = kpis?.sla_porcentaje != null ? Number(kpis.sla_porcentaje) : null;
+  const slaVariant = slaValue == null ? 'default' : slaValue >= 90 ? 'success' : slaValue >= 70 ? 'warning' : 'danger';
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            color: "text.disabled",
-            "&:hover": {
-              color: "text.secondary",
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-          {t('ct_title', 'Torre de Control')}
-        </Typography>
-      </Box>
-
-      {/* KPI Cards - Row 1 */}
+    <PageLayout title={t('ct_title', 'Torre de control')}>
       {kpis && (
-        <>
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-            <KpiCard
-              icon={<AssignmentIcon fontSize="small" sx={{ color: 'warning.main' }} />}
-              label={t('ct_kpi_solicitudes', 'Solicitudes Pendientes')}
-              value={kpis.solicitudes_pendientes}
-              color="warning.main"
-            />
-            <KpiCard
-              icon={<ShoppingCartIcon fontSize="small" sx={{ color: 'info.main' }} />}
-              label={t('ct_kpi_ocs', 'OCs Activas')}
-              value={kpis.ocs_activas}
-              color="info.main"
-            />
-            <KpiCard
-              icon={<LocalShippingIcon fontSize="small" sx={{ color: 'primary.main' }} />}
-              label={t('ct_kpi_envios', 'Envios en Transito')}
-              value={kpis.envios_en_transito}
-              color="primary.main"
-            />
-            <KpiCard
-              icon={<SearchIcon fontSize="small" sx={{ color: 'secondary.main' }} />}
-              label={t('ct_kpi_inspecciones', 'Inspecciones Pendientes')}
-              value={kpis.inspecciones_pendientes}
-              color="secondary.main"
-            />
-          </Stack>
-
-          {/* KPI Cards - Row 2 */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} flexWrap="wrap">
-            <KpiCard
-              icon={<NotificationsActiveIcon fontSize="small" sx={{ color: 'error.main' }} />}
-              label={t('ct_kpi_alertas', 'Alertas Activas')}
-              value={kpis.alertas_activas}
-              color="error.main"
-            />
-            <KpiCard
-              icon={<CheckCircleIcon fontSize="small" sx={{ color: 'success.main' }} />}
-              label={t('ct_kpi_sla', 'SLA %')}
-              value={kpis.sla_porcentaje != null ? `${Number(kpis.sla_porcentaje).toFixed(1)}%` : null}
-              color="success.main"
-            />
-            <KpiCard
-              icon={<DescriptionIcon fontSize="small" sx={{ color: 'warning.main' }} />}
-              label={t('ct_kpi_contratos', 'Contratos por Vencer')}
-              value={kpis.contratos_por_vencer}
-              color="warning.main"
-            />
-            <KpiCard
-              icon={<GavelIcon fontSize="small" sx={{ color: 'info.main' }} />}
-              label={t('ct_kpi_rfqs', 'RFQs Abiertas')}
-              value={kpis.rfqs_abiertas}
-              color="info.main"
-            />
-          </Stack>
-        </>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <MetricCard
+            size="lg"
+            icon={AssignmentIcon}
+            variant="warning"
+            label={t('ct_kpi_solicitudes_pend', 'Solicitudes pendientes')}
+            value={kpis.solicitudes_pendientes != null ? formatNumber(kpis.solicitudes_pendientes) : t('common_sin_datos', 'Sin datos')}
+          />
+          <MetricCard
+            size="lg"
+            icon={NotificationsActiveIcon}
+            variant={kpis.alertas_activas > 0 ? 'danger' : 'success'}
+            label={t('ct_kpi_alertas_activas', 'Alertas activas')}
+            value={kpis.alertas_activas != null ? formatNumber(kpis.alertas_activas) : t('common_sin_datos', 'Sin datos')}
+          />
+          <MetricCard
+            size="lg"
+            icon={CheckCircleIcon}
+            variant={slaVariant}
+            label={t('ct_kpi_sla_cumplimiento', 'Cumplimiento de SLA')}
+            value={slaValue != null ? `${formatNumber(slaValue.toFixed(1))} %` : t('common_sin_datos', 'Sin datos')}
+          />
+        </Box>
       )}
 
       {/* Filters */}
       <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} gap={2} flexWrap="wrap">
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>{t('ct_filter_categoria', 'Categoria')}</InputLabel>
+        <Stack direction="row" gap={2} flexWrap="wrap">
+          <FormControl size="small" sx={{ minWidth: 160, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
+            <InputLabel shrink>{t('ct_filter_categoria', 'Categoría')}</InputLabel>
             <Select
               value={filters.categoria}
-              label={t('ct_filter_categoria', 'Categoria')}
+              label={t('ct_filter_categoria', 'Categoría')}
               onChange={(e) => handleFilterChange('categoria', e.target.value)}
+              displayEmpty
+              notched
             >
-              {CATEGORIA_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+              <MenuItem value="">{t('common_todas', 'Todas')}</MenuItem>
+              {CATEGORIA_VALUES.map((v) => (
+                <MenuItem key={v} value={v}>{lbl(CATEGORIA_LABELS, v)}</MenuItem>
               ))}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>{t('ct_filter_severidad', 'Severidad')}</InputLabel>
+          <FormControl size="small" sx={{ minWidth: 160, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}>
+            <InputLabel shrink>{t('ct_filter_severidad', 'Severidad')}</InputLabel>
             <Select
               value={filters.severidad}
               label={t('ct_filter_severidad', 'Severidad')}
               onChange={(e) => handleFilterChange('severidad', e.target.value)}
+              displayEmpty
+              notched
             >
-              {SEVERIDAD_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+              <MenuItem value="">{t('common_todas', 'Todas')}</MenuItem>
+              {SEVERIDAD_VALUES.map((v) => (
+                <MenuItem key={v} value={v}>{lbl(SEVERIDAD_LABELS, v)}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -574,7 +511,8 @@ export default function ControlTower() {
             label={t('ct_filter_desde', 'Desde')}
             value={filters.fecha_desde}
             onChange={(e) => handleFilterChange('fecha_desde', e.target.value)}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ flex: { xs: '1 1 140px', sm: '0 0 auto' } }}
           />
           <TextField
             size="small"
@@ -582,15 +520,22 @@ export default function ControlTower() {
             label={t('ct_filter_hasta', 'Hasta')}
             value={filters.fecha_hasta}
             onChange={(e) => handleFilterChange('fecha_hasta', e.target.value)}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ flex: { xs: '1 1 140px', sm: '0 0 auto' } }}
           />
         </Stack>
       </Paper>
 
       {/* Tabs */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
-        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label={t('ct_tab_timeline', 'Linea de Tiempo')} icon={<TimelineIcon />} iconPosition="start" />
+        <Tabs
+          value={tabValue}
+          onChange={(_, v) => setTabValue(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ borderBottom: 1, borderColor: 'divider', '& .MuiTab-root': { textTransform: 'none', minHeight: 48 } }}
+        >
+          <Tab label={t('ct_tab_linea_tiempo', 'Línea de tiempo')} icon={<TimelineIcon />} iconPosition="start" />
           <Tab label={t('ct_tab_alertas', 'Alertas')} icon={<NotificationsActiveIcon />} iconPosition="start" />
           <Tab label={t('ct_tab_tendencias', 'Tendencias')} icon={<TrendingUpIcon />} iconPosition="start" />
         </Tabs>
@@ -601,7 +546,7 @@ export default function ControlTower() {
         <Paper
           elevation={0}
           sx={{ border: '1px solid', borderColor: 'divider' }}
-          aria-label={t('ct_tab_timeline', 'Linea de Tiempo')}
+          aria-label={t('ct_tab_linea_tiempo', 'Línea de tiempo')}
         >
           <SPMAgGrid
             columnDefs={eventColumnDefs}
@@ -660,7 +605,6 @@ export default function ControlTower() {
           />
         </Paper>
       )}
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

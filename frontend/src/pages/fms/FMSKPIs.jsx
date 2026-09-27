@@ -177,7 +177,7 @@ export default function FMSKPIs() {
       {!kpisLoading && (
         <Grid container spacing={3}>
           {/* Vehiculos Disponibles */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={Truck}
               label={t('fms_kpi_available_vehicles', 'Vehiculos Disponibles')}
@@ -202,7 +202,7 @@ export default function FMSKPIs() {
           </Grid>
 
           {/* OTs Abiertas */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={ClipboardList}
               label={t('fms_kpi_open_wo', 'OTs Abiertas')}
@@ -221,7 +221,7 @@ export default function FMSKPIs() {
           </Grid>
 
           {/* Costo Promedio */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={DollarSign}
               label={t('fms_kpi_avg_cost', 'Costo Promedio por OT')}
@@ -232,7 +232,7 @@ export default function FMSKPIs() {
           </Grid>
 
           {/* Documentos por Vencer */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={FileText}
               label={t('fms_kpi_expiring_docs', 'Documentos por Vencer')}
@@ -252,7 +252,7 @@ export default function FMSKPIs() {
           </Grid>
 
           {/* Mantenimientos Proximos */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={Settings}
               label={t('fms_kpi_upcoming_maintenance', 'Mantenimientos Proximos')}
@@ -272,7 +272,7 @@ export default function FMSKPIs() {
           </Grid>
 
           {/* Rendimiento Combustible */}
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KpiCard
               icon={Gauge}
               label={t('fms_kpi_avg_fuel', 'Rendimiento Combustible Promedio')}
@@ -317,7 +317,7 @@ export default function FMSKPIs() {
                   color={statusColors[status] || 'default'}
                   variant="outlined"
                 />
-              )
+              );
             })}
           </Stack>
         </Paper>
@@ -347,5 +347,5 @@ export default function FMSKPIs() {
       )}
       </Box>
     </Box>
-  )
+  );
 }

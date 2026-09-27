@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { useNavigate } from "react-router-dom";
+import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // MUI Components
 import {
@@ -14,32 +16,15 @@ import {
   FormControlLabel,
   Checkbox,
   Alert,
-  Skeleton,
   Stack,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   Drawer,
-  InputAdornment,
-  Chip,
   CircularProgress,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
-import DeleteIcon from "@mui/icons-material/Delete";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
-import WarehouseIcon from "@mui/icons-material/Warehouse";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import Tooltip from "@mui/material/Tooltip";
 
-// Services
-import { exportToXLSX } from "../../services/export";
+const getAlmacenRowId = (params) => String(params.data.codigo);
 
 // ============================================================================
 // COMPONENTES UI
@@ -93,248 +78,6 @@ function AlertMessage({ type = "error", children, onClose }) {
   );
 }
 
-function LoadingSkeleton() {
-  return (
-    <Box>
-      {[...Array(5)].map((_, i) => (
-        <Box
-          key={i}
-          sx={{
-            display: 'flex',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ width: 100, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} />
-          </Box>
-          <Box sx={{ flex: 1, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} width="75%" />
-          </Box>
-          <Box sx={{ width: 100, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} width="50%" sx={{ mx: 'auto' }} />
-          </Box>
-          <Box sx={{ width: 150, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} width="66%" sx={{ mx: 'auto' }} />
-          </Box>
-          <Box sx={{ width: 50, px: 1.5, py: 2 }}>
-            <Skeleton variant="text" height={20} />
-          </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-function EmptyState({ onClear, hasFilters }) {
-  const { t } = useI18n();
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 8,
-        color: 'text.secondary',
-      }}
-    >
-      <WarehouseIcon sx={{ fontSize: 48, mb: 1.5, color: 'action.disabled' }} />
-      <Typography variant="body2" fontWeight={500}>
-        {t('admin_no_results', 'No se encontraron almacenes')}
-      </Typography>
-      {hasFilters && (
-        <Button
-          size="small"
-          onClick={onClear}
-          sx={{ mt: 1, textTransform: 'none', fontSize: '0.75rem' }}
-        >
-          {t('admin_clear_search', 'Limpiar busqueda')}
-        </Button>
-      )}
-    </Box>
-  );
-}
-
-function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onConfirmDelete }) {
-  const { t } = useI18n();
-  const isActivo = almacen.activo === 1 || almacen.activo === true;
-
-  if (isDeleting) {
-    return (
-      <TableRow
-        sx={{
-          bgcolor: 'error.lighter',
-          borderLeft: '4px solid',
-          borderLeftColor: 'error.main',
-        }}
-      >
-        <TableCell colSpan={5} sx={{ py: 1.5 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.dark' }}>
-              <WarningAmberIcon sx={{ fontSize: 20 }} />
-              <Typography variant="body2" fontWeight={500}>
-                Eliminar el almacen <strong>{almacen.codigo}</strong>?
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={onCancelDelete}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                {t('common_cancelar', 'Cancelar')}
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="error"
-                onClick={onConfirmDelete}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                {t('common_eliminar', 'Eliminar')}
-              </Button>
-            </Stack>
-          </Box>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  return (
-    <TableRow
-      onClick={onEdit}
-      sx={{
-        cursor: 'pointer',
-        '&:hover': {
-          bgcolor: 'action.hover',
-        },
-        '&:hover .delete-btn': {
-          opacity: 1,
-        },
-      }}
-    >
-      <TableCell
-        sx={{
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          py: 1.25,
-          px: 1.5,
-        }}
-      >
-        <Typography
-          variant="body2"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: '0.8125rem',
-            color: 'text.secondary',
-          }}
-        >
-          {almacen.codigo}
-        </Typography>
-      </TableCell>
-      <TableCell
-        sx={{
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          py: 1.25,
-          px: 1.5,
-        }}
-      >
-        <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8125rem' }}>
-          {almacen.nombre || "—"}
-        </Typography>
-      </TableCell>
-      <TableCell
-        align="center"
-        sx={{
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          py: 1.25,
-          px: 1.5,
-        }}
-      >
-        <Chip
-          size="small"
-          label={isActivo ? t('common_activo', 'Activo') : t('common_inactivo', 'Inactivo')}
-          sx={{
-            height: 20,
-            fontSize: '0.625rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            bgcolor: isActivo ? 'success.lighter' : 'action.disabledBackground',
-            color: isActivo ? 'success.dark' : 'text.disabled',
-            '& .MuiChip-label': {
-              px: 1,
-            },
-          }}
-          icon={
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                bgcolor: isActivo ? 'success.main' : 'action.disabled',
-                ml: 0.5,
-              }}
-            />
-          }
-        />
-      </TableCell>
-      <TableCell
-        align="center"
-        sx={{
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          py: 1.25,
-          px: 1.5,
-        }}
-      >
-        <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-          {almacen.created_at || "—"}
-        </Typography>
-      </TableCell>
-      <TableCell align="center" sx={{ py: 1.25, px: 1 }}>
-        <IconButton
-          size="small"
-          className="delete-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          sx={{
-            opacity: 0,
-            transition: 'opacity 0.15s, color 0.15s',
-            color: 'action.disabled',
-            '&:hover': {
-              color: 'error.main',
-              bgcolor: 'error.lighter',
-            },
-          }}
-          aria-label={t("aria_delete", "Eliminar")}
-        >
-          <DeleteIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </TableCell>
-    </TableRow>
-  );
-}
-
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
@@ -342,15 +85,12 @@ function AlmacenRow({ almacen, onEdit, onDelete, isDeleting, onCancelDelete, onC
 const initialForm = { codigo: "", nombre: "", activo: 1 };
 
 export default function AdminAlmacenes() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   const [almacenes, setAlmacenes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(initialForm);
@@ -370,12 +110,6 @@ export default function AdminAlmacenes() {
   }, []);
 
   useEffect(() => { loadAlmacenes(); }, [loadAlmacenes]);
-
-  const filteredAlmacenes = useMemo(() => {
-    if (!search) return almacenes;
-    const term = search.toLowerCase();
-    return almacenes.filter(a => a.codigo?.toLowerCase().includes(term) || a.nombre?.toLowerCase().includes(term));
-  }, [almacenes, search]);
 
   const handleEdit = useCallback((almacen) => {
     setEditingId(almacen.codigo);
@@ -404,10 +138,10 @@ export default function AdminAlmacenes() {
     try {
       if (editingId) {
         await admin.update("almacenes", editingId, form);
-        setSuccess(t("crud_record_updated", "Almacen actualizado correctamente"));
+        setSuccess(t("crud_record_updated", "Almacén actualizado correctamente"));
       } else {
         await admin.create("almacenes", form);
-        setSuccess(t("crud_record_created", "Almacen creado correctamente"));
+        setSuccess(t("crud_record_created", "Almacén creado correctamente"));
       }
       setDrawerOpen(false);
       setForm(initialForm);
@@ -425,7 +159,7 @@ export default function AdminAlmacenes() {
     setSubmitting(true);
     try {
       await admin.remove("almacenes", codigo);
-      setSuccess(t("crud_record_deleted", "Almacen eliminado correctamente"));
+      setSuccess(t("crud_record_deleted", "Almacén eliminado correctamente"));
       setDeletingId(null);
       await loadAlmacenes();
       setTimeout(() => setSuccess(""), 3000);
@@ -436,280 +170,107 @@ export default function AdminAlmacenes() {
     }
   }, [loadAlmacenes, t]);
 
-  
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await exportToXLSX(
-        filteredAlmacenes,
-        "almacenes",
-        "Almacenes"
-      );
-      setSuccess("Almacenes exportados correctamente");
-    } catch (err) {
-      setError(err.message || "Error al exportar almacenes");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Paper
-        elevation={1}
-        sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2, py: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <IconButton
-                onClick={() => navigate("/admin")}
-                size="small"
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'text.primary',
-                    bgcolor: 'action.hover',
-                  },
-                }}
-              >
-                <ArrowBackIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={700}
-                  sx={{
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'text.primary',
-                  }}
-                >
-                  {t("admin_almacenes", "Almacenes")}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('admin_almacenes_subtitle', 'Gestion de almacenes del sistema')}
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleNew}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                px: 2,
-              }}
-            >
-              {t('common_nuevo', 'Nuevo')}
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Contenido */}
-      <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2, py: 2 }}>
-        {error && (
-          <Box sx={{ mb: 2 }}>
-            <AlertMessage type="error" onClose={() => setError("")}>{error}</AlertMessage>
-          </Box>
-        )}
-        {success && (
-          <Box sx={{ mb: 2 }}>
-            <AlertMessage type="success" onClose={() => setSuccess("")}>{success}</AlertMessage>
-          </Box>
-        )}
-
-        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
-          {/* Filtros */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'action.hover',
-            }}
+  const columnDefs = useMemo(
+    () => [
+      {
+        field: "codigo",
+        headerName: t("common_codigo", "Código"),
+        flex: 0.5,
+        minWidth: 110,
+        cellRenderer: (params) => (
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: "monospace", fontSize: "0.875rem", color: "text.primary" }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TextField
-                size="small"
-                placeholder={t('admin_search_placeholder', 'Buscar por codigo o nombre...')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                sx={{
-                  flex: 1,
-                  maxWidth: 400,
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'background.paper',
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 18, color: 'action.disabled' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${filteredAlmacenes.length} almacenes`}
-                sx={{
-                  height: 24,
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  bgcolor: 'action.selected',
-                  color: 'text.secondary',
-                }}
-                icon={
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      bgcolor: 'action.disabled',
-                      ml: 0.5,
-                    }}
-                  />
-                }
-              />
-            </Box>
-          </Box>
+            {params.value}
+          </Typography>
+        ),
+      },
+      {
+        field: "nombre",
+        headerName: t("common_nombre", "Nombre"),
+        flex: 1,
+        minWidth: 200,
+        valueFormatter: (params) => params.value || "—",
+      },
+      {
+        field: "activo",
+        headerName: t("common_estado", "Estado"),
+        flex: 0.4,
+        minWidth: 120,
+        valueFormatter: (params) =>
+          params.value === 1 || params.value === true
+            ? t("common_activo", "Activo")
+            : t("common_inactivo", "Inactivo"),
+        cellRenderer: (params) => <ActiveStatus activo={params.value} />,
+      },
+      actionsColumn(t("common_acciones", "Acciones"), (params) => (
+        <RowActions
+          onEdit={() => handleEdit(params.data)}
+          onDelete={() => setDeletingId(params.data.codigo)}
+        />
+      )),
+    ],
+    [t, handleEdit]
+  );
 
-          {/* Tabla */}
-          {loading ? (
-            <LoadingSkeleton />
-          ) : filteredAlmacenes.length === 0 ? (
-            <EmptyState onClear={() => setSearch("")} hasFilters={!!search} />
-          ) : (
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small" sx={{ borderCollapse: 'collapse' }}>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'action.hover' }}>
-                    <TableCell
-                      sx={{
-                        width: 100,
-                        py: 1.5,
-                        px: 1.5,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'text.secondary',
-                        borderRight: '1px solid',
-                        borderBottom: '2px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      {t('common_codigo', 'Código')}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        py: 1.5,
-                        px: 1.5,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'text.secondary',
-                        borderRight: '1px solid',
-                        borderBottom: '2px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      {t('common_nombre', 'Nombre')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        width: 100,
-                        py: 1.5,
-                        px: 1.5,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'text.secondary',
-                        borderRight: '1px solid',
-                        borderBottom: '2px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      {t('common_estado', 'Estado')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        width: 150,
-                        py: 1.5,
-                        px: 1.5,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'text.secondary',
-                        borderRight: '1px solid',
-                        borderBottom: '2px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      {t('common_creado', 'Creado')}
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      sx={{
-                        width: 50,
-                        py: 1.5,
-                        px: 1,
-                        borderBottom: '2px solid',
-                        borderColor: 'divider',
-                      }}
-                    />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredAlmacenes.map((almacen) => (
-                    <AlmacenRow
-                      key={almacen.codigo}
-                      almacen={almacen}
-                      onEdit={() => handleEdit(almacen)}
-                      onDelete={() => setDeletingId(almacen.codigo)}
-                      isDeleting={deletingId === almacen.codigo}
-                      onCancelDelete={() => setDeletingId(null)}
-                      onConfirmDelete={() => handleDelete(almacen.codigo)}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          )}
+  return (
+    <PageLayout
+      title={t("admin_almacenes", "Almacenes")}
+      subtitle={t("admin_almacenes_subtitle", "Gestión de almacenes del sistema")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
+      {error && !drawerOpen && (
+        <AlertMessage type="error" onClose={() => setError("")}>{error}</AlertMessage>
+      )}
+      {success && (
+        <AlertMessage type="success" onClose={() => setSuccess("")}>{success}</AlertMessage>
+      )}
 
-          {!loading && filteredAlmacenes.length > 0 && (
-            <Box
-              sx={{
-                px: 2,
-                py: 1.5,
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'action.hover',
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Mostrando {filteredAlmacenes.length} de {almacenes.length} almacenes
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Box>
+      {deletingId && (
+        <Alert
+          severity="warning"
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                onClick={() => setDeletingId(null)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {t("common_cancelar", "Cancelar")}
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={() => handleDelete(deletingId)}
+                disabled={submitting}
+                sx={{ textTransform: "none" }}
+              >
+                {submitting ? "..." : t("common_eliminar", "Eliminar")}
+              </Button>
+            </Stack>
+          }
+        >
+          {t("admin_almacenes_confirm_delete", "¿Eliminar el almacén")} <strong>{deletingId}</strong>?
+        </Alert>
+      )}
+
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+        <SPMAgGrid
+            searchable
+          rowData={almacenes}
+          columnDefs={columnDefs}
+          loading={loading}
+          height={500}
+          enableQuickFilter={true}
+          exportFileName="almacenes"
+          getRowId={getAlmacenRowId}
+          emptyMessage={t("admin_almacenes_empty", "No hay almacenes registrados")}
+        />
+      </Paper>
 
       {/* Drawer */}
       <Drawer
@@ -735,12 +296,12 @@ return (
           }}
         >
           <Box>
-            <Typography variant="subtitle1" fontWeight={700}>
-              {editingId ? `${t('common_editar', 'Editar')} Almacen` : `${t('common_nuevo', 'Nuevo')} Almacen`}
+            <Typography variant="subtitle1" fontWeight={600}>
+              {editingId ? t("admin_almacenes_editar", "Editar almacén") : t("admin_almacenes_nuevo", "Nuevo almacén")}
             </Typography>
             {editingId && (
               <Typography variant="caption" color="text.secondary">
-                Codigo: {editingId}
+                {t("common_codigo", "Código")}: {editingId}
               </Typography>
             )}
           </Box>
@@ -767,16 +328,15 @@ return (
           )}
           <Box>
             <Typography
-              variant="overline"
+              variant="subtitle2"
               sx={{
                 display: 'block',
                 mb: 2,
-                color: 'text.disabled',
+                color: 'text.secondary',
                 fontWeight: 600,
-                letterSpacing: '0.1em',
               }}
             >
-              {t('admin_datos_almacen', 'Datos del Almacen')}
+              {t('admin_datos_almacen', 'Datos del almacén')}
             </Typography>
             <Stack spacing={2.5}>
               <FormInput
@@ -786,17 +346,17 @@ return (
                 onChange={handleChange}
                 required
                 disabled={!!editingId}
-                placeholder="Ej: ALM001"
+                placeholder={t("admin_almacenes_codigo_ph", "Ej.: ALM001")}
               />
               <FormInput
                 label={t('common_nombre', 'Nombre')}
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                placeholder="Nombre del almacen"
+                placeholder={t("admin_almacenes_nombre_ph", "Nombre del almacén")}
               />
               <FormCheckbox
-                label={t('admin_almacen_activo', 'Almacen activo')}
+                label={t('admin_almacen_activo', 'Almacén activo')}
                 checked={form.activo === 1 || form.activo === true}
                 onChange={(e) => setForm(prev => ({ ...prev, activo: e.target.checked ? 1 : 0 }))}
               />
@@ -842,7 +402,6 @@ return (
           </Button>
         </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

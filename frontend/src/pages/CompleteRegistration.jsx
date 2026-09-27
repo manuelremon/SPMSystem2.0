@@ -99,7 +99,7 @@ export default function CompleteRegistration() {
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Sector */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 select
                 fullWidth
@@ -122,7 +122,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Centro */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 select
                 fullWidth
@@ -145,7 +145,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Almacén */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 select
                 fullWidth
@@ -168,7 +168,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Jefe */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t("registro_jefe_label", "Jefe")}
@@ -182,7 +182,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Gerente 1 */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t("registro_gerente1_label", "Gerente 1")}
@@ -196,7 +196,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Gerente 2 */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label={t("registro_gerente2_label", "Gerente 2")}
@@ -209,7 +209,7 @@ export default function CompleteRegistration() {
             </Grid>
 
             {/* Submit Button */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Stack direction="row" justifyContent="flex-end" sx={{ pt: 2 }}>
                 <Button
                   type="submit"

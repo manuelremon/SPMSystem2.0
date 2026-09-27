@@ -181,7 +181,7 @@ describe('BudgetRequests', () => {
     it('should render page header', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Gestión de Presupuestos')).toBeInTheDocument()
+        expect(screen.getByText('Gestión de presupuestos')).toBeInTheDocument()
       })
     })
 
@@ -234,14 +234,15 @@ describe('BudgetRequests', () => {
       })
     })
 
-    it('should display error message on API failure', async () => {
+    it('should display a single error state on API failure', async () => {
       budget.getLedger.mockRejectedValue({
         response: { data: { error: { message: 'Error de servidor' } } },
       })
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText('Error de servidor')).toBeInTheDocument()
+        expect(screen.getByText('No pudimos cargar los datos de presupuesto')).toBeInTheDocument()
       })
+      expect(screen.queryByText('No hay movimientos de presupuesto')).not.toBeInTheDocument()
     })
 
     it('should display empty message when no ledger entries', async () => {
@@ -304,10 +305,10 @@ describe('BudgetRequests', () => {
     it('should navigate to create page when Incorporar Saldo clicked', async () => {
       renderComponent()
       await waitFor(() => {
-        expect(screen.getByText(/Incorporar Saldo/i)).toBeInTheDocument()
+        expect(screen.getByText(/Incorporar saldo/i)).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText(/Incorporar Saldo/i))
+      fireEvent.click(screen.getByText(/Incorporar saldo/i))
 
       expect(mockNavigate).toHaveBeenCalledWith('/presupuestos/nueva')
     })
@@ -366,11 +367,11 @@ describe('BudgetRequests', () => {
       })
 
       // The approve buttons are IconButtons with title="Aprobar"
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
     })
 
@@ -384,15 +385,15 @@ describe('BudgetRequests', () => {
       })
 
       // Click approve icon button for first pendiente item
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
 
       // Confirm in drawer
-      fireEvent.click(screen.getByText('Confirmar Aprobación'))
+      fireEvent.click(screen.getByText('Confirmar aprobación'))
 
       await waitFor(() => {
         expect(budget.aprobar).toHaveBeenCalledWith(1, '')
@@ -409,11 +410,11 @@ describe('BudgetRequests', () => {
       })
 
       // The reject buttons are IconButtons with title="Rechazar"
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
     })
 
@@ -424,15 +425,15 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
 
       // The Confirmar Rechazo button should be disabled when motivo < 5 chars
-      const confirmBtn = screen.getByText('Confirmar Rechazo')
+      const confirmBtn = screen.getByText('Confirmar rechazo')
       expect(confirmBtn.closest('button')).toBeDisabled()
     })
 
@@ -444,11 +445,11 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
 
       // Enter motivo in the TextField
@@ -456,7 +457,7 @@ describe('BudgetRequests', () => {
       fireEvent.change(textarea, { target: { value: 'Presupuesto insuficiente' } })
 
       // Confirm
-      fireEvent.click(screen.getByText('Confirmar Rechazo'))
+      fireEvent.click(screen.getByText('Confirmar rechazo'))
 
       await waitFor(() => {
         expect(budget.rechazar).toHaveBeenCalledWith(1, 'Presupuesto insuficiente')
@@ -473,14 +474,14 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByText('Confirmar Aprobación'))
+      fireEvent.click(screen.getByText('Confirmar aprobación'))
 
       await waitFor(() => {
         expect(screen.getByText('Solicitud de presupuesto aprobada correctamente')).toBeInTheDocument()
@@ -579,11 +580,11 @@ describe('BudgetRequests', () => {
       })
 
       // Open approve drawer
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
 
       // Clear mocks to track new calls
@@ -591,7 +592,7 @@ describe('BudgetRequests', () => {
       budget.getLedger.mockClear()
 
       // Confirm approval
-      fireEvent.click(screen.getByText('Confirmar Aprobación'))
+      fireEvent.click(screen.getByText('Confirmar aprobación'))
 
       await waitFor(() => {
         expect(budget.aprobar).toHaveBeenCalled()
@@ -611,11 +612,11 @@ describe('BudgetRequests', () => {
       })
 
       // Open reject drawer
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
 
       // Enter valid motivo
@@ -626,7 +627,7 @@ describe('BudgetRequests', () => {
       budget.getLedger.mockClear()
 
       // Confirm rejection
-      fireEvent.click(screen.getByText('Confirmar Rechazo'))
+      fireEvent.click(screen.getByText('Confirmar rechazo'))
 
       await waitFor(() => {
         expect(budget.rechazar).toHaveBeenCalled()
@@ -647,11 +648,11 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
         expect(screen.getByText('0/5 min.')).toBeInTheDocument()
       })
     })
@@ -665,11 +666,11 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
 
       // Enter less than 5 characters
@@ -691,11 +692,11 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const rejectButtons = screen.getAllByTitle('Rechazar')
+      const rejectButtons = screen.getAllByLabelText('Rechazar')
       fireEvent.click(rejectButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Rechazar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Rechazar incorporación')).toBeInTheDocument()
       })
 
       const textarea = screen.getByPlaceholderText('Explica el motivo del rechazo...')
@@ -720,11 +721,11 @@ describe('BudgetRequests', () => {
       })
 
       // Click first approve button (pendiente item)
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
 
       // Check that impact info is displayed in drawer
@@ -745,11 +746,11 @@ describe('BudgetRequests', () => {
         expect(screen.getByTestId('spm-ag-grid')).toBeInTheDocument()
       })
 
-      const approveButtons = screen.getAllByTitle('Aprobar')
+      const approveButtons = screen.getAllByLabelText('Aprobar')
       fireEvent.click(approveButtons[0])
 
       await waitFor(() => {
-        expect(screen.getByText('Aprobar Incorporación')).toBeInTheDocument()
+        expect(screen.getByText('Aprobar incorporación')).toBeInTheDocument()
       })
 
       await waitFor(() => {

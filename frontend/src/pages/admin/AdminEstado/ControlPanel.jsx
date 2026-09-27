@@ -47,7 +47,7 @@ export function ControlPanel({
       >
         <Stack direction="row" alignItems="center" spacing={1}>
           <RefreshIcon sx={{ color: 'grey.500' }} />
-          <Typography variant="h6" component="h2">
+          <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
             {t('admin_estado_controls', 'Controles')}
           </Typography>
         </Stack>
@@ -60,6 +60,7 @@ export function ControlPanel({
             <Button
               variant="outlined"
               size="small"
+              sx={{ textTransform: 'none' }}
               onClick={onRefresh}
               disabled={loading}
               startIcon={
@@ -80,15 +81,19 @@ export function ControlPanel({
             <Button
               variant={autoRefresh ? 'contained' : 'outlined'}
               size="small"
+              sx={{ textTransform: 'none' }}
               onClick={onToggleAutoRefresh}
               startIcon={autoRefresh ? <PauseIcon /> : <PlayArrowIcon />}
             >
-              Auto-refresh {autoRefresh ? t('common_on', 'ON') : t('common_off', 'OFF')}
+              {autoRefresh
+                ? t('admin_estado_autorefresco_on', 'Actualización automática activada')
+                : t('admin_estado_autorefresco_off', 'Actualización automática desactivada')}
             </Button>
 
             <Button
               variant="outlined"
               size="small"
+              sx={{ textTransform: 'none' }}
               onClick={onResetMetrics}
               disabled={resetting}
               startIcon={
@@ -103,12 +108,13 @@ export function ControlPanel({
                 />
               }
             >
-              {t('reset_metrics', 'Reiniciar Metricas')}
+              {t('reset_metrics', 'Reiniciar métricas')}
             </Button>
 
             <Button
               variant="outlined"
               size="small"
+              sx={{ textTransform: 'none' }}
               onClick={onExport}
               startIcon={<FileDownloadIcon />}
             >
@@ -119,7 +125,7 @@ export function ControlPanel({
           <Divider />
 
           <Typography variant="caption" color="text.secondary">
-            {t('auto_refresh_info', 'Auto-refresh cada 30 segundos cuando esta activado. Las metricas se acumulan desde el ultimo reinicio del servidor.')}
+            {t('auto_refresh_info', 'Con la actualización automática activada, los datos se refrescan cada 30 segundos. Las métricas se acumulan desde el último reinicio del servidor.')}
           </Typography>
         </Stack>
       </Box>

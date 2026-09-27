@@ -8,8 +8,8 @@
  * - TIER 4: Panel de Control
  */
 
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../../context/i18n";
+import PageLayout from "../../../components/ui/PageLayout";
 
 // MUI Components
 import Paper from "@mui/material/Paper";
@@ -18,9 +18,8 @@ import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Skeleton from "@mui/material/Skeleton";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Tooltip from "@mui/material/Tooltip";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
@@ -79,7 +78,7 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
             <CpuMemoryChart data={historyData} height={200} />
             <LatencyErrorChart data={historyData} height={200} />
-            <SingleMetricChart data={historyData} metricType="cache_hit" title="Cache Hit Rate" height={150} />
+            <SingleMetricChart data={historyData} metricType="cache_hit" title={t("admin_estado_cache_hit", "Tasa de aciertos de caché")} height={150} />
           </Box>
         ) : (
           <Box sx={{ textAlign: "center", py: 6, color: "var(--fg-subtle)" }}>
@@ -98,29 +97,19 @@ function HistoricalCharts({ historyData, selectedHours, onChangeHours }) {
 /**
  * Estado de carga
  */
-function LoadingState({ t, navigate }) {
+function LoadingState({ t }) {
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "text.disabled" }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {t("admin_estado", "ESTADO DEL SISTEMA")}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} variant="rounded" height={96} />
-          ))}
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
-          <Skeleton variant="rounded" height={256} />
-          <Skeleton variant="rounded" height={256} />
-        </Box>
+    <PageLayout title={t("admin_estado", "Estado del sistema")} backTo="/admin">
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} variant="rounded" height={96} />
+        ))}
       </Box>
-    </Box>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
+        <Skeleton variant="rounded" height={256} />
+        <Skeleton variant="rounded" height={256} />
+      </Box>
+    </PageLayout>
   );
 }
 
@@ -129,8 +118,6 @@ function LoadingState({ t, navigate }) {
  */
 export default function AdminEstado() {
   const { t } = useI18n();
-  const navigate = useNavigate();
-
   const {
     // Datos
     health,
@@ -170,43 +157,34 @@ export default function AdminEstado() {
 
   // Estado de carga inicial
   if (loading) {
-    return <LoadingState t={t} navigate={navigate} />;
+    return <LoadingState t={t} />;
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3 }}>
-      {/* Header con ultimo update */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "text.disabled" }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {t("admin_estado", "ESTADO DEL SISTEMA")}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
-              {t("admin_estado_subtitle", "Monitoreo en tiempo real")}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+    <PageLayout
+      title={t("admin_estado", "Estado del sistema")}
+      subtitle={t("admin_estado_subtitle", "Monitoreo en tiempo real")}
+      backTo="/admin"
+      actions={
+        <>
           {lastUpdate && (
             <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
-              {t("updated", "Actualizado")}: {lastUpdate.toLocaleTimeString()}
+              {t("updated", "Actualizado")}: {lastUpdate.toLocaleTimeString("es-AR")}
             </Typography>
           )}
-          <IconButton onClick={fetchData} disabled={loading} size="small" sx={{ color: "var(--fg-muted)" }}>
-            <RefreshIcon sx={{ animation: loading ? "spin 1s linear infinite" : "none", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }} />
-          </IconButton>
-        </Box>
-      </Box>
-
+          <Tooltip title={t("common_actualizar", "Actualizar")}>
+            <span>
+              <IconButton onClick={fetchData} disabled={loading} size="small" sx={{ color: "var(--fg-muted)" }} aria-label={t("common_actualizar", "Actualizar")}>
+                <RefreshIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </>
+      }
+    >
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={clearError}>
+        <Alert severity="error" onClose={clearError}>
           {error}
         </Alert>
       )}
@@ -215,7 +193,7 @@ export default function AdminEstado() {
 
       {/* 1. Alertas Activas (solo si hay) */}
       {activeAlerts && activeAlerts.length > 0 && (
-        <Box sx={{ mb: 3 }}>
+        <Box>
           <AlertsPanel
             alerts={activeAlerts}
             onAcknowledge={handleAcknowledgeAlert}
@@ -226,31 +204,31 @@ export default function AdminEstado() {
       )}
 
       {/* 2. Estado de Salud del Sistema */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <HealthStatus health={health} cacheHitRate={overallCacheHit} />
       </Box>
 
       {/* 3. Metricas de Negocio */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <BusinessMetricsPanel data={businessMetrics} isLoading={loading} />
       </Box>
 
       {/* ===== TIER 2: IMPORTANTE ===== */}
 
       {/* 4. Metricas de Requests */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <RequestMetrics metrics={metrics} health={health} errorRate={errorRate} />
       </Box>
 
       {/* 5. Estado de Base de Datos */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <DatabaseStatus dbStats={dbStats} />
       </Box>
 
       {/* ===== TIER 3: TECNICO (Colapsables) ===== */}
 
       {/* 6. Metricas Tecnicas (Latencia, Cache, Sistema, Infraestructura) */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <TechnicalMetrics
           metrics={metrics}
           cacheMetrics={cacheMetrics}
@@ -262,7 +240,7 @@ export default function AdminEstado() {
       </Box>
 
       {/* 7. Graficos Historicos */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <HistoricalCharts
           historyData={historyData}
           selectedHours={selectedHours}
@@ -282,7 +260,6 @@ export default function AdminEstado() {
         loading={loading}
         resetting={resetting}
       />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

@@ -49,7 +49,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
   {
     id: 'planificacion',
     labelKey: 'nav_planificacion',
-    labelFallback: 'Planificacion',
+    labelFallback: 'Planificación',
     visible: canSeePlanner,
     sections: [
       {
@@ -104,7 +104,7 @@ const getMenuConfig = ({ canApprove, canSeeBudget, canSeePlanner, isAdmin, isCom
   {
     id: 'logistica',
     labelKey: 'nav_logistica',
-    labelFallback: 'Logistica',
+    labelFallback: 'Logística',
     visible: canSeePlanner,
     sections: [
       {

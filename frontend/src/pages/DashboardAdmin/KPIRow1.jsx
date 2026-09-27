@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { ScrollReveal } from "../../components/ui/ScrollReveal";
 import { WeeklyRequestsKpiCard } from "../../components/dashboard/WeeklyRequestsKpiCard";
-import { SPMPolarArea, SPM_COLORS, PHASE_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../../components/ui/SPMChartJS';
+import { SPMDoughnut, SPM_COLORS, PHASE_COLORS, FONT_SIZES, TOOLTIP_CONFIG, ANIMATION_CONFIG } from '../../components/ui/SPMChartJS';
 import ExpandCardButton from './ExpandCardButton';
 import { useI18n } from "../../context/i18n";
 // MUI Components
@@ -103,7 +103,7 @@ function KPIRow1({
           }
 
           return (
-            <Box ref={solicitudesCredasRef} onClick={() => onKpiDrillDown?.('solicitudes_diarias')} sx={{ flex: '1 1 340px', minWidth: 300, maxWidth: 420, height: 180, position: 'relative', cursor: onKpiDrillDown ? 'pointer' : 'default' }}>
+            <Box ref={solicitudesCredasRef} onClick={() => onKpiDrillDown?.('solicitudes_diarias')} sx={{ flex: '1 1 340px', minWidth: { xs: '100%', sm: 300 }, height: 180, position: 'relative', cursor: onKpiDrillDown ? 'pointer' : 'default' }}>
               <Box sx={{ position: 'absolute', top: 40, right: 8, zIndex: 10 }}>
                 <ExpandCardButton
                   onClick={() => {
@@ -113,6 +113,7 @@ function KPIRow1({
                 />
               </Box>
               <WeeklyRequestsKpiCard
+                subtitle={t('dash_en_periodo', 'En el período seleccionado')}
                 data={datosSparkline}
                 labels={labelsSparkline}
                 previousWeekTotal={null}
@@ -134,13 +135,15 @@ function KPIRow1({
             proveedoresSeleccionados.includes(p.proveedor_cuit || p.proveedor_nombre)
           );
 
+          // Sin pedidos no hay cumplimiento que mostrar: la tarjeta con "N/A" / "Sin datos" se oculta
+          if (totalPedidos === 0) return null;
+
           return (
             <Paper
               elevation={0}
               sx={{
                 flex: '1 1 400px',
-                minWidth: 380,
-                maxWidth: 500,
+                minWidth: { xs: '100%', sm: 380 },
                 height: 180,
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
@@ -250,7 +253,7 @@ function KPIRow1({
                       </Box>
                     ) : (
                       <Typography variant="caption" sx={{ color: 'grey.400', textAlign: 'center', py: 1, display: 'block' }}>
-                        No hay datos de proveedores disponibles
+                        {t('dash_sin_datos_proveedores', 'No hay datos de proveedores disponibles')}
                       </Typography>
                     )}
                   </Box>
@@ -332,8 +335,7 @@ function KPIRow1({
               onClick={() => onKpiDrillDown?.('tiempos_promedio')}
               sx={{
                 flex: '1 1 320px',
-                minWidth: 280,
-                maxWidth: 420,
+                minWidth: { xs: '100%', sm: 280 },
                 height: 180,
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
@@ -498,8 +500,7 @@ function KPIRow1({
               onClick={() => onKpiDrillDown?.('compras_evitadas')}
               sx={{
                 flex: '1 1 320px',
-                minWidth: 280,
-                maxWidth: 400,
+                minWidth: { xs: '100%', sm: 280 },
                 height: 180,
                 bgcolor: 'var(--surface)',
                 border: '1px solid',
@@ -538,9 +539,9 @@ function KPIRow1({
 
                 {/* Content: Chart + Legend */}
                 <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flex: 1 }}>
-                  {/* Polar Area Chart */}
+                  {/* Dona: proporcion stock interno vs compra externa */}
                   <Box sx={{ width: 110, height: 110, flexShrink: 0 }}>
-                    <SPMPolarArea
+                    <SPMDoughnut
                       data={polarData}
                       height={110}
                       options={{
@@ -550,19 +551,14 @@ function KPIRow1({
                             ...TOOLTIP_CONFIG,
                             callbacks: {
                               label: (context) => {
-                                const value = context.parsed.r;
+                                const value = context.parsed;
                                 const pct = totalValor > 0 ? (Number(value) / Number(totalValor) * 100).toFixed(1) : 0;
                                 return `USD ${formatMontoCorto(value)} (${pct}%)`;
                               }
                             }
                           }
                         },
-                        scales: {
-                          r: {
-                            display: false,
-                            beginAtZero: true,
-                          }
-                        },
+                        cutout: '62%',
                         animation: ANIMATION_CONFIG,
                       }}
                     />
@@ -584,7 +580,7 @@ function KPIRow1({
                           </Typography>
                         </Tooltip>
                         <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: FONT_SIZES.xs }}>
-                          ({itemsStockInterno} items)
+                          ({itemsStockInterno} {t('common_items', 'ítems')})
                         </Typography>
                       </Stack>
                     </Box>

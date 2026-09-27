@@ -21,7 +21,6 @@ import Avatar from "@mui/material/Avatar";
 import Alert from "@mui/material/Alert";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
 import InboxIcon from "@mui/icons-material/Inbox";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -31,17 +30,18 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CircleIcon from "@mui/icons-material/Circle";
 
-import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import MensajeThreadModal from "../components/MensajeThreadModal";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import { formatDateTime } from "../utils/formatters";
 
 export default function Mensajes() {
   const { user } = useAuthStore();
   const { t } = useI18n();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState(0); // 0 = inbox, 1 = outbox
   const [inboxMessages, setInboxMessages] = useState([]);
@@ -73,10 +73,10 @@ export default function Mensajes() {
           setOutboxMessages(data.messages || []);
         }
       } else {
-        setError(data.error || "Error al cargar mensajes");
+        setError(t("mensajes_error_carga", "No se pudieron cargar los mensajes. Intenta nuevamente."));
       }
     } catch (err) {
-      setError("Error de conexion al cargar mensajes");
+      setError(t("mensajes_error_carga", "No se pudieron cargar los mensajes. Intenta nuevamente."));
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,8 @@ export default function Mensajes() {
       if (data.ok) {
         setUnreadCount(data.unread_count || 0);
       }
-    } catch (err) {
+    } catch {
+      // El contador de no leidos es informativo: se ignora el error
     }
   };
 
@@ -106,13 +107,14 @@ export default function Mensajes() {
           prev.map(m => m.id === message.id ? { ...m, leido: 1 } : m)
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch (err) {
+      } catch {
+        // Si falla el marcado como leido, la conversacion se abre igual
       }
     }
   };
 
   const handleDeleteMessage = async (messageId) => {
-    if (!confirm("¿Estas seguro de que deseas eliminar este mensaje?")) {
+    if (!confirm(t("mensajes_confirmar_eliminar", "¿Seguro que deseas eliminar este mensaje?"))) {
       return;
     }
 
@@ -131,47 +133,22 @@ export default function Mensajes() {
         // Refrescar contador
         fetchUnreadCount();
       } else {
-        toast.error(data.error || "Error al eliminar mensaje");
+        toast.error(t("mensajes_error_eliminar", "No se pudo eliminar el mensaje"));
       }
     } catch (err) {
-      toast.error("Error de conexión al eliminar mensaje");
+      toast.error(t("mensajes_error_eliminar", "No se pudo eliminar el mensaje"));
     }
   };
 
   const messages = activeTab === 0 ? inboxMessages : outboxMessages;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h5"
-            component="h1"
-            fontWeight={700}
-            textTransform="uppercase"
-            letterSpacing="0.05em"
-            color="text.primary"
-          >
-            {t("mensajes_title", "Mensajes")}
-          </Typography>
-        </Box>
-        {unreadCount > 0 && (
+    <PageLayout
+      title={t("mensajes_title", "Mensajes")}
+      actions={unreadCount > 0 ? (
           <Chip
             icon={<CircleIcon sx={{ fontSize: 8, animation: "pulse 2s infinite" }} />}
-            label={`${unreadCount} ${unreadCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}`}
+            label={`${unreadCount} ${unreadCount === 1 ? t("mensajes_nuevo", "mensaje nuevo") : t("mensajes_nuevos", "mensajes nuevos")}`}
             color="primary"
             variant="outlined"
             sx={{
@@ -184,8 +161,8 @@ export default function Mensajes() {
               },
             }}
           />
-        )}
-      </Stack>
+        ) : null}
+    >
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
@@ -199,9 +176,12 @@ export default function Mensajes() {
           <Tabs
             value={activeTab}
             onChange={(e, newValue) => setActiveTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               minHeight: 40,
-              "& .MuiTab-root": { minHeight: 40, py: 1 },
+              "& .MuiTab-root": { minHeight: 40, py: 1, textTransform: "none" },
             }}
           >
             <Tab
@@ -209,7 +189,7 @@ export default function Mensajes() {
               iconPosition="start"
               label={
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <span>Recibidos</span>
+                  <span>{t("mensajes_recibidos", "Recibidos")}</span>
                   {unreadCount > 0 && (
                     <Chip
                       label={unreadCount}
@@ -224,7 +204,7 @@ export default function Mensajes() {
             <Tab
               icon={<SendIcon sx={{ fontSize: 18, color: "primary.main" }} />}
               iconPosition="start"
-              label="Enviados"
+              label={t("mensajes_enviados", "Enviados")}
             />
           </Tabs>
         </Box>
@@ -235,36 +215,18 @@ export default function Mensajes() {
             <Box sx={{ textAlign: "center", py: 6 }}>
               <CircularProgress size={32} sx={{ mb: 2 }} />
               <Typography color="text.secondary">
-                Cargando mensajes...
+                {t("mensajes_cargando", "Cargando mensajes...")}
               </Typography>
             </Box>
           ) : messages.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 6 }}>
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  mx: "auto",
-                  borderRadius: "50%",
-                  bgcolor: "action.hover",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mb: 2,
-                }}
-              >
-                {activeTab === 0 ? (
-                  <InboxIcon sx={{ fontSize: 32, color: "primary.main" }} />
-                ) : (
-                  <SendIcon sx={{ fontSize: 32, color: "primary.main" }} />
-                )}
-              </Box>
-              <Typography variant="body1" color="text.secondary">
-                {activeTab === 0
-                  ? "No tienes mensajes recibidos"
-                  : "No has enviado mensajes"}
-              </Typography>
-            </Box>
+            <EmptyState
+              icon={activeTab === 0
+                ? <InboxIcon sx={{ fontSize: 32, color: "text.disabled" }} />
+                : <SendIcon sx={{ fontSize: 32, color: "text.disabled" }} />}
+              title={activeTab === 0
+                ? t("mensajes_vacio_recibidos", "No tienes mensajes recibidos")
+                : t("mensajes_vacio_enviados", "No has enviado mensajes")}
+            />
           ) : (
             <List disablePadding>
               {messages.map((message, index) => (
@@ -296,17 +258,17 @@ export default function Mensajes() {
           }}
         />
       )}
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }
 
 function MessageRow({ message, isInbox, onOpen, onDelete }) {
+  const { t } = useI18n();
   const isUnread = isInbox && message.leido === 0;
 
   const displayName = isInbox
-    ? `${message.remitente_nombre || ""} ${message.remitente_apellido || ""}`.trim() || "Usuario"
-    : `${message.destinatario_nombre || ""} ${message.destinatario_apellido || ""}`.trim() || "Usuario";
+    ? `${message.remitente_nombre || ""} ${message.remitente_apellido || ""}`.trim() || t("mensajes_usuario", "Usuario")
+    : `${message.destinatario_nombre || ""} ${message.destinatario_apellido || ""}`.trim() || t("mensajes_usuario", "Usuario");
 
   const displayRole = isInbox ? message.remitente_rol : message.destinatario_rol;
 
@@ -363,7 +325,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
       {/* Content */}
       <ListItemText
         primary={
-          <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 0.5 }}>
+          <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 0.5, flexWrap: "wrap" }}>
             <Typography
               variant="body2"
               sx={{
@@ -376,12 +338,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
             {displayRole && (
               <Typography
                 variant="caption"
-                sx={{
-                  color: "text.disabled",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontFamily: "monospace",
-                }}
+                sx={{ color: "text.disabled" }}
               >
                 {displayRole}
               </Typography>
@@ -419,7 +376,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
               <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
                 <DescriptionIcon sx={{ fontSize: 14, color: "primary.main" }} />
                 <Typography variant="caption" color="info.main">
-                  Solicitud #{message.solicitud_id}
+                  {t("mensajes_solicitud", "Solicitud")} #{message.solicitud_id}
                 </Typography>
               </Stack>
             )}
@@ -428,16 +385,11 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
       />
 
       {/* Metadata and Actions */}
-      <Stack sx={{ ml: 2, flexShrink: 0, alignItems: "flex-end" }} spacing={1}>
+      <Stack sx={{ ml: { xs: 1, sm: 2 }, flexShrink: 0, alignItems: "flex-end" }} spacing={1}>
         <Stack direction="row" spacing={0.5} alignItems="center">
           <AccessTimeIcon sx={{ fontSize: 14, color: "info.main" }} />
           <Typography variant="caption" color="text.disabled">
-            {new Date(message.created_at).toLocaleDateString("es-AR", {
-              day: "2-digit",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
+            {formatDateTime(message.created_at)}
           </Typography>
         </Stack>
 
@@ -453,7 +405,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
               e.stopPropagation();
               onOpen();
             }}
-            title="Ver conversacion"
+            title={t("mensajes_ver_conversacion", "Ver conversación")}
           >
             <ReplyIcon fontSize="small" />
           </IconButton>
@@ -465,7 +417,7 @@ function MessageRow({ message, isInbox, onOpen, onDelete }) {
               e.stopPropagation();
               onDelete();
             }}
-            title="Eliminar"
+            title={t("common_eliminar", "Eliminar")}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>

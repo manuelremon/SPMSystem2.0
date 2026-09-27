@@ -17,6 +17,7 @@ import MonitorHeartIcon from '@mui/icons-material/MonitorHeart'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { useI18n } from '../../../context/i18n'
+import { formatNumber } from '../../../utils/formatters'
 
 /**
  * Indicador visual de estado
@@ -48,7 +49,7 @@ function StatusDot({ status }) {
  * Formatea el uptime en formato legible
  */
 function formatUptime(seconds) {
-  if (!seconds) return '--'
+  if (!seconds) return '—'
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
@@ -67,6 +68,8 @@ function DatabaseItem({ name, status, latency, tooltip }) {
         gap: 1.5,
         p: 1.5,
         bgcolor: 'grey.50',
+        borderRadius: 1,
+        height: '100%',
       }}
     >
       <StatusDot status={status} />
@@ -76,7 +79,6 @@ function DatabaseItem({ name, status, latency, tooltip }) {
             variant="caption"
             sx={{
               color: 'text.secondary',
-              textTransform: 'uppercase',
               fontWeight: 500,
             }}
           >
@@ -101,7 +103,7 @@ function DatabaseItem({ name, status, latency, tooltip }) {
             color: 'text.primary',
           }}
         >
-          {latency ? `${Number(latency).toFixed(1)}ms` : '--'}
+          {latency ? `${formatNumber(latency, 1)} ms` : '—'}
         </Typography>
       </Box>
     </Box>
@@ -132,21 +134,29 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
       >
         <Stack direction="row" alignItems="center" spacing={1}>
           <MonitorHeartIcon sx={{ color: 'primary.main' }} />
-          <Typography variant="h6" component="h2">
+          <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
             {isHealthy
-              ? t('system_healthy', 'Sistema Operativo')
-              : t('system_degraded', 'Sistema Degradado')}
+              ? t('system_healthy', 'Sistema operativo')
+              : t('system_degraded', 'Sistema degradado')}
           </Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={2}>
           <Stack direction="row" alignItems="center" spacing={0.75}>
             <AccessTimeIcon sx={{ fontSize: 16, color: 'info.main' }} />
             <Typography variant="body2" color="text.secondary">
-              Uptime: {formatUptime(health?.uptime_seconds)}
+              {t('admin_estado_tiempo_activo', 'Tiempo activo')}: {formatUptime(health?.uptime_seconds)}
             </Typography>
           </Stack>
           <Chip
-            label={health?.status || 'unknown'}
+            label={
+              health?.status === 'healthy'
+                ? t('admin_estado_saludable', 'Saludable')
+                : health?.status === 'degraded'
+                  ? t('admin_estado_degradado', 'Degradado')
+                  : health?.status === 'unhealthy'
+                    ? t('admin_estado_con_fallas', 'Con fallas')
+                    : health?.status || t('admin_estado_desconocido', 'Desconocido')
+            }
             size="small"
             color={isHealthy ? 'success' : 'warning'}
           />
@@ -157,41 +167,41 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
       <Box sx={{ p: 2 }}>
         <Grid container spacing={2}>
           {/* Bases de datos */}
-          <Grid item xs={6} md={2.4}>
+          <Grid size={{ xs: 6, md: 2.4 }}>
             <DatabaseItem
               name="SPM"
               status={databases.spm?.status}
               latency={databases.spm?.latency_ms}
-              tooltip="Base de datos principal: usuarios, solicitudes, autenticacion"
+              tooltip={t('admin_estado_tt_spm', 'Base de datos principal: usuarios, solicitudes, autenticación')}
             />
           </Grid>
-          <Grid item xs={6} md={2.4}>
+          <Grid size={{ xs: 6, md: 2.4 }}>
             <DatabaseItem
               name="SAP"
               status={databases.sap_data?.status}
               latency={databases.sap_data?.latency_ms}
-              tooltip="Datos importados de SAP: stock, consumo historico, pedidos"
+              tooltip={t('admin_estado_tt_sap', 'Datos importados de SAP: stock, consumo histórico, pedidos')}
             />
           </Grid>
-          <Grid item xs={6} md={2.4}>
+          <Grid size={{ xs: 6, md: 2.4 }}>
             <DatabaseItem
-              name="EQUIV"
+              name={t('admin_estado_equivalencias', 'Equivalencias')}
               status={databases.equivalentes?.status}
               latency={databases.equivalentes?.latency_ms}
-              tooltip="Equivalencias de materiales entre codigos SAP"
+              tooltip={t('admin_estado_tt_equiv', 'Equivalencias de materiales entre códigos SAP')}
             />
           </Grid>
-          <Grid item xs={6} md={2.4}>
+          <Grid size={{ xs: 6, md: 2.4 }}>
             <DatabaseItem
-              name="CATALOGO"
+              name={t('admin_estado_catalogo', 'Catálogo')}
               status={databases.catalogo_materiales?.status}
               latency={databases.catalogo_materiales?.latency_ms}
-              tooltip="Catalogo completo de materiales SAP (~28,000 items)"
+              tooltip={t('admin_estado_tt_catalogo', 'Catálogo completo de materiales SAP (~28.000 ítems)')}
             />
           </Grid>
 
           {/* Cache Status */}
-          <Grid item xs={6} md={2.4}>
+          <Grid size={{ xs: 6, md: 2.4 }}>
             <Box
               sx={{
                 display: 'flex',
@@ -210,13 +220,12 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
                     variant="caption"
                     sx={{
                       color: 'text.secondary',
-                      textTransform: 'uppercase',
                       fontWeight: 500,
                     }}
                   >
-                    Cache
+                    {t('admin_estado_cache', 'Caché')}
                   </Typography>
-                  <Tooltip title="Porcentaje de consultas servidas desde cache en memoria" placement="top" arrow>
+                  <Tooltip title={t('admin_estado_tt_cache', 'Porcentaje de consultas servidas desde la caché en memoria')} placement="top" arrow>
                     <HelpOutlineIcon
                       sx={{
                         fontSize: 12,
@@ -233,7 +242,7 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
                     color: 'text.primary',
                   }}
                 >
-                  {Number(cacheHitRate).toFixed(0)}% {t('admin_hit', 'hit')}
+                  {formatNumber(cacheHitRate, 0)}% {t('admin_estado_aciertos', 'aciertos')}
                 </Typography>
               </Box>
             </Box>
@@ -241,7 +250,7 @@ export function HealthStatus({ health, cacheHitRate = 0 }) {
         </Grid>
       </Box>
     </Paper>
-  )
+  );
 }
 
 export default HealthStatus

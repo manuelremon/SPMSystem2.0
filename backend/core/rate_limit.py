@@ -634,7 +634,7 @@ def init_rate_limiting(app) -> None:
                     "ok": False,
                     "error": {
                         "code": "rate_limit_exceeded",
-                        "message": "Too many requests. Please try again later.",
+                        "message": "Demasiadas solicitudes. Intenta nuevamente en unos minutos.",
                         "retry_after": headers.get("Retry-After", 60),
                     },
                 }

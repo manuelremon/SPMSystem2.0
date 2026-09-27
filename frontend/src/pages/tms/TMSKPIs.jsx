@@ -117,7 +117,13 @@ export default function TMSKPIs() {
               const IconComponent = config.icon
               const value = kpis[config.key]
               return (
-                <Grid item xs={12} sm={6} md={4} key={config.key}>
+                <Grid
+                  key={config.key}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 4
+                  }}>
                   <Paper
                     sx={{
                       p: 3,
@@ -139,7 +145,7 @@ export default function TMSKPIs() {
                     </Typography>
                   </Paper>
                 </Grid>
-              )
+              );
             })}
           </Grid>
 
@@ -152,7 +158,7 @@ export default function TMSKPIs() {
               </Typography>
               <Grid container spacing={2}>
                 {kpis.resumen.total_envios != null && (
-                  <Grid item xs={6} md={3}>
+                  <Grid size={{ xs: 6, md: 3 }}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={600}>
                         {kpis.resumen.total_envios}
@@ -164,7 +170,7 @@ export default function TMSKPIs() {
                   </Grid>
                 )}
                 {kpis.resumen.total_entregados != null && (
-                  <Grid item xs={6} md={3}>
+                  <Grid size={{ xs: 6, md: 3 }}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={600} color="success.main">
                         {kpis.resumen.total_entregados}
@@ -176,7 +182,7 @@ export default function TMSKPIs() {
                   </Grid>
                 )}
                 {kpis.resumen.total_incidentes != null && (
-                  <Grid item xs={6} md={3}>
+                  <Grid size={{ xs: 6, md: 3 }}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={600} color="error.main">
                         {kpis.resumen.total_incidentes}
@@ -188,7 +194,7 @@ export default function TMSKPIs() {
                   </Grid>
                 )}
                 {kpis.resumen.ingreso_total != null && (
-                  <Grid item xs={6} md={3}>
+                  <Grid size={{ xs: 6, md: 3 }}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" fontWeight={600} color="primary.main">
                         ${Number(kpis.resumen.ingreso_total).toLocaleString()}
@@ -226,5 +232,5 @@ export default function TMSKPIs() {
       )}
       </Box>
     </Box>
-  )
+  );
 }

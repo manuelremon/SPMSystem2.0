@@ -11,24 +11,20 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../../context/i18n";
 import { ImportExcelModal } from "../../../components/admin/ImportExcelModal";
 import { TempDataBanner } from "../../../components/ui/TempDataBanner";
+import PageLayout from "../../../components/ui/PageLayout";
 
 // MUI Components
 import {
   Box,
   Paper,
-  Typography,
-  IconButton,
   Alert,
   Tabs,
   Tab,
 } from "@mui/material";
 
-// MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // Componentes modulares
 import { useAdminDatabase } from "./useAdminDatabase";
@@ -50,7 +46,6 @@ import {
 ───────────────────────────────────────────────────────────── */
 export default function AdminBasesDatos() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
   // Hook centralizado con toda la logica
@@ -183,45 +178,11 @@ export default function AdminBasesDatos() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              sx={{
-                color: "text.disabled",
-                "&:hover": {
-                  color: "text.secondary",
-                  bgcolor: "background.paper",
-                  border: 1,
-                  borderColor: "divider",
-                },
-              }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Box>
-              <Typography
-                variant="h5"
-                component="h1"
-                sx={{
-                  fontWeight: 700,
-                  color: "text.primary",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {t("admin_bases_datos", "Bases de Datos")}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {db.isProduction ? "PostgreSQL (Produccion)" : "SQLite (Desarrollo)"}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
+    <PageLayout
+      title={t("admin_bases_datos", "Bases de datos")}
+      subtitle={db.isProduction ? t("db_motor_produccion", "PostgreSQL (producción)") : t("db_motor_desarrollo", "SQLite (desarrollo)")}
+      backTo="/admin"
+    >
         {/* Alerts */}
         {db.error && (
           <Alert
@@ -260,7 +221,7 @@ export default function AdminBasesDatos() {
                 },
               }}
             >
-              <Tab label={t("db_overview", "Vista General")} />
+              <Tab label={t("db_overview", "Vista general")} />
               <Tab label={t("db_tables", "Tablas")} />
               <Tab label={t("db_tools", "Herramientas")} />
             </Tabs>
@@ -337,7 +298,7 @@ export default function AdminBasesDatos() {
         <CrudFormModal
           isOpen={addModal.open}
           onClose={() => setAddModal({ open: false })}
-          title={`Agregar registro a ${db.selectedTable}`}
+          title={`${t("db_agregar_registro_a", "Agregar registro a")} ${db.selectedTable}`}
           tableColumns={db.tableColumns}
           tablePk={db.tablePk}
           formData={formData}
@@ -350,7 +311,7 @@ export default function AdminBasesDatos() {
         <CrudFormModal
           isOpen={editModal.open}
           onClose={() => setEditModal({ open: false, row: null })}
-          title={`Editar registro de ${db.selectedTable}`}
+          title={`${t("db_editar_registro_de", "Editar registro de")} ${db.selectedTable}`}
           tableColumns={db.tableColumns}
           tablePk={db.tablePk}
           formData={formData}
@@ -397,7 +358,6 @@ export default function AdminBasesDatos() {
             setImportExcelModal(false);
           }}
         />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

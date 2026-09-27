@@ -184,7 +184,7 @@ export default function ShipmentDetail() {
             <CardContent>
               <Typography variant="h6" gutterBottom>{t('tms_info_general', 'Informacion General')}</Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <InfoRow label={t('tms_label_tipo', 'Tipo')} value={shipment.tipo} />
                     <InfoRow label={t('tms_label_origen', 'Origen')} value={shipment.origen} />
@@ -196,7 +196,7 @@ export default function ShipmentDetail() {
                     />
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <InfoRow label={t('tms_label_prioridad', 'Prioridad')} value={shipment.prioridad} />
                     <InfoRow
@@ -428,7 +428,7 @@ export default function ShipmentDetail() {
       </Dialog>
       </Box>
     </Box>
-  )
+  );
 }
 
 function InfoRow({ label, value }) {

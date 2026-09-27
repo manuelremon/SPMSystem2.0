@@ -180,7 +180,7 @@ export default function AnomaliaDetection() {
           <>
             {/* Summary cards */}
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
+              <Grid size={{ xs: 6, sm: 3 }}>
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
                     Total Registros
@@ -190,7 +190,7 @@ export default function AnomaliaDetection() {
                   </Typography>
                 </Paper>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid size={{ xs: 6, sm: 3 }}>
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
                     Anomalias Detectadas
@@ -200,7 +200,7 @@ export default function AnomaliaDetection() {
                   </Typography>
                 </Paper>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid size={{ xs: 6, sm: 3 }}>
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
                     Proporcion
@@ -210,7 +210,7 @@ export default function AnomaliaDetection() {
                   </Typography>
                 </Paper>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid size={{ xs: 6, sm: 3 }}>
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
                     Significativas
@@ -286,5 +286,5 @@ export default function AnomaliaDetection() {
         )}
       </Box>
     </Box>
-  )
+  );
 }

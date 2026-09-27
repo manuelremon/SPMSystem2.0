@@ -7,7 +7,7 @@ export const SECTORES_MAP = {
   "1": "Almacenes",
   "2": "Compras",
   "3": "Mantenimiento",
-  "4": "Planificacion",
+  "4": "Planificación",
 };
 
 /**

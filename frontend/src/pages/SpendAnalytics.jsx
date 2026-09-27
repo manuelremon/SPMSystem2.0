@@ -6,11 +6,12 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
-import { useToast } from '../hooks/useToast';
 import api from '../services/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatNumber } from '../utils/formatters';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { MetricCard } from '../components/ui/MetricCard';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -18,9 +19,11 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PaymentsIcon from '@mui/icons-material/Payments';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import CategoryIcon from '@mui/icons-material/Category';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
 import KraljicMatrix from '../components/KraljicMatrix';
 
@@ -31,10 +34,8 @@ const CATEGORY_COLORS = [
 
 export default function SpendAnalytics() {
   const { t } = useI18n();
-  const toast = useToast();
-  const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [categoryData, setCategoryData] = useState([]);
   const [maverickData, setMaverickData] = useState([]);
   const [kraljicData, setKraljicData] = useState([]);
@@ -42,6 +43,7 @@ export default function SpendAnalytics() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [catRes, mavRes, krajRes, trendRes] = await Promise.allSettled([
         api.get('/spend/by-category'),
@@ -62,12 +64,15 @@ export default function SpendAnalytics() {
       if (trendRes.status === 'fulfilled' && trendRes.value.data?.ok) {
         setTrendData(trendRes.value.data.trend || trendRes.value.data.data || []);
       }
+      const allFailed = [catRes, mavRes, krajRes, trendRes].every(
+        (r) => r.status !== 'fulfilled' || !r.value.data?.ok
+      );
+      setLoadError(allFailed);
     } catch {
-      toast.error(t('spend_error_load', 'Error al cargar datos de gasto'));
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -89,14 +94,14 @@ export default function SpendAnalytics() {
   }, [categoryData]);
 
   const trendColumnDefs = useMemo(() => [
-    { field: 'periodo', headerName: t('spend_periodo', 'Periodo'), flex: 1, minWidth: 120 },
+    { field: 'periodo', headerName: t('spend_periodo', 'Período'), flex: 1, minWidth: 120 },
     {
-      field: 'monto_total', headerName: t('spend_monto', 'Monto Total'), width: 160,
+      field: 'monto_total', headerName: t('spend_monto_total', 'Monto total'), width: 170, type: 'rightAligned',
       valueFormatter: (p) => p.value != null ? formatCurrency(p.value) : '-',
     },
     {
-      field: 'cantidad_ocs', headerName: t('spend_cant_ocs', 'Cant. OCs'), width: 120,
-      valueFormatter: (p) => p.value != null ? Number(p.value).toLocaleString('es-ES') : '-',
+      field: 'cantidad_ocs', headerName: t('spend_cant_ocs', 'Cant. OCs'), width: 120, type: 'rightAligned',
+      valueFormatter: (p) => p.value != null ? formatNumber(p.value) : '-',
     },
     {
       field: 'proveedores_activos', headerName: t('spend_proveedores', 'Proveedores'), width: 130,
@@ -108,16 +113,16 @@ export default function SpendAnalytics() {
         const val = Number(p.value);
         const color = val > 0 ? 'var(--danger-light)' : val < 0 ? 'var(--success-light)' : 'var(--fg-subtle)';
         const arrow = val > 0 ? '\u25B2' : val < 0 ? '\u25BC' : '\u2014';
-        return <span style={{ color, fontWeight: 600 }}>{arrow} {Math.abs(val).toFixed(1)}%</span>;
+        return <span style={{ color, fontWeight: 600 }}>{arrow} {formatNumber(Math.abs(val).toFixed(1))} %</span>;
       },
     },
   ], [t]);
 
   const maverickColumnDefs = useMemo(() => [
     { field: 'proveedor', headerName: t('spend_proveedor', 'Proveedor'), flex: 2, minWidth: 180 },
-    { field: 'categoria', headerName: t('spend_categoria', 'Categoria'), flex: 1, minWidth: 120 },
+    { field: 'categoria', headerName: t('spend_categoria', 'Categoría'), flex: 1, minWidth: 120 },
     {
-      field: 'monto', headerName: t('spend_monto', 'Monto'), width: 150,
+      field: 'monto', headerName: t('spend_monto', 'Monto'), width: 160, type: 'rightAligned',
       valueFormatter: (p) => p.value != null ? formatCurrency(p.value) : '-',
     },
     { field: 'motivo', headerName: t('spend_motivo', 'Motivo'), flex: 2, minWidth: 160 },
@@ -131,71 +136,58 @@ export default function SpendAnalytics() {
     );
   }
 
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            color: "text.disabled",
-            "&:hover": {
-              color: "text.secondary",
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography
-          variant="h5"
-          component="h1"
-          fontWeight={700}
-          textTransform="uppercase"
-          letterSpacing="0.05em"
-          color="text.primary"
-        >
-          {t('spend_title', 'Analisis de Gasto')}
-        </Typography>
-      </Box>
+  const hasCategories = categoryData.length > 0;
+  const sinDatos = t('common_sin_datos', 'Sin datos');
 
+  if (loadError) {
+    return (
+      <PageLayout title={t('spend_title', 'Análisis de gasto')}>
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <EmptyState
+            icon={<ErrorOutlineIcon sx={{ color: 'error.main' }} />}
+            title={t('spend_error_load', 'Error al cargar datos de gasto')}
+            description={t('common_error_reintentar', 'No pudimos cargar la información. Intenta nuevamente en unos minutos.')}
+            action={t('common_reintentar', 'Reintentar')}
+            onAction={fetchAll}
+          />
+        </Paper>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout title={t('spend_title', 'Análisis de gasto')}>
       {/* KPI Cards */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary">
-            {t('spend_kpi_total', 'Gasto Total')}
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', mt: 0.5 }}>
-            {formatCurrency(kpis.totalSpend)}
-          </Typography>
-        </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary">
-            {t('spend_kpi_maverick', '% Gasto Maverick')}
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: kpis.maverickPct > 10 ? 'error.main' : 'success.main', mt: 0.5 }}>
-            {Number(kpis.maverickPct).toFixed(1)}%
-          </Typography>
-        </Paper>
-        <Paper elevation={0} sx={{ flex: 1, p: 2, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary">
-            {t('spend_kpi_top_cat', 'Top Categoria')}
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
-            {kpis.topCategory}
-          </Typography>
-        </Paper>
-      </Stack>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+        <MetricCard
+          size="lg"
+          icon={PaymentsIcon}
+          label={t('spend_kpi_total', 'Gasto total')}
+          value={hasCategories ? formatCurrency(kpis.totalSpend) : sinDatos}
+        />
+        <MetricCard
+          size="lg"
+          icon={ReportProblemIcon}
+          variant={!hasCategories ? 'default' : kpis.maverickPct > 10 ? 'danger' : 'success'}
+          label={t('spend_kpi_maverick', '% gasto fuera de contrato')}
+          value={hasCategories ? `${formatNumber(kpis.maverickPct.toFixed(1))} %` : sinDatos}
+        />
+        <MetricCard
+          size="lg"
+          icon={CategoryIcon}
+          label={t('spend_kpi_top_cat', 'Categoría principal')}
+          value={hasCategories ? kpis.topCategory : sinDatos}
+        />
+      </Box>
 
       {/* Spend by Category -- simple bar visualization */}
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-          {t('spend_by_category', 'Gasto por Categoria')}
+          {t('spend_by_category', 'Gasto por categoría')}
         </Typography>
         {categoryData.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-            {t('spend_no_categories', 'Sin datos de categorias')}
+            {t('spend_no_categories', 'Sin datos de categorías')}
           </Typography>
         ) : (
           <Stack spacing={1.5}>
@@ -244,7 +236,7 @@ export default function SpendAnalytics() {
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            {t('spend_trend_title', 'Tendencia Mensual de Gasto')}
+            {t('spend_trend_title', 'Tendencia mensual de gasto')}
           </Typography>
         </Box>
         <SPMAgGrid
@@ -267,7 +259,7 @@ export default function SpendAnalytics() {
           <Stack direction="row" alignItems="center" gap={1}>
             <WarningAmberIcon sx={{ color: 'warning.main' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {t('spend_maverick_title', 'Gasto Maverick (Fuera de Contrato)')}
+              {t('spend_maverick_title', 'Gasto fuera de contrato')}
             </Typography>
             {maverickData.length > 0 && (
               <Chip size="small" label={maverickData.length} color="warning" />
@@ -283,11 +275,10 @@ export default function SpendAnalytics() {
           paginationPageSize={15}
           enableQuickFilter={true}
           exportFileName="gasto_maverick"
-          emptyMessage={t('spend_maverick_empty', 'Sin gasto maverick detectado')}
+          emptyMessage={t('spend_maverick_empty', 'Sin gasto fuera de contrato detectado')}
           getRowId={(params) => String(params.data.id || params.data.proveedor)}
         />
       </Paper>
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }

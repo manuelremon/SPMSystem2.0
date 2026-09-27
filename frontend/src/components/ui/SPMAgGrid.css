@@ -6,15 +6,15 @@
 /* Contenedor principal - IMPORTANTE: necesita height y width para que AG Grid funcione */
 .spm-ag-grid {
   --ag-background-color: #ffffff;
-  --ag-foreground-color: #1f1f20;
-  --ag-header-background-color: #f8f9fa;
-  --ag-header-foreground-color: #1f1f20;
+  --ag-foreground-color: var(--text, #1f1f20);
+  --ag-header-background-color: var(--bg-soft, #f8f9fa);
+  --ag-header-foreground-color: var(--text, #1f1f20);
   --ag-odd-row-background-color: #fafbfc;
   --ag-row-hover-color: #f0f4f8;
   --ag-selected-row-background-color: #e3f2fd;
   --ag-border-color: #e0e0e0;
   --ag-secondary-border-color: #e0e0e0;
-  --ag-row-border-color: #eeeeee;
+  --ag-row-border-color: var(--border-subtle, #eeeeee);
   --ag-header-column-separator-color: #e0e0e0;
   --ag-range-selection-border-color: var(--primary);
   --ag-input-focus-border-color: var(--primary);
@@ -53,27 +53,32 @@
 /* Header de columnas */
 .spm-ag-grid .ag-header {
   border-bottom: 2px solid var(--primary);
-  background-color: #f8f9fa;
+  background-color: var(--bg-soft, #f8f9fa);
 }
 
 .spm-ag-grid .ag-header-row {
-  background-color: #f8f9fa;
+  background-color: var(--bg-soft, #f8f9fa);
 }
 
 .spm-ag-grid .ag-header-cell {
   font-weight: 600;
   font-size: 0.875rem;
   padding: 0 12px;
-  background-color: #f8f9fa;
-  color: #1f1f20;
+  background-color: var(--bg-soft, #f8f9fa);
+  color: var(--text, #1f1f20);
 }
 
+/* Encabezado alineado como sus datos: izquierda por defecto, derecha en columnas numericas */
 .spm-ag-grid .ag-header-cell-label {
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+.spm-ag-grid .ag-right-aligned-header .ag-header-cell-label {
+  justify-content: flex-end;
 }
 
 .spm-ag-grid .ag-header-cell-text {
-  color: #1f1f20;
+  color: var(--text, #1f1f20);
   font-weight: 600;
 }
 
@@ -85,7 +90,7 @@
   top: 25%;
   height: 50%;
   width: 1px;
-  background-color: #d0d0d0;
+  background-color: var(--border, #d0d0d0);
 }
 
 .spm-ag-grid .ag-header-cell:last-child::after {
@@ -98,8 +103,8 @@
   font-size: 0.875rem;
   display: flex;
   align-items: center;
-  border-right: 1px solid #eeeeee;
-  color: #1f1f20;
+  border-right: 1px solid var(--border-subtle, #eeeeee);
+  color: var(--text, #1f1f20);
   line-height: 1.5;
 }
 
@@ -109,12 +114,25 @@
 
 /* Asegurar visibilidad del texto en celdas */
 .spm-ag-grid .ag-cell-value {
-  color: #1f1f20;
+  color: var(--text, #1f1f20);
+}
+
+/* Elipsis real: sin esto el texto largo pisa la columna vecina (celda flex sin min-width) */
+.spm-ag-grid .ag-cell:not(.ag-cell-wrap-text) {
+  overflow: hidden;
+}
+
+.spm-ag-grid .ag-cell:not(.ag-cell-wrap-text) > .ag-cell-value,
+.spm-ag-grid .ag-cell:not(.ag-cell-wrap-text) > span:not(.ag-cell-wrapper) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Filas */
 .spm-ag-grid .ag-row {
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--border-subtle, #eeeeee);
   background-color: #ffffff;
 }
 
@@ -144,7 +162,7 @@
   background-color: #f5f7fa;
   padding: 8px 12px;
   font-size: 0.875rem;
-  color: #1f1f20;
+  color: var(--text, #1f1f20);
 }
 
 .spm-ag-grid .ag-paging-button {
@@ -175,7 +193,7 @@
 .spm-ag-grid .ag-header-cell:hover .ag-icon-desc,
 .spm-ag-grid .ag-header-cell:hover .ag-icon-filter,
 .spm-ag-grid .ag-header-cell:hover .ag-icon-menu {
-  color: #1f1f20 !important;
+  color: var(--text, #1f1f20) !important;
 }
 
 /* Filtros */
@@ -288,7 +306,7 @@
 
 /* Tooltip */
 .spm-ag-grid .ag-tooltip {
-  background-color: #1f1f20;
+  background-color: var(--text, #1f1f20);
   color: #ffffff;
   border-radius: 4px;
   padding: 6px 10px;

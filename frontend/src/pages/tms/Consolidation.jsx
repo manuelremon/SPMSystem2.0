@@ -163,7 +163,7 @@ export default function Consolidation() {
 
       <Grid container spacing={3}>
         {/* Left: Confirmed Shipments */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               <Truck sx={{ fontSize: 20, mr: 1, verticalAlign: 'text-bottom' }} />
@@ -211,7 +211,7 @@ export default function Consolidation() {
         </Grid>
 
         {/* Right: Consolidations */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               <Boxes sx={{ fontSize: 20, mr: 1, verticalAlign: 'text-bottom' }} />
@@ -284,5 +284,5 @@ export default function Consolidation() {
       </Grid>
       </Box>
     </Box>
-  )
+  );
 }

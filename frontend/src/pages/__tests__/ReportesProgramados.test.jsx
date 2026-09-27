@@ -115,9 +115,9 @@ describe('ReportesProgramados', () => {
   it('renders the page title and create button', async () => {
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText('Reportes Programados')).toBeInTheDocument()
+      expect(screen.getByText('Reportes programados')).toBeInTheDocument()
     })
-    expect(screen.getByText('Crear Reporte')).toBeInTheDocument()
+    expect(screen.getByText('Nuevo reporte')).toBeInTheDocument()
   })
 
   // --------------------------------------------------------------------------
@@ -162,9 +162,9 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
   })
 
@@ -176,16 +176,16 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
     // Scope assertions to the dialog
-    const dialog = screen.getByText('Nuevo Reporte Programado').closest('[role="dialog"]')
+    const dialog = screen.getByText('Nuevo reporte programado').closest('[role="dialog"]')
     // Name field
     expect(within(dialog).getByLabelText(/Nombre/)).toBeInTheDocument()
     // Tipo de Reporte select (label + selected value can match, use getAllByText)
-    expect(within(dialog).getAllByText('Tipo de Reporte').length).toBeGreaterThan(0)
+    expect(within(dialog).getAllByText('Tipo de reporte').length).toBeGreaterThan(0)
     // Frecuencia select
     expect(within(dialog).getAllByText('Frecuencia').length).toBeGreaterThan(0)
     // Formato select
@@ -204,13 +204,13 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByText('Cancelar'))
     await waitFor(() => {
-      expect(screen.queryByText('Nuevo Reporte Programado')).not.toBeInTheDocument()
+      expect(screen.queryByText('Nuevo reporte programado')).not.toBeInTheDocument()
     })
   })
 
@@ -222,12 +222,12 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
     // The "Crear" button inside dialog should be disabled when name is empty
-    const dialog = screen.getByText('Nuevo Reporte Programado').closest('[role="dialog"]')
+    const dialog = screen.getByText('Nuevo reporte programado').closest('[role="dialog"]')
     const buttons = within(dialog).getAllByRole('button')
     const crearBtn = buttons.find(btn => btn.textContent === 'Crear')
     expect(crearBtn).toBeDisabled()
@@ -242,15 +242,15 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
 
     const nameInput = screen.getByLabelText(/Nombre/)
     fireEvent.change(nameInput, { target: { value: 'Mi Nuevo Reporte' } })
 
-    const dialog = screen.getByText('Nuevo Reporte Programado').closest('[role="dialog"]')
+    const dialog = screen.getByText('Nuevo reporte programado').closest('[role="dialog"]')
     const crearBtn = within(dialog).getAllByRole('button').find(btn => btn.textContent === 'Crear')
     fireEvent.click(crearBtn)
 
@@ -277,7 +277,7 @@ describe('ReportesProgramados', () => {
     const editButtons = screen.getAllByLabelText('Editar')
     fireEvent.click(editButtons[0])
     await waitFor(() => {
-      expect(screen.getByText('Editar Reporte')).toBeInTheDocument()
+      expect(screen.getByText('Editar reporte')).toBeInTheDocument()
     })
     // The name field should be pre-filled
     const nameInput = screen.getByLabelText(/Nombre/)
@@ -296,13 +296,13 @@ describe('ReportesProgramados', () => {
     const editButtons = screen.getAllByLabelText('Editar')
     fireEvent.click(editButtons[0])
     await waitFor(() => {
-      expect(screen.getByText('Editar Reporte')).toBeInTheDocument()
+      expect(screen.getByText('Editar reporte')).toBeInTheDocument()
     })
 
     const nameInput = screen.getByLabelText(/Nombre/)
     fireEvent.change(nameInput, { target: { value: 'Reporte Editado' } })
 
-    const dialog = screen.getByText('Editar Reporte').closest('[role="dialog"]')
+    const dialog = screen.getByText('Editar reporte').closest('[role="dialog"]')
     const guardarBtn = within(dialog).getAllByRole('button').find(btn => btn.textContent === 'Guardar')
     fireEvent.click(guardarBtn)
 
@@ -420,14 +420,16 @@ describe('ReportesProgramados', () => {
   })
 
   // --------------------------------------------------------------------------
-  // 16. Shows error toast on fetch failure
+  // 16. Shows error state on fetch failure
   // --------------------------------------------------------------------------
-  it('shows error toast when fetch fails', async () => {
+  it('shows a single error state when fetch fails', async () => {
     mockApiGet.mockRejectedValue(new Error('Network error'))
     renderPage()
     await waitFor(() => {
-      expect(mockToast.error).toHaveBeenCalledWith('Error al cargar reportes programados')
+      expect(screen.getByText('Error al cargar reportes programados')).toBeInTheDocument()
     })
+    expect(screen.queryByTestId('spm-ag-grid')).not.toBeInTheDocument()
+    expect(mockToast.error).not.toHaveBeenCalled()
   })
 
   // --------------------------------------------------------------------------
@@ -439,15 +441,15 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
 
     const nameInput = screen.getByLabelText(/Nombre/)
     fireEvent.change(nameInput, { target: { value: 'Test' } })
 
-    const dialog = screen.getByText('Nuevo Reporte Programado').closest('[role="dialog"]')
+    const dialog = screen.getByText('Nuevo reporte programado').closest('[role="dialog"]')
     const crearBtn = within(dialog).getAllByRole('button').find(btn => btn.textContent === 'Crear')
     fireEvent.click(crearBtn)
 
@@ -465,15 +467,15 @@ describe('ReportesProgramados', () => {
     await waitFor(() => {
       expect(screen.getByTestId('grid-row-1')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Crear Reporte'))
+    fireEvent.click(screen.getByText('Nuevo reporte'))
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Reporte Programado')).toBeInTheDocument()
+      expect(screen.getByText('Nuevo reporte programado')).toBeInTheDocument()
     })
 
     const nameInput = screen.getByLabelText(/Nombre/)
     fireEvent.change(nameInput, { target: { value: 'Nuevo' } })
 
-    const dialog = screen.getByText('Nuevo Reporte Programado').closest('[role="dialog"]')
+    const dialog = screen.getByText('Nuevo reporte programado').closest('[role="dialog"]')
     const crearBtn = within(dialog).getAllByRole('button').find(btn => btn.textContent === 'Crear')
     fireEvent.click(crearBtn)
 

@@ -10,11 +10,9 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
-import { formatDate } from '../utils/formatters';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
@@ -29,23 +27,26 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddIcon from '@mui/icons-material/Add';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import PercentIcon from '@mui/icons-material/Percent';
 import { SPMAgGrid } from '../components/ui/SPMAgGrid';
+import PageLayout from '../components/ui/PageLayout';
+import MetricCard from '../components/ui/MetricCard';
+import { formatDate, formatNumber } from '../utils/formatters';
 
 const ESTADO_OPTIONS = [
-  { value: '', label: 'Todos' },
-  { value: 'draft', label: 'Borrador' },
-  { value: 'collecting', label: 'Recopilando' },
-  { value: 'review', label: 'Revision' },
-  { value: 'consensus', label: 'Consenso' },
-  { value: 'approved', label: 'Aprobado' },
-  { value: 'closed', label: 'Cerrado' },
-  { value: 'cancelled', label: 'Cancelado' },
+  { value: '', key: 'demand_estado_todos', label: 'Todos' },
+  { value: 'draft', key: 'demand_estado_draft', label: 'Borrador' },
+  { value: 'collecting', key: 'demand_estado_collecting', label: 'Recopilando' },
+  { value: 'review', key: 'demand_estado_review', label: 'Revisión' },
+  { value: 'consensus', key: 'demand_estado_consensus', label: 'Consenso' },
+  { value: 'approved', key: 'demand_estado_approved', label: 'Aprobado' },
+  { value: 'closed', key: 'demand_estado_closed', label: 'Cerrado' },
+  { value: 'cancelled', key: 'demand_estado_cancelled', label: 'Cancelado' },
 ];
+
+const fmtDec = (v, dec) => (v != null ? formatNumber(Number(v).toFixed(dec)) : null);
 
 const ESTADO_COLORS = {
   draft: 'default',
@@ -114,7 +115,7 @@ export default function DemandPlanning() {
 
   const handleCreate = async () => {
     if (!form.nombre || !form.periodo_desde || !form.periodo_hasta) {
-      toastRef.current.warning(tRef.current('demand_form_required', 'Complete todos los campos'));
+      toastRef.current.warning(tRef.current('demand_form_required', 'Completa todos los campos'));
       return;
     }
     setSaving(true);
@@ -148,94 +149,74 @@ export default function DemandPlanning() {
       cellRenderer: (p) => (
         <Chip
           size="small"
-          label={ESTADO_OPTIONS.find(o => o.value === p.value)?.label || p.value}
+          label={(() => {
+            const opt = ESTADO_OPTIONS.find(o => o.value === p.value);
+            return opt ? t(opt.key, opt.label) : p.value;
+          })()}
           color={ESTADO_COLORS[p.value] || 'default'}
         />
       ),
     },
-    { field: 'num_entradas', headerName: t('demand_entradas', 'Entradas'), width: 100 },
+    { field: 'num_entradas', headerName: t('demand_entradas', 'Entradas'), width: 110, type: 'rightAligned' },
     { field: 'creado_por_nombre', headerName: t('demand_creado_por', 'Creado por'), width: 140 },
   ], [t]);
 
-  const KpiCard = ({ icon, label, value, unit, color }) => (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', flex: 1, minWidth: 180 }}>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-        {icon}
-        <Typography variant="caption" color="text.secondary">{label}</Typography>
-      </Stack>
-      <Typography variant="h5" sx={{ fontWeight: 700, color: color || 'text.primary' }}>
-        {value != null ? value : '--'}{unit || ''}
-      </Typography>
-    </Paper>
-  );
-
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-            {t('demand_title', 'Planificacion de Demanda (S&OP)')}
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
-          {t('demand_new', 'Nuevo Ciclo')}
+    <PageLayout
+      title={t('demand_title', 'Planificación de demanda (S&OP)')}
+      actions={
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateOpen(true)}
+          sx={{ textTransform: 'none' }}
+        >
+          {t('demand_new', 'Nuevo ciclo')}
         </Button>
-      </Stack>
-
+      }
+    >
       {/* KPI Cards */}
       {kpis && (
-        <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
-          <KpiCard
-            icon={<TrackChangesIcon fontSize="small" sx={{ color: 'info.main' }} />}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <MetricCard
+            size="lg"
+            variant="info"
+            icon={TrackChangesIcon}
             label={t('demand_kpi_mape', 'MAPE')}
-            value={kpis.mape != null ? Number(kpis.mape).toFixed(1) : null}
-            unit="%"
-            color="info.main"
+            value={kpis.mape != null ? `${fmtDec(kpis.mape, 1)}%` : t('common_sin_datos', 'Sin datos')}
           />
-          <KpiCard
-            icon={<TrendingUpIcon fontSize="small" sx={{ color: 'warning.main' }} />}
-            label={t('demand_kpi_bias', 'Bias')}
-            value={kpis.bias != null ? Number(kpis.bias).toFixed(2) : null}
-            color="warning.main"
+          <MetricCard
+            size="lg"
+            variant="warning"
+            icon={TrendingUpIcon}
+            label={t('demand_kpi_bias', 'Sesgo')}
+            value={kpis.bias != null ? fmtDec(kpis.bias, 2) : t('common_sin_datos', 'Sin datos')}
           />
-          <KpiCard
-            icon={<PercentIcon fontSize="small" sx={{ color: 'success.main' }} />}
-            label={t('demand_kpi_accuracy', 'Precision')}
-            value={kpis.accuracy_pct != null ? Number(kpis.accuracy_pct).toFixed(1) : null}
-            unit="%"
-            color="success.main"
+          <MetricCard
+            size="lg"
+            variant="success"
+            icon={PercentIcon}
+            label={t('demand_kpi_accuracy', 'Precisión')}
+            value={kpis.accuracy_pct != null ? `${fmtDec(kpis.accuracy_pct, 1)}%` : t('common_sin_datos', 'Sin datos')}
           />
-        </Stack>
+        </Box>
       )}
 
       {/* Filters */}
       <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
+        <Stack direction="row" gap={2} flexWrap="wrap">
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel>{t('demand_filter_estado', 'Estado')}</InputLabel>
             <Select value={filters.estado} label={t('demand_filter_estado', 'Estado')} onChange={(e) => handleFilterChange('estado', e.target.value)}>
-              {ESTADO_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              {ESTADO_OPTIONS.map(o => <MenuItem key={o.value} value={o.value}>{t(o.key, o.label)}</MenuItem>)}
             </Select>
           </FormControl>
         </Stack>
       </Paper>
 
       {/* Table */}
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('demand_title', 'Planificacion de Demanda')}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }} aria-label={t('demand_title', 'Planificación de demanda')}>
         <SPMAgGrid
           columnDefs={columnDefs}
           rowData={cycles}
@@ -253,7 +234,7 @@ export default function DemandPlanning() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('demand_new', 'Nuevo Ciclo')}</DialogTitle>
+        <DialogTitle>{t('demand_new', 'Nuevo ciclo')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
@@ -264,7 +245,7 @@ export default function DemandPlanning() {
               required
             />
             <TextField
-              label={t('demand_desde', 'Periodo Desde')}
+              label={t('demand_periodo_desde', 'Período desde')}
               type="date"
               value={form.periodo_desde}
               onChange={(e) => setForm(prev => ({ ...prev, periodo_desde: e.target.value }))}
@@ -273,7 +254,7 @@ export default function DemandPlanning() {
               required
             />
             <TextField
-              label={t('demand_hasta', 'Periodo Hasta')}
+              label={t('demand_periodo_hasta', 'Período hasta')}
               type="date"
               value={form.periodo_hasta}
               onChange={(e) => setForm(prev => ({ ...prev, periodo_hasta: e.target.value }))}
@@ -290,7 +271,6 @@ export default function DemandPlanning() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }

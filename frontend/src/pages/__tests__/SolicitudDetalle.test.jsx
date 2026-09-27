@@ -257,8 +257,7 @@ describe('SolicitudDetalle', () => {
     it('should display normal criticidad with default chip', async () => {
       renderComponent()
       await waitFor(() => {
-        // Component uses MUI Chip for criticidad
-        const chip = screen.getByText('Normal')
+                const chip = screen.getByText('Normal')
         expect(chip).toBeInTheDocument()
       })
     })
@@ -269,10 +268,8 @@ describe('SolicitudDetalle', () => {
       })
       renderComponent()
       await waitFor(() => {
-        const chip = screen.getByText('Alta')
-        expect(chip).toBeInTheDocument()
-        // MUI Chip with color="error" gets a class containing "colorError"
-        expect(chip.closest('.MuiChip-root')).toHaveClass('MuiChip-colorError')
+        // Criticidad se muestra con el mismo badge (icono + texto coloreado) que en las tablas
+        expect(screen.getByText('Alta')).toBeInTheDocument()
       })
     })
   })

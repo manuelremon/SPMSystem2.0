@@ -6,7 +6,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -18,8 +17,6 @@ import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SavingsIcon from '@mui/icons-material/Savings';
@@ -27,6 +24,9 @@ import { useI18n } from '../context/i18n';
 import { useToast } from '../hooks/useToast';
 import { SPMBar } from '../components/ui/SPMChartJS';
 import api from '../services/api';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { formatCurrency, formatNumber } from '../utils/formatters';
 
 const RISK_COLORS = {
   bajo: 'var(--success-light)',
@@ -37,7 +37,6 @@ const RISK_COLORS = {
 export default function WhatIfInventario() {
   const { t } = useI18n();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [material, setMaterial] = useState('');
   const [ropDelta, setRopDelta] = useState(0);
@@ -47,7 +46,7 @@ export default function WhatIfInventario() {
 
   const handleSimulate = useCallback(async () => {
     if (!material.trim()) {
-      toast.warning(t('whatif_material_required', 'Ingrese un código de material'));
+      toast.warning(t('whatif_material_requerido', 'Ingresa un código de material'));
       return;
     }
 
@@ -92,7 +91,7 @@ export default function WhatIfInventario() {
             backgroundColor: 'rgba(16, 185, 129, 0.7)',
           },
           {
-            label: t('whatif_avg_stock', 'Stock Promedio'),
+            label: t('whatif_avg_stock', 'Stock promedio'),
             data: [result.current.avg_stock, result.adjusted.avg_stock],
             backgroundColor: 'rgba(245, 158, 11, 0.7)',
           },
@@ -100,42 +99,20 @@ export default function WhatIfInventario() {
       }
     : null;
 
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            color: "text.disabled",
-            "&:hover": {
-              color: "text.secondary",
-              bgcolor: "background.paper",
-            },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <div>
-          <Typography
-            variant="h5"
-            component="h1"
-            fontWeight={700}
-            textTransform="uppercase"
-            letterSpacing="0.05em"
-            color="text.primary"
-          >
-            {t('whatif_title', 'What-If de Inventario')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('whatif_subtitle', 'Simula ajustes en parámetros MRP y observa el impacto en capital y riesgo')}
-          </Typography>
-        </div>
-      </Box>
+  const riskLabels = {
+    bajo: t('whatif_riesgo_bajo', 'Bajo'),
+    medio: t('whatif_riesgo_medio', 'Medio'),
+    alto: t('whatif_riesgo_alto', 'Alto'),
+  };
 
+  return (
+    <PageLayout
+      title={t('whatif_titulo', 'Simulador de inventario')}
+      subtitle={t('whatif_subtitle', 'Simula ajustes en parámetros MRP y observa el impacto en capital y riesgo')}
+    >
       <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Stack spacing={3}>
               <TextField
                 label={t('whatif_material', 'Código de Material')}
@@ -148,8 +125,8 @@ export default function WhatIfInventario() {
 
               <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                  {t('whatif_rop_adjustment', 'Ajuste ROP (Punto de Pedido)')}: {ropDelta > 0 ? '+' : ''}
-                  {ropDelta}%
+                  {t('whatif_rop_adjustment', 'Ajuste ROP (punto de pedido)')}: {ropDelta > 0 ? '+' : ''}
+                  {ropDelta} %
                 </Typography>
                 <Slider
                   value={ropDelta}
@@ -163,6 +140,7 @@ export default function WhatIfInventario() {
                     { value: 50, label: '+50%' },
                   ]}
                   valueLabelDisplay="auto"
+                  sx={{ mx: 1.5, width: 'calc(100% - 24px)' }}
                   aria-label={t('whatif_rop_adjustment', 'Ajuste ROP (Punto de Pedido)')}
                 />
               </Box>
@@ -171,7 +149,7 @@ export default function WhatIfInventario() {
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
                   {t('whatif_eoq_adjustment', 'Ajuste EOQ (Cantidad Óptima)')}:{' '}
                   {eoqDelta > 0 ? '+' : ''}
-                  {eoqDelta}%
+                  {eoqDelta} %
                 </Typography>
                 <Slider
                   value={eoqDelta}
@@ -185,6 +163,7 @@ export default function WhatIfInventario() {
                     { value: 50, label: '+50%' },
                   ]}
                   valueLabelDisplay="auto"
+                  sx={{ mx: 1.5, width: 'calc(100% - 24px)' }}
                   aria-label={t('whatif_eoq_adjustment', 'Ajuste EOQ (Cantidad Óptima)')}
                 />
               </Box>
@@ -195,18 +174,18 @@ export default function WhatIfInventario() {
                   onClick={handleSimulate}
                   disabled={loading}
                   startIcon={loading ? <CircularProgress size={16} /> : <TrendingUpIcon />}
-                  fullWidth
+                  sx={{ textTransform: 'none', flex: 1 }}
                 >
                   {loading ? t('whatif_simulating', 'Simulando...') : t('whatif_simulate', 'Simular')}
                 </Button>
-                <Button variant="outlined" onClick={handleReset} disabled={loading}>
+                <Button variant="outlined" onClick={handleReset} disabled={loading} sx={{ textTransform: 'none' }}>
                   {t('whatif_reset', 'Reiniciar')}
                 </Button>
               </Stack>
             </Stack>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             {!result && !loading && (
               <Box
                 sx={{
@@ -220,9 +199,10 @@ export default function WhatIfInventario() {
                   bgcolor: 'background.paper',
                 }}
               >
-                <Typography variant="body2" color="text.secondary">
-                  {t('whatif_empty', 'Ingrese un material y ajuste los parámetros para ver resultados')}
-                </Typography>
+                <EmptyState
+                  icon={<TrendingUpIcon sx={{ color: 'text.disabled' }} />}
+                  title={t('whatif_vacio', 'Ingresa un material y ajusta los parámetros para ver resultados')}
+                />
               </Box>
             )}
 
@@ -243,7 +223,7 @@ export default function WhatIfInventario() {
             {result && !loading && (
               <Stack spacing={2}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  {t('whatif_results', 'Resultados de Simulación')}
+                  {t('whatif_results', 'Resultados de la simulación')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {result.descripcion || result.material}
@@ -260,9 +240,9 @@ export default function WhatIfInventario() {
                   icon={<WarningAmberIcon />}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {t('whatif_riesgo', 'Riesgo de Stockout')}:{' '}
+                    {t('whatif_riesgo_quiebre', 'Riesgo de quiebre de stock')}:{' '}
                     <Chip
-                      label={result.impact.riesgo_stockout.toUpperCase()}
+                      label={riskLabels[result.impact.riesgo_stockout] || result.impact.riesgo_stockout}
                       size="small"
                       sx={{
                         bgcolor: RISK_COLORS[result.impact.riesgo_stockout],
@@ -277,24 +257,24 @@ export default function WhatIfInventario() {
                   <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
                     <SavingsIcon color="success" />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {t('whatif_capital_liberado', 'Capital Liberado')}
+                      {t('whatif_capital_liberado', 'Capital liberado')}
                     </Typography>
                   </Stack>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
-                    USD {result.impact.capital_liberado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(result.impact.capital_liberado)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {result.impact.capital_liberado_pct > 0 ? '+' : ''}
-                    {result.impact.capital_liberado_pct}% {t('whatif_vs_current', 'vs. actual')}
+                    {formatNumber(result.impact.capital_liberado_pct)} % {t('whatif_vs_current', 'vs. actual')}
                   </Typography>
                 </Paper>
 
                 <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    {t('whatif_ahorro_mantener', 'Ahorro en Mantenimiento Anual')}
+                    {t('whatif_ahorro_mantener', 'Ahorro anual en mantenimiento')}
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    USD {result.impact.ahorro_mantener.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(result.impact.ahorro_mantener)}
                   </Typography>
                 </Paper>
               </Stack>
@@ -306,14 +286,13 @@ export default function WhatIfInventario() {
       {chartData && (
         <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {t('whatif_comparison', 'Comparación Actual vs. Ajustado')}
+            {t('whatif_comparison', 'Comparación actual vs. ajustado')}
           </Typography>
           <Box sx={{ height: 300 }}>
             <SPMBar data={chartData} indexAxis="y" />
           </Box>
         </Paper>
       )}
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

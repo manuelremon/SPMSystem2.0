@@ -295,7 +295,7 @@ def _register_error_handlers(app: Flask) -> None:
             jsonify(
                 {
                     "ok": False,
-                    "error": {"code": "internal_error", "message": "Internal server error"},
+                    "error": {"code": "internal_error", "message": "Error interno del servidor"},
                 }
             ),
             500,

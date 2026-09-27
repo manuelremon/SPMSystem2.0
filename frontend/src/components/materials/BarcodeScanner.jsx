@@ -210,7 +210,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
         <Stack direction="row" spacing={1} alignItems="center">
           <QrCodeScannerIcon sx={{ color: 'primary.main' }} />
           <Typography variant="h6" component="span" fontWeight={600}>
-            {t('scanner_title', 'Escanear Código')}
+            {t('scanner_title', 'Escanear código')}
           </Typography>
         </Stack>
         <IconButton size="small" onClick={handleClose} aria-label={t('common_cerrar', 'Cerrar')}>
@@ -235,13 +235,13 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
           <Tab
             icon={<CameraAltIcon />}
             iconPosition="start"
-            label={t('scanner_tab_local', 'Cámara Local')}
+            label={t('scanner_tab_local', 'Cámara local')}
             sx={{ textTransform: 'none', minHeight: 48 }}
           />
           <Tab
             icon={<PhonelinkIcon />}
             iconPosition="start"
-            label={t('scanner_tab_mobile', 'Escanear con Celular')}
+            label={t('scanner_tab_mobile', 'Escanear con celular')}
             sx={{ textTransform: 'none', minHeight: 48 }}
           />
         </Tabs>
@@ -280,7 +280,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
                     onClick={startLocalCamera}
                     sx={{ textTransform: 'none' }}
                   >
-                    {t('scanner_scan', 'Iniciar Escaneo')}
+                    {t('scanner_scan', 'Iniciar escaneo')}
                   </Button>
                 </Stack>
               )}
@@ -347,7 +347,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
             ) : (
               <Stack alignItems="center" spacing={2}>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
-                  {t('scanner_scan_qr_instruction', 'Escaneá este QR con tu celular para abrir la cámara remota')}
+                  {t('scanner_scan_qr_instruction', 'Escanea este QR con tu celular para abrir la cámara remota')}
                 </Typography>
 
                 <Box
@@ -407,7 +407,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
             size="small"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            placeholder={t('scanner_code_placeholder', 'Ej: 10000123')}
+            placeholder={t('scanner_code_placeholder', 'Ej.: 10000123')}
             sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
             InputProps={{
               endAdornment: manualCode && (
@@ -430,7 +430,7 @@ export default function BarcodeScanner({ open, onClose, onScan }) {
           variant="contained"
           sx={{ textTransform: 'none' }}
         >
-          {t('scanner_use_code', 'Usar Código')}
+          {t('scanner_use_code', 'Usar código')}
         </Button>
       </DialogActions>
     </Dialog>

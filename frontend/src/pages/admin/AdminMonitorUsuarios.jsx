@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useI18n } from "../../context/i18n";
 import api from "../../services/api";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { formatNumber } from "../../utils/formatters";
 
 // MUI Components
 import {
@@ -10,7 +12,6 @@ import {
   Paper,
   Typography,
   Button,
-  IconButton,
   Stack,
   Chip,
   TextField,
@@ -28,23 +29,14 @@ import {
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
-import ActivityIcon from "@mui/icons-material/ShowChart";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import InboxIcon from "@mui/icons-material/Inbox";
-import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import Tooltip from "@mui/material/Tooltip";
-
-// Services
-import { exportToXLSX } from "../../services/export";
 
 // ============================================================================
 // CONSTANTES
@@ -59,15 +51,24 @@ const ACTION_TYPES = [
   { value: "eliminar", label: "Eliminar", icon: "trash" },
   { value: "consumo", label: "Consumo", icon: "trending-down" },
   { value: "reversion", label: "Reversión", icon: "rotate-ccw" },
-  { value: "DB_INSERT", label: "DB Insert", icon: "database" },
-  { value: "DB_UPDATE", label: "DB Update", icon: "database" },
-  { value: "DB_DELETE", label: "DB Delete", icon: "database" },
+  { value: "DB_INSERT", label: "Inserción en BD", icon: "database" },
+  { value: "DB_UPDATE", label: "Actualización en BD", icon: "database" },
+  { value: "DB_DELETE", label: "Borrado en BD", icon: "database" },
 ];
 
+/** Etiqueta legible (tipo oración) de una acción de auditoría. */
+function getActionLabel(action) {
+  if (!action) return "—";
+  const found = ACTION_TYPES.find((a) => a.value && a.value.toLowerCase() === String(action).toLowerCase());
+  if (found) return found.label;
+  const text = String(action).replace(/_/g, " ").toLowerCase();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 const DAY_PRESETS = [
-  { value: 7, label: "7D" },
-  { value: 30, label: "30D" },
-  { value: 90, label: "90D" },
+  { value: 7, label: "7 días" },
+  { value: 30, label: "30 días" },
+  { value: 90, label: "90 días" },
 ];
 
 // ============================================================================
@@ -153,7 +154,7 @@ function ActionBadge({ action }) {
   return (
     <Chip
       size="small"
-      label={action || "—"}
+      label={getActionLabel(action)}
       icon={
         <Box
           sx={{
@@ -169,8 +170,6 @@ function ActionBadge({ action }) {
         height: 24,
         fontSize: "var(--text-xs)",
         fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
         bgcolor: style.bgcolor,
         color: style.color,
         border: 1,
@@ -263,10 +262,10 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
         endIcon={<KeyboardArrowDownIcon sx={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />}
         startIcon={<PersonIcon sx={{ color: "text.secondary" }} />}
         sx={{
-          minWidth: 280,
+          minWidth: { xs: "100%", sm: 280 },
           height: 40,
           px: 1.5,
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
           bgcolor: "background.paper",
           borderColor: isOpen ? "primary.main" : "grey.300",
           color: selectedUser ? "text.primary" : "text.secondary",
@@ -278,7 +277,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
           },
         }}
       >
-        <Box sx={{ textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <Box sx={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {selectedUser ? (
             <>
               {selectedUser.nombre} {selectedUser.apellido}
@@ -287,7 +286,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
               </Typography>
             </>
           ) : (
-            "Seleccionar usuario..."
+            t("monitor_select_user_ph", "Selecciona un usuario...")
           )}
         </Box>
       </Button>
@@ -311,7 +310,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
           <TextField
             size="small"
             fullWidth
-            placeholder={t('admin_monitor_users_search_placeholder', 'Buscar por nombre, email o ID...')}
+            placeholder={t('admin_monitor_users_search_placeholder', 'Busca por nombre, correo o ID...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -338,13 +337,13 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
           {loading ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
-                Cargando usuarios...
+                {t("monitor_loading_users", "Cargando usuarios...")}
               </Typography>
             </Box>
           ) : filteredUsers.length === 0 ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
-                No se encontraron usuarios
+                {t("monitor_no_users_found", "No se encontraron usuarios")}
               </Typography>
             </Box>
           ) : (
@@ -391,6 +390,7 @@ function UserSelector({ usuarios, selectedUser, onSelect, loading }) {
 
 /** Botones de preset de días */
 function DayPresetButtons({ value, onChange }) {
+  const { t } = useI18n();
   return (
     <Stack direction="row" spacing={1} alignItems="center">
       <Typography
@@ -398,12 +398,10 @@ function DayPresetButtons({ value, onChange }) {
         sx={{
           fontWeight: 600,
           color: "text.secondary",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          fontSize: "var(--text-xs)",
+          fontSize: "var(--text-sm)",
         }}
       >
-        Período
+        {t("monitor_periodo", "Período")}
       </Typography>
       <ToggleButtonGroup
         value={value}
@@ -439,6 +437,7 @@ function DayPresetButtons({ value, onChange }) {
 
 /** Selector de tipo de acción */
 function ActionTypeSelect({ value, onChange }) {
+  const { t } = useI18n();
   return (
     <Stack direction="row" spacing={1} alignItems="center">
       <Typography
@@ -446,12 +445,10 @@ function ActionTypeSelect({ value, onChange }) {
         sx={{
           fontWeight: 600,
           color: "text.secondary",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          fontSize: "var(--text-xs)",
+          fontSize: "var(--text-sm)",
         }}
       >
-        Acción
+        {t("monitor_accion", "Acción")}
       </Typography>
       <FormControl size="small" sx={{ minWidth: 180 }}>
         <Select
@@ -492,6 +489,7 @@ function ActionTypeSelect({ value, onChange }) {
 
 /** Contador de resultados */
 function ResultsCounter({ count, loading }) {
+  const { t } = useI18n();
   if (loading) return null;
   return (
     <Chip
@@ -507,7 +505,7 @@ function ResultsCounter({ count, loading }) {
           }}
         />
       }
-      label={`${count.toLocaleString()} registros`}
+      label={`${formatNumber(count, 0)} ${t("monitor_registros", "registros")}`}
       sx={{
         height: 28,
         bgcolor: "grey.100",
@@ -525,16 +523,17 @@ function ResultsCounter({ count, loading }) {
 
 /** Estado vacio */
 function EmptyState({ type = "no-selection", message }) {
+  const { t } = useI18n();
   const content = {
     "no-selection": {
       icon: <PersonIcon sx={{ fontSize: 48 }} />,
-      title: "Selecciona un usuario",
-      description: "Elige un usuario de la lista para ver su historial de actividad.",
+      title: t("monitor_empty_select_title", "Selecciona un usuario"),
+      description: t("monitor_empty_select_desc", "Elige un usuario de la lista para ver su historial de actividad."),
     },
     "no-results": {
       icon: <InboxIcon sx={{ fontSize: 48 }} />,
-      title: "Sin actividad",
-      description: message || "No hay actividad registrada para los filtros seleccionados.",
+      title: t("monitor_empty_results_title", "Sin actividad"),
+      description: message || t("monitor_empty_results_desc", "No hay actividad registrada para los filtros seleccionados."),
     },
   };
 
@@ -571,7 +570,6 @@ function ErrorAlert({ message, onDismiss }) {
       icon={<ErrorOutlineIcon />}
       onClose={onDismiss}
       sx={{
-        mb: 2,
         "& .MuiAlert-message": {
           fontWeight: 500,
         },
@@ -614,7 +612,7 @@ function ActivityTable({ data, selectedUser }) {
           <AccessTimeIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
           <Typography
             variant="body2"
-            sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontSize: 'var(--text-base)', color: 'text.secondary' }}
+            sx={{ fontVariantNumeric: 'tabular-nums', color: 'text.secondary' }}
           >
             {params.value}
           </Typography>
@@ -626,6 +624,7 @@ function ActivityTable({ data, selectedUser }) {
       headerName: t('common_action', 'Acción'),
       flex: 0.5,
       minWidth: 130,
+      valueFormatter: (params) => getActionLabel(params.value),
       cellRenderer: (params) => <ActionBadge action={params.value} />,
     },
     {
@@ -662,7 +661,6 @@ function ActivityTable({ data, selectedUser }) {
       minWidth: 120,
       cellStyle: {
         textAlign: 'right',
-        fontFamily: 'monospace',
         fontVariantNumeric: 'tabular-nums',
         fontSize: 'var(--text-sm)',
       },
@@ -684,7 +682,6 @@ function ActivityTable({ data, selectedUser }) {
 }
 
 export default function AdminMonitorUsuarios() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   // Estado
@@ -692,7 +689,6 @@ export default function AdminMonitorUsuarios() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [actividad, setActividad] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
@@ -705,7 +701,8 @@ export default function AdminMonitorUsuarios() {
       const res = await api.get("/admin/usuarios");
       const data = Array.isArray(res.data) ? res.data : [];
       setUsuarios(data);
-    } catch (err) {
+    } catch {
+      setUsuarios([]);
     } finally {
       setLoadingUsers(false);
     }
@@ -734,14 +731,14 @@ export default function AdminMonitorUsuarios() {
       if (res.data?.ok) {
         setActividad(res.data.logs || []);
       } else {
-        setError("Error al cargar actividad");
+        setError(t("monitor_error_load", "No se pudo cargar la actividad"));
       }
     } catch (err) {
-      setError("Error de conexión");
+      setError(t("monitor_error_connection", "Error de conexión. Intenta nuevamente."));
     } finally {
       setLoading(false);
     }
-  }, [selectedUser, days, actionType]);
+  }, [selectedUser, days, actionType, t]);
 
   useEffect(() => {
     loadUsuarios();
@@ -751,176 +748,37 @@ export default function AdminMonitorUsuarios() {
     loadActividad();
   }, [loadActividad]);
 
-  // Columnas de la tabla
-  const columns = useMemo(() => [
-    {
-      key: "created_at",
-      header: "Fecha / Hora",
-      width: "160px",
-      align: "left",
-    },
-    {
-      key: "action",
-      header: "Acción",
-      width: "130px",
-      align: "left",
-    },
-    {
-      key: "entity_type",
-      header: "Entidad",
-      width: "120px",
-      align: "left",
-    },
-    {
-      key: "entity_id",
-      header: "ID",
-      width: "100px",
-      align: "center",
-    },
-    {
-      key: "details",
-      header: "Detalles",
-      width: "auto",
-      align: "left",
-    },
-    {
-      key: "ip_address",
-      header: "IP",
-      width: "120px",
-      align: "right",
-    },
-  ], []);
-
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* ================================================================== */}
-      {/* HEADER */}
-      {/* ================================================================== */}
-      <Paper
-        component="header"
-        elevation={0}
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          bgcolor: "background.paper",
-          borderBottom: 1,
-          borderColor: "grey.200",
-          boxShadow: 1,
-        }}
-      >
-        <Box sx={{ maxWidth: 1600, mx: "auto", px: 3 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ height: 56 }}>
-            {/* Left: Navigation + Title */}
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <IconButton
-                onClick={() => navigate(-1)}
-                sx={{
-                  ml: -1,
-                  color: "text.secondary",
-                  "&:hover": {
-                    color: "text.primary",
-                    bgcolor: "grey.100",
-                  },
-                }}
-                aria-label={t("aria_back", "Volver")}
-              >
-                <ArrowBackIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Box
-                  sx={{
-                    p: 1,
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <ActivityIcon sx={{ fontSize: 20 }} />
-                </Box>
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: "text.primary",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      fontSize: "var(--text-base)",
-                    }}
-                  >
-                    {t("admin_monitor_usuarios", "Monitor de Usuarios")}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Stack>
-
-            {/* Right: Actions */}
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RefreshIcon sx={{ fontSize: 18, ...(loading && { animation: "spin 1s linear infinite", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }) }} />}
-              onClick={loadActividad}
-              disabled={loading || !selectedUser}
-              sx={{
-                textTransform: "uppercase",
-                fontWeight: 600,
-                fontSize: "var(--text-sm)",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Actualizar
-            </Button>
-          </Stack>
-        </Box>
-      </Paper>
-
-      {/* ================================================================== */}
-      {/* MAIN CONTENT */}
-      {/* ================================================================== */}
-      <Box component="main" sx={{ maxWidth: 1600, mx: "auto", px: 3, py: 3 }}>
+    <PageLayout
+      title={t("admin_monitor_usuarios", "Monitor de usuarios")}
+      backTo="/admin"
+      actions={
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<RefreshIcon sx={{ fontSize: 18, ...(loading && { animation: "spin 1s linear infinite", "@keyframes spin": { "0%": { transform: "rotate(0deg)" }, "100%": { transform: "rotate(360deg)" } } }) }} />}
+          onClick={loadActividad}
+          disabled={loading}
+          sx={{ textTransform: "none" }}
+        >
+          {t("common_actualizar", "Actualizar")}
+        </Button>
+      }
+    >
         <ErrorAlert message={error} onDismiss={() => setError("")} />
 
         {/* ================================================================ */}
         {/* FILTERS PANEL */}
         {/* ================================================================ */}
-        <Paper variant="outlined" sx={{ mb: 3 }}>
-          <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderBottom: 1,
-              borderColor: "grey.100",
-              bgcolor: "grey.50",
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FilterListIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  fontSize: "var(--text-xs)",
-                }}
-              >
-                Filtros
-              </Typography>
-            </Stack>
-          </Box>
+        <Paper variant="outlined">
           <Box sx={{ p: 2 }}>
             <Stack
               direction="row"
               flexWrap="wrap"
               alignItems="center"
-              spacing={3}
-              divider={<Divider orientation="vertical" flexItem sx={{ mx: 1.5 }} />}
+              useFlexGap
+              spacing={2}
+              divider={<Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />}
             >
               {/* User Selector */}
               <UserSelector
@@ -945,7 +803,7 @@ export default function AdminMonitorUsuarios() {
         {/* ================================================================ */}
         {/* DATA TABLE */}
         {/* ================================================================ */}
-        <Paper variant="outlined">
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           {/* Table Header */}
           <Box
             sx={{
@@ -956,29 +814,20 @@ export default function AdminMonitorUsuarios() {
               bgcolor: "grey.50",
             }}
           >
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
               <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 600,
-                    color: "text.secondary",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    fontSize: "var(--text-xs)",
-                  }}
-                >
-                  {t("monitor_user_activity", "Historial de Actividad")}
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {t("monitor_user_activity", "Historial de actividad")}
                 </Typography>
                 {selectedUser && (
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     — {selectedUser.nombre} {selectedUser.apellido}
                   </Typography>
                 )}
               </Stack>
               {selectedUser && !loading && actividad.length > 0 && (
-                <Typography variant="caption" sx={{ color: "text.disabled" }}>
-                  Últimos {days} días
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {t("monitor_ultimos", "Últimos")} {days} {t("monitor_dias", "días")}
                 </Typography>
               )}
             </Stack>
@@ -997,14 +846,11 @@ export default function AdminMonitorUsuarios() {
           ) : (
             <ActivityTable
               data={actividad}
-              onRowClick={(id) => {}}
               selectedUser={selectedUser}
             />
           )}
 
         </Paper>
-      </Box>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

@@ -9,6 +9,9 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import Tooltip from '@mui/material/Tooltip'
+import { useI18n } from '../../context/i18n'
+import { formatDate } from '../../utils/formatters'
 
 /**
  * Formatea timestamp relativo
@@ -21,14 +24,18 @@ function formatRelativeTime(timestamp) {
 
   if (diff < 60) return 'hace unos segundos'
   if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} horas`
-  return date.toLocaleDateString('es')
+  if (diff < 86400) {
+    const h = Math.floor(diff / 3600)
+    return `hace ${h} ${h === 1 ? 'hora' : 'horas'}`
+  }
+  return formatDate(date)
 }
 
 /**
  * Componente de alerta individual
  */
 function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
+  const { t } = useI18n()
   const isCritical = alert.alert_type === 'critical'
   const isWarning = alert.alert_type === 'warning'
 
@@ -99,22 +106,26 @@ function AlertItem({ alert, onAcknowledge, isAcknowledging }) {
 
         {alert.actual_value !== undefined && alert.threshold_value !== undefined && (
           <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-            Valor: <Box component="span" sx={{ fontWeight: 500 }}>{alert.actual_value}</Box>
+            {t('admin_alertas_valor', 'Valor')}: <Box component="span" sx={{ fontWeight: 500 }}>{alert.actual_value}</Box>
             {' / '}
-            Umbral: <Box component="span" sx={{ fontWeight: 500 }}>{alert.threshold_value}</Box>
+            {t('admin_alertas_umbral', 'Umbral')}: <Box component="span" sx={{ fontWeight: 500 }}>{alert.threshold_value}</Box>
           </Typography>
         )}
       </Box>
 
-      <IconButton
-        size="small"
-        onClick={() => onAcknowledge(alert.id)}
-        disabled={isAcknowledging}
-        title="Reconocer alerta"
-        sx={{ flexShrink: 0 }}
-      >
-        <CheckCircleIcon sx={{ fontSize: 16 }} />
-      </IconButton>
+      <Tooltip title={t('admin_alertas_reconocer', 'Reconocer alerta')}>
+        <span>
+          <IconButton
+            size="small"
+            onClick={() => onAcknowledge(alert.id)}
+            disabled={isAcknowledging}
+            aria-label={t('admin_alertas_reconocer', 'Reconocer alerta')}
+            sx={{ flexShrink: 0 }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
     </Box>
   )
 }
@@ -129,6 +140,7 @@ export function AlertsPanel({
   isLoading = false,
   acknowledging = null,
 }) {
+  const { t } = useI18n()
   const activeAlerts = alerts.filter((a) => !a.acknowledged)
   const criticalCount = activeAlerts.filter((a) => a.alert_type === 'critical').length
   const warningCount = activeAlerts.filter((a) => a.alert_type === 'warning').length
@@ -149,10 +161,10 @@ export function AlertsPanel({
             <CheckCircleIcon sx={{ fontSize: 24 }} />
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                Sistema Operando Normalmente
+                {t('admin_alertas_sistema_normal', 'El sistema funciona con normalidad')}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                No hay alertas activas
+                {t('admin_alertas_sin_alertas', 'No hay alertas activas')}
               </Typography>
             </Box>
           </Stack>
@@ -177,8 +189,8 @@ export function AlertsPanel({
             <WarningAmberIcon
               sx={{ fontSize: 20, color: criticalCount > 0 ? 'error.main' : 'warning.main' }}
             />
-            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-              Alertas Activas
+            <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
+              {t('admin_alertas_activas', 'Alertas activas')}
             </Typography>
             <Chip
               label={activeAlerts.length}
@@ -194,8 +206,11 @@ export function AlertsPanel({
               size="small"
               onClick={onAcknowledgeAll}
               disabled={acknowledging === 'all'}
+              sx={{ textTransform: 'none' }}
             >
-              {acknowledging === 'all' ? 'Reconociendo...' : 'Reconocer Todas'}
+              {acknowledging === 'all'
+                ? t('admin_alertas_reconociendo', 'Reconociendo…')
+                : t('admin_alertas_reconocer_todas', 'Reconocer todas')}
             </Button>
           )}
         </Stack>
@@ -204,7 +219,7 @@ export function AlertsPanel({
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
             {criticalCount > 0 && (
               <Chip
-                label={`${criticalCount} criticas`}
+                label={`${criticalCount} ${criticalCount === 1 ? t('admin_alertas_critica', 'crítica') : t('admin_alertas_criticas', 'críticas')}`}
                 size="small"
                 sx={{
                   bgcolor: 'error.100',
@@ -216,7 +231,7 @@ export function AlertsPanel({
             )}
             {warningCount > 0 && (
               <Chip
-                label={`${warningCount} warnings`}
+                label={`${warningCount} ${warningCount === 1 ? t('admin_alertas_advertencia', 'advertencia') : t('admin_alertas_advertencias', 'advertencias')}`}
                 size="small"
                 sx={{
                   bgcolor: 'warning.100',
@@ -236,7 +251,7 @@ export function AlertsPanel({
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
               <CircularProgress size={24} />
               <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
-                Cargando alertas...
+                {t('admin_alertas_cargando', 'Cargando alertas…')}
               </Typography>
             </Box>
           ) : (

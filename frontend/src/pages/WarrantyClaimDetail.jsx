@@ -279,7 +279,7 @@ const WarrantyClaimDetail = () => {
       {/* Tab Content */}
       {activeTab === 0 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -297,7 +297,7 @@ const WarrantyClaimDetail = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -316,7 +316,7 @@ const WarrantyClaimDetail = () => {
           </Grid>
 
           {reclamo.estado === 'resolved' && (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -464,7 +464,7 @@ const WarrantyClaimDetail = () => {
         <DialogTitle>{t('warranty_resolve_title', 'Resolver Reclamo')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth>
                 <InputLabel>{t('warranty_resolution_type', 'Tipo de Resolución')}</InputLabel>
                 <Select
@@ -479,7 +479,7 @@ const WarrantyClaimDetail = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 type="number"
@@ -488,7 +488,7 @@ const WarrantyClaimDetail = () => {
                 onChange={(e) => setResolveForm({ ...resolveForm, monto_recuperado: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline
@@ -513,7 +513,7 @@ const WarrantyClaimDetail = () => {
         <DialogTitle>{t('warranty_add_document_title', 'Agregar Documento')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label={t('warranty_doc_name', 'Nombre')}
@@ -521,7 +521,7 @@ const WarrantyClaimDetail = () => {
                 onChange={(e) => setDocumentForm({ ...documentForm, nombre: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth>
                 <InputLabel>{t('warranty_doc_type', 'Tipo')}</InputLabel>
                 <Select
@@ -536,7 +536,7 @@ const WarrantyClaimDetail = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label={t('warranty_doc_path', 'Ruta/URL')}

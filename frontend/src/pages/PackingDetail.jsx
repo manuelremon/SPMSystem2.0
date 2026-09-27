@@ -287,7 +287,7 @@ const PackingDetail = () => {
 
       {/* Summary */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {t('pack_peso_total', 'Peso Total')}
@@ -295,7 +295,7 @@ const PackingDetail = () => {
             <Typography variant="h5">{Number(packing.peso_total).toFixed(2)} kg</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {t('pack_bultos_total', 'Bultos Totales')}
@@ -303,7 +303,7 @@ const PackingDetail = () => {
             <Typography variant="h5">{packing.bultos_total}</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {t('pack_items', 'Items')}
@@ -311,7 +311,7 @@ const PackingDetail = () => {
             <Typography variant="h5">{packing.items?.length || 0}</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {t('pack_etiquetas', 'Etiquetas')}
@@ -410,7 +410,13 @@ const PackingDetail = () => {
           ) : (
             <Grid container spacing={2}>
               {Object.entries(labelsByBulto).map(([bultoNum, labels]) => (
-                <Grid item xs={12} sm={6} md={4} key={bultoNum}>
+                <Grid
+                  key={bultoNum}
+                  size={{
+                    xs: 12,
+                    sm: 6,
+                    md: 4
+                  }}>
                   <Paper sx={{ p: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
                       {t('pack_bulto', 'Bulto')} #{bultoNum}

@@ -14,6 +14,7 @@ import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../u
 import { getCriticidadConfig } from "../utils/styleConfig";
 import StatusBadge from "../components/ui/StatusBadge";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
 
 // MUI Components
 import {
@@ -38,14 +39,13 @@ import {
   TableRow,
   TableFooter,
   Stack,
-  Divider,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import Tooltip from "@mui/material/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -56,6 +56,18 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AddIcon from "@mui/icons-material/Add";
 
 const DEBOUNCE_MS = 300;
+
+/* Criticidad con el mismo markup que StatusBadge */
+function CriticidadBadge({ value, t }) {
+  const c = getCriticidadConfig(value || "Normal");
+  const Icon = c.icon;
+  return (
+    <span className="inline-flex items-center gap-1.5" style={{ color: c.color }}>
+      {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+      <span className="text-xs font-semibold">{t(`criticidad_${String(c.label).toLowerCase()}`, c.label)}</span>
+    </span>
+  );
+}
 
 /* -------------------------------------------------------------
    Delete Modal
@@ -91,7 +103,7 @@ function DeleteModal({ open, onClose, onConfirm, deleting, t }) {
 
       <DialogContent>
         <Typography variant="body2" color="text.secondary">
-          {t("mis_delete_desc", "Esta seguro de eliminar esta solicitud? Esta accion no se puede deshacer.")}
+          {t("mis_delete_desc", "¿Seguro que quieres eliminar esta solicitud? Esta acción no se puede deshacer.")}
         </Typography>
       </DialogContent>
 
@@ -112,7 +124,7 @@ function DeleteModal({ open, onClose, onConfirm, deleting, t }) {
           size="small"
           sx={{ textTransform: "none" }}
         >
-          {deleting ? "Eliminando..." : t("mis_delete_confirm", "Eliminar")}
+          {deleting ? t("common_eliminando", "Eliminando...") : t("mis_delete_confirm", "Eliminar")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -124,8 +136,6 @@ function DeleteModal({ open, onClose, onConfirm, deleting, t }) {
 ------------------------------------------------------------- */
 function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
   if (!solicitud) return null;
-
-  const criticidadConfig = getCriticidadConfig(solicitud.criticidad || "Normal");
 
   return (
     <Dialog
@@ -147,7 +157,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
         }}
       >
         <Typography variant="subtitle1" fontWeight={600} color="text.primary">
-          Solicitud #{solicitud.id}
+          {t("common_solicitud", "Solicitud")} #{solicitud.id}
         </Typography>
         <IconButton
           onClick={onClose}
@@ -170,18 +180,7 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 fechaEnvio: solicitud.created_at,
               }}
             />
-            {solicitud.criticidad && (
-              <Chip
-                label={criticidadConfig.label}
-                size="small"
-                sx={{
-                  color: criticidadConfig.color,
-                  bgcolor: criticidadConfig.bg,
-                  fontWeight: 600,
-                  fontSize: "0.75rem",
-                }}
-              />
-            )}
+            {solicitud.criticidad && <CriticidadBadge value={solicitud.criticidad} t={t} />}
           </Box>
 
           {/* Info y Ubicacion */}
@@ -199,25 +198,25 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 color="text.secondary"
                 sx={{ mb: 1.5, display: "block" }}
               >
-                {t('sol_info_general', 'Información General')}
+                {t('sol_info_general', 'Información general')}
               </Typography>
               <Stack spacing={1.5}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <TagIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>ID:</strong> {solicitud.id}
+                    <strong>{t("common_id", "ID")}:</strong> {solicitud.id}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <CalendarTodayIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Creacion:</strong> {formatDate(solicitud.created_at)}
+                    <strong>{t("common_creacion", "Creación")}:</strong> {formatDate(solicitud.created_at)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <AccessTimeIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Necesidad:</strong> {formatDate(solicitud.fecha_necesidad)}
+                    <strong>{t("common_necesidad", "Necesidad")}:</strong> {formatDate(solicitud.fecha_necesidad)}
                   </Typography>
                 </Box>
               </Stack>
@@ -236,19 +235,19 @@ function DetalleModal({ open, solicitud, sectores, onClose, onViewFull, t }) {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <BusinessIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Centro:</strong> {solicitud.centro || "-"}
+                    <strong>{t("common_centro", "Centro")}:</strong> {solicitud.centro || "-"}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <PlaceIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Sector:</strong> {getSectorNombre(solicitud.sector, sectores)}
+                    <strong>{t("common_sector", "Sector")}:</strong> {getSectorNombre(solicitud.sector, sectores)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarehouseIcon sx={{ fontSize: 16, color: "text.disabled" }} />
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Almacen:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
+                    <strong>{t("common_almacen", "Almacén")}:</strong> {formatAlmacen(solicitud.almacen_virtual) || "-"}
                   </Typography>
                 </Box>
               </Stack>
@@ -409,7 +408,8 @@ export default function MisSolicitudes() {
         const res = await api.get("/catalogos/sectores");
         const data = Array.isArray(res.data) ? res.data : [];
         setSectores(data);
-      } catch (err) {
+      } catch {
+        // Sin sectores: se muestra el ID tal cual
       }
     };
     fetchSectores();
@@ -513,52 +513,36 @@ export default function MisSolicitudes() {
         field: "id",
         headerName: t('common_id', 'ID'),
         flex: 0.4,
-        minWidth: 60,
+        minWidth: 70,
       },
       {
         field: "fecha_creacion",
         headerName: t('common_fecha', 'Fecha'),
         flex: 0.6,
-        minWidth: 90,
+        minWidth: 100,
         valueGetter: (params) => params.data.fecha_creacion || params.data.created_at,
-        cellRenderer: (params) => (
-          <Typography variant="body2" color="text.secondary">
-            {formatDate(params.value)}
-          </Typography>
-        ),
+        valueFormatter: (params) => formatDate(params.value),
       },
       {
         field: "justificacion",
         headerName: t('common_justificacion', 'Justificación'),
         flex: 1.5,
         minWidth: 150,
-        cellRenderer: (params) => {
-          const texto = params.value || "-";
-          const truncado = texto.length > 30;
-          return (
-            <Typography
-              variant="body2"
-              color="text.primary"
-              noWrap
-              title={truncado ? texto : undefined}
-            >
-              {truncado ? texto.slice(0, 30) + "..." : texto}
-            </Typography>
-          );
-        },
+        valueFormatter: (params) => params.value || "-",
+        tooltipValueGetter: (params) => params.value || "",
       },
       {
         field: "centro",
         headerName: t('common_centro', 'Centro'),
         flex: 0.5,
-        minWidth: 70,
+        minWidth: 100,
         valueGetter: (params) => params.data.centro || params.data.centro_id || "-",
       },
       {
         field: "almacen_virtual",
         headerName: t('common_almacen', 'Almacén'),
-        flex: 0.5,
-        minWidth: 70,
+        flex: 0.6,
+        minWidth: 110,
         cellRenderer: (params) => formatAlmacen(params.value || params.data.almacen) || "-",
       },
       {
@@ -571,39 +555,23 @@ export default function MisSolicitudes() {
       {
         field: "criticidad",
         headerName: t('common_criticidad', 'Criticidad'),
-        flex: 0.5,
-        minWidth: 80,
-        cellRenderer: (params) => {
-          const criticidad = params.value || "Normal";
-          const config = getCriticidadConfig(criticidad);
-          return (
-            <Typography
-              variant="body2"
-              fontWeight={600}
-              sx={{ color: config.color }}
-            >
-              {config.label}
-            </Typography>
-          );
-        },
+        flex: 0.6,
+        minWidth: 115,
+        cellRenderer: (params) => <CriticidadBadge value={params.value} t={t} />,
       },
       {
         field: "total_monto",
         headerName: t('common_monto', 'Monto'),
-        flex: 0.7,
-        minWidth: 100,
-        cellStyle: { textAlign: 'right', paddingRight: '16px' },
-        cellRenderer: (params) => (
-          <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {formatCurrency(params.value || 0)}
-          </Typography>
-        ),
+        flex: 0.8,
+        minWidth: 130,
+        type: "rightAligned",
+        valueFormatter: (params) => formatCurrency(params.value || 0),
       },
       {
         field: "status",
         headerName: t('common_estado', 'Estado'),
         flex: 0.7,
-        minWidth: 100,
+        minWidth: 120,
         valueGetter: (params) => params.data.estado || params.data.status || "pendiente",
         cellRenderer: (params) => {
           const data = params.data;
@@ -636,8 +604,8 @@ export default function MisSolicitudes() {
       {
         field: "acciones",
         headerName: t('common_acciones', 'Acciones'),
-        flex: 1,
-        minWidth: 180,
+        flex: 0.6,
+        minWidth: 110,
         sortable: false,
         filter: false,
         cellRenderer: (params) => {
@@ -648,57 +616,36 @@ export default function MisSolicitudes() {
             <Stack direction="row" spacing={0.5} alignItems="center">
               {esBorrador ? (
                 <>
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() => navigate(`/solicitudes/${params.data.id}/materiales`)}
-                    sx={{
-                      minWidth: "auto",
-                      px: 1,
-                      py: 0.25,
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: "warning.dark",
-                      "&:hover": { bgcolor: "warning.lighter" },
-                    }}
-                  >
-                    {t('common_editar', 'Editar')}
-                  </Button>
-                  <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() => setDeleteModal({ open: true, solicitudId: params.data.id })}
-                    sx={{
-                      minWidth: "auto",
-                      px: 1,
-                      py: 0.25,
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: "error.main",
-                      "&:hover": { bgcolor: "error.lighter" },
-                    }}
-                  >
-                    {t('common_borrar', 'Borrar')}
-                  </Button>
+                  <Tooltip title={t('common_editar', 'Editar')}>
+                    <IconButton
+                      size="small"
+                      aria-label={t('common_editar', 'Editar')}
+                      onClick={() => navigate(`/solicitudes/${params.data.id}/materiales`)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={t('common_eliminar', 'Eliminar')}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label={t('common_eliminar', 'Eliminar')}
+                      onClick={() => setDeleteModal({ open: true, solicitudId: params.data.id })}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </>
               ) : (
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => setDetalleModal({ open: true, solicitud: params.data })}
-                  sx={{
-                    minWidth: "auto",
-                    px: 1,
-                    py: 0.25,
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    color: "primary.main",
-                    "&:hover": { bgcolor: "primary.lighter" },
-                  }}
-                >
-                  {t('common_ver', 'Ver')}
-                </Button>
+                <Tooltip title={t('common_ver', 'Ver')}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('common_ver', 'Ver')}
+                    onClick={() => setDetalleModal({ open: true, solicitud: params.data })}
+                  >
+                    <VisibilityIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               )}
             </Stack>
           );
@@ -712,35 +659,9 @@ export default function MisSolicitudes() {
   const rows = useMemo(() => filtered.map((item) => ({ ...item, id: item.id })), [filtered]);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.5px' }}
-            >
-              {t("mis_page_title", "Mis Solicitudes")}
-            </Typography>
-          </Box>
-        </Box>
+    <PageLayout
+      title={t("mis_titulo", "Mis solicitudes")}
+      actions={
         <Button
           variant="contained"
           size="small"
@@ -748,10 +669,10 @@ export default function MisSolicitudes() {
           onClick={() => navigate("/solicitudes/nueva")}
           sx={{ textTransform: "none" }}
         >
-          {t("btn_crear_solicitud", "Crear Solicitud")}
+          {t("mis_btn_crear", "Crear solicitud")}
         </Button>
-      </Box>
-
+      }
+    >
       {/* Alertas */}
       {error && (
         <Alert severity="error" onClose={() => setError("")}>
@@ -843,7 +764,6 @@ export default function MisSolicitudes() {
         }}
         t={t}
       />
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

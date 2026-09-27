@@ -269,7 +269,7 @@ const ProductionPlanning = () => {
 
       {/* KPIs Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">
@@ -279,7 +279,7 @@ const ProductionPlanning = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">
@@ -291,7 +291,7 @@ const ProductionPlanning = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">
@@ -301,7 +301,7 @@ const ProductionPlanning = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">
@@ -311,7 +311,7 @@ const ProductionPlanning = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Typography variant="body2" color="text.secondary">

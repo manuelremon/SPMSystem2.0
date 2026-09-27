@@ -140,7 +140,7 @@ export default function ConsultasStockList({ onRespond }) {
           {t("consulta_sin_pendientes", "No tienes consultas pendientes")}
         </p>
         <p className="text-slate-400 text-sm mt-1">
-          {t("consulta_sin_pendientes_desc", "Las nuevas consultas apareceran aqui")}
+          {t("consulta_sin_pendientes_desc", "Las nuevas consultas aparecerán aquí")}
         </p>
       </div>
     );

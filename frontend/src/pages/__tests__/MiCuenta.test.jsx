@@ -164,7 +164,7 @@ describe('MiCuenta', () => {
 
       // The component uses MUI Typography h5 with text "Mi Cuenta" (uppercase via CSS)
       await waitFor(() => {
-        expect(screen.getByText('Mi Cuenta')).toBeInTheDocument()
+        expect(screen.getByText('Mi cuenta')).toBeInTheDocument()
       })
     })
 
@@ -172,7 +172,7 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByText('Mi Cuenta')).toBeInTheDocument()
+        expect(screen.getByText('Mi cuenta')).toBeInTheDocument()
       })
     })
 
@@ -184,7 +184,7 @@ describe('MiCuenta', () => {
 
       // While loading, MUI Skeleton elements are rendered (no data-testid, but MUI renders spans with class MuiSkeleton)
       // The loading state shows 6 Paper cards with Skeleton inside
-      const heading = screen.getByText('Mi Cuenta')
+      const heading = screen.getByText('Mi cuenta')
       expect(heading).toBeInTheDocument()
     })
 
@@ -236,7 +236,7 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByDisplayValue('usuario')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('Usuario')).toBeInTheDocument()
       })
     })
 
@@ -327,10 +327,10 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Min 8 caracteres')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Mínimo 8 caracteres')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByPlaceholderText('Min 8 caracteres')
+      const passwordInput = screen.getByPlaceholderText('Mínimo 8 caracteres')
       fireEvent.change(passwordInput, { target: { value: 'nuevaPassword123' } })
       expect(passwordInput.value).toBe('nuevaPassword123')
     })
@@ -339,10 +339,10 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Repite la contrasena')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Repite la contraseña')).toBeInTheDocument()
       })
 
-      const repeatInput = screen.getByPlaceholderText('Repite la contrasena')
+      const repeatInput = screen.getByPlaceholderText('Repite la contraseña')
       fireEvent.change(repeatInput, { target: { value: 'nuevaPassword123' } })
       expect(repeatInput.value).toBe('nuevaPassword123')
     })
@@ -351,11 +351,11 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Min 8 caracteres')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Mínimo 8 caracteres')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByPlaceholderText('Min 8 caracteres')
-      const repeatInput = screen.getByPlaceholderText('Repite la contrasena')
+      const passwordInput = screen.getByPlaceholderText('Mínimo 8 caracteres')
+      const repeatInput = screen.getByPlaceholderText('Repite la contraseña')
 
       fireEvent.change(passwordInput, { target: { value: '123' } })
       fireEvent.change(repeatInput, { target: { value: '123' } })
@@ -373,11 +373,11 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Min 8 caracteres')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Mínimo 8 caracteres')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByPlaceholderText('Min 8 caracteres')
-      const repeatInput = screen.getByPlaceholderText('Repite la contrasena')
+      const passwordInput = screen.getByPlaceholderText('Mínimo 8 caracteres')
+      const repeatInput = screen.getByPlaceholderText('Repite la contraseña')
 
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
       fireEvent.change(repeatInput, { target: { value: 'password456' } })
@@ -398,11 +398,11 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Min 8 caracteres')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Mínimo 8 caracteres')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByPlaceholderText('Min 8 caracteres')
-      const repeatInput = screen.getByPlaceholderText('Repite la contrasena')
+      const passwordInput = screen.getByPlaceholderText('Mínimo 8 caracteres')
+      const repeatInput = screen.getByPlaceholderText('Repite la contraseña')
 
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
       fireEvent.change(repeatInput, { target: { value: 'password123' } })
@@ -446,7 +446,7 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByDisplayValue('usuario')).toBeInTheDocument()
+        expect(screen.getByDisplayValue('Usuario')).toBeInTheDocument()
       })
     })
 
@@ -462,7 +462,7 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByText('Solicitar actualizacion')).toBeInTheDocument()
+        expect(screen.getByText('Solicitar actualización')).toBeInTheDocument()
       })
     })
 
@@ -474,11 +474,11 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByText('Solicitar actualizacion')).toBeInTheDocument()
+        expect(screen.getByText('Solicitar actualización')).toBeInTheDocument()
       })
 
       // Click the solicitar button without any changes - should show warning
-      const solicitarButton = screen.getByText('Solicitar actualizacion')
+      const solicitarButton = screen.getByText('Solicitar actualización')
       fireEvent.click(solicitarButton)
 
       await waitFor(() => {
@@ -493,12 +493,12 @@ describe('MiCuenta', () => {
       renderWithRouter(<MiCuenta />)
 
       await waitFor(() => {
-        expect(screen.getByText('Solicitar actualizacion')).toBeInTheDocument()
+        expect(screen.getByText('Solicitar actualización')).toBeInTheDocument()
       })
 
       // The request message only shows after successfully submitting changes
       // but interacting with MUI Select in tests is complex, so we verify the button exists
-      expect(screen.getByText('Solicitar actualizacion')).toBeInTheDocument()
+      expect(screen.getByText('Solicitar actualización')).toBeInTheDocument()
     })
   })
 
@@ -638,7 +638,7 @@ describe('MiCuenta', () => {
       await waitFor(() => {
         // MUI Alert with role="alert" is rendered
         expect(screen.getByRole('alert')).toBeInTheDocument()
-        expect(screen.getByText('No se pudo cargar Mi Cuenta. Intenta recargar.')).toBeInTheDocument()
+        expect(screen.getByText('No se pudo cargar tu cuenta. Intenta recargar la página.')).toBeInTheDocument()
       })
     })
   })

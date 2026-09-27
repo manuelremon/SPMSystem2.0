@@ -35,9 +35,17 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import { ProgressBar, ProgressCircle } from '../../../components/ui/SPMChartJS'
 import { useI18n } from '../../../context/i18n'
 import { getColorByMetric } from '../../../config/thresholds'
+import { formatNumber } from '../../../utils/formatters'
+
+const ENV_LABELS = {
+  development: 'Desarrollo',
+  production: 'Producción',
+  staging: 'Preproducción',
+  testing: 'Pruebas',
+}
 
 /**
- * Seccion colapsable
+ * Sección colapsable
  */
 function CollapsibleSection({ title, icon: Icon, iconColor, defaultOpen = false, children }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
@@ -45,11 +53,7 @@ function CollapsibleSection({ title, icon: Icon, iconColor, defaultOpen = false,
   return (
     <Paper
       variant="outlined"
-      sx={{
-        overflow: 'hidden',
-        border: '1px solid',
-        borderColor: 'divider',
-      }}
+      sx={{ overflow: 'hidden' }}
     >
       <Box
         component="button"
@@ -108,7 +112,7 @@ function LatencyPanel({ metrics }) {
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                 <Typography variant="body2" color="text.secondary">{label}</Typography>
                 <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
-                  {Math.round(value)}ms
+                  {formatNumber(Math.round(value))} ms
                 </Typography>
               </Stack>
               <ProgressBar
@@ -126,7 +130,7 @@ function LatencyPanel({ metrics }) {
       {metrics?.status_codes && (
         <Box sx={{ pt: 2, mt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mb: 1.5 }}>
-            {t('by_status', 'Por Status')}
+            {t('by_status', 'Por código de estado')}
           </Typography>
           <Stack spacing={1}>
             {Object.entries(metrics.status_codes).map(([status, count]) => (
@@ -138,7 +142,7 @@ function LatencyPanel({ metrics }) {
                   <Typography variant="body2" color="text.primary">{status}xx</Typography>
                 </Stack>
                 <Typography variant="body2" fontWeight={500} color="text.primary">
-                  {count.toLocaleString()}
+                  {formatNumber(count)}
                 </Typography>
               </Stack>
             ))}
@@ -164,7 +168,7 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
           size={120}
           strokeWidth={10}
           color={getColorByMetric(overallHitRate, 'cacheHit')}
-          label={t('admin_hit_rate', 'Hit Rate')}
+          label={t('admin_hit_rate', 'Tasa de aciertos')}
         />
       </Box>
 
@@ -181,7 +185,7 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
                   {name.replace(/_/g, ' ')}
                 </Typography>
                 <Typography variant="body2" fontWeight={500} color="text.primary">
-                  {(cache.hit_rate || 0).toFixed(1)}%
+                  {formatNumber(cache.hit_rate || 0, 1)}%
                 </Typography>
               </Stack>
               <ProgressBar
@@ -201,11 +205,11 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <DataUsageIcon sx={{ width: 16, height: 16, color: 'success.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              {t('connection_pool', 'Pool de Conexiones')}
+              {t('connection_pool', 'Pool de conexiones')}
             </Typography>
           </Stack>
           <Grid container spacing={2}>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Typography variant="caption" color="text.disabled">
                 {t('admin_estado_active', 'Activas')}
               </Typography>
@@ -213,25 +217,25 @@ function CachePanel({ cacheMetrics, dbMetrics }) {
                 {dbMetrics.active_connections || 0}
               </Typography>
             </Grid>
-            <Grid item xs={4}>
-              <Typography variant="caption" color="text.disabled">Max</Typography>
+            <Grid size={4}>
+              <Typography variant="caption" color="text.disabled">{t('admin_estado_maximo', 'Máximo')}</Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {dbMetrics.max_connections || '--'}
+                {dbMetrics.max_connections || '—'}
               </Typography>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Typography variant="caption" color="text.disabled">
-                {t('total_queries', 'Queries')}
+                {t('total_queries', 'Consultas')}
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {(dbMetrics.total_queries || 0).toLocaleString()}
+                {formatNumber(dbMetrics.total_queries || 0)}
               </Typography>
             </Grid>
           </Grid>
         </Box>
       )}
     </Box>
-  )
+  );
 }
 
 /**
@@ -244,7 +248,7 @@ function SystemPanel({ systemMetrics, health }) {
     return (
       <Box sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
         <DnsIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
-        <Typography variant="body2">{t('no_system_metrics', 'Sin metricas de sistema')}</Typography>
+        <Typography variant="body2">{t('no_system_metrics', 'Sin métricas del sistema')}</Typography>
       </Box>
     )
   }
@@ -253,13 +257,13 @@ function SystemPanel({ systemMetrics, health }) {
     <Stack spacing={3}>
       {/* System-wide metrics */}
       <Grid container spacing={2}>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
             <MemoryIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
-            <Typography variant="body2">{t('admin_cpu_system', 'CPU Sistema')}</Typography>
+            <Typography variant="body2">{t('admin_cpu_system', 'CPU del sistema')}</Typography>
           </Stack>
           <Typography variant="h5" fontWeight="bold" color="text.primary">
-            {systemMetrics.system.cpu_percent?.toFixed(1) || '--'}%
+            {systemMetrics.system.cpu_percent != null ? `${formatNumber(systemMetrics.system.cpu_percent, 1)}%` : '—'}
           </Typography>
           <ProgressBar
             value={systemMetrics.system.cpu_percent || 0}
@@ -268,13 +272,13 @@ function SystemPanel({ systemMetrics, health }) {
             color={getColorByMetric(systemMetrics.system.cpu_percent || 0, 'cpu')}
           />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: 'text.secondary' }}>
             <StorageIcon sx={{ width: 16, height: 16 }} />
-            <Typography variant="body2">{t('admin_memory_system', 'Memoria Sistema')}</Typography>
+            <Typography variant="body2">{t('admin_memory_system', 'Memoria del sistema')}</Typography>
           </Stack>
           <Typography variant="h5" fontWeight="bold" color="text.primary">
-            {systemMetrics.system.memory_percent?.toFixed(1) || '--'}%
+            {systemMetrics.system.memory_percent != null ? `${formatNumber(systemMetrics.system.memory_percent, 1)}%` : '—'}
           </Typography>
           <ProgressBar
             value={systemMetrics.system.memory_percent || 0}
@@ -292,32 +296,32 @@ function SystemPanel({ systemMetrics, health }) {
             {t('process_metrics', 'Proceso SPM')}
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Typography variant="caption" color="text.disabled">CPU</Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {systemMetrics.process.cpu_percent?.toFixed(1) || '--'}%
+                {systemMetrics.process.cpu_percent != null ? `${formatNumber(systemMetrics.process.cpu_percent, 1)}%` : '—'}
               </Typography>
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Typography variant="caption" color="text.disabled">
                 {t('admin_estado_memory', 'Memoria')}
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {systemMetrics.process.memory_mb?.toFixed(0) || '--'} MB
+                {systemMetrics.process.memory_mb != null ? `${formatNumber(systemMetrics.process.memory_mb, 0)} MB` : '—'}
               </Typography>
             </Grid>
-            <Grid item xs={6} md={3}>
-              <Typography variant="caption" color="text.disabled">Threads</Typography>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Typography variant="caption" color="text.disabled">{t('admin_estado_hilos', 'Hilos')}</Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {systemMetrics.process.threads || '--'}
+                {systemMetrics.process.threads || '—'}
               </Typography>
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Typography variant="caption" color="text.disabled">
-                {t('open_files', 'Archivos')}
+                {t('open_files', 'Archivos abiertos')}
               </Typography>
               <Typography variant="body2" fontWeight={600} color="text.primary">
-                {systemMetrics.process.open_files || '--'}
+                {systemMetrics.process.open_files || '—'}
               </Typography>
             </Grid>
           </Grid>
@@ -328,7 +332,7 @@ function SystemPanel({ systemMetrics, health }) {
       {health && (
         <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="body2" fontWeight={500} color="text.secondary" sx={{ mb: 1.5 }}>
-            {t('server_info', 'Informacion del Servidor')}
+            {t('server_info', 'Información del servidor')}
           </Typography>
           <Stack spacing={1}>
             <Stack direction="row" justifyContent="space-between">
@@ -343,13 +347,13 @@ function SystemPanel({ systemMetrics, health }) {
               <Typography variant="body2" color="text.disabled">
                 {t('admin_estado_environment', 'Entorno')}
               </Typography>
-              <Chip label={health.environment || 'development'} size="small" />
+              <Chip label={ENV_LABELS[health.environment || 'development'] || health.environment} size="small" />
             </Stack>
           </Stack>
         </Box>
       )}
     </Stack>
-  )
+  );
 }
 
 /**
@@ -374,26 +378,19 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <DataUsageIcon sx={{ width: 16, height: 16, color: 'error.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              {t('admin_oci_instance', 'Oracle Cloud Instance')}
+              {t('admin_oci_instance', 'Instancia de Oracle Cloud')}
             </Typography>
             <Chip
-              label={infrastructure.oci.instance?.state}
+              label={infrastructure.oci.instance?.state === 'RUNNING' ? t('admin_estado_en_ejecucion', 'En ejecución') : infrastructure.oci.instance?.state}
               size="small"
               color="success"
             />
           </Stack>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <Paper
-                sx={{
-                  p: 1.5,
-                  bgcolor: 'error.lighter',
-                  border: '1px solid',
-                  borderColor: 'error.light',
-                }}
-              >
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Instancia
+                  {t('admin_estado_instancia', 'Instancia')}
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" color="text.primary">
                   {infrastructure.oci.instance?.name}
@@ -403,17 +400,10 @@ function InfrastructurePanel({ infrastructure }) {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Paper
-                sx={{
-                  p: 1.5,
-                  bgcolor: 'info.lighter',
-                  border: '1px solid',
-                  borderColor: 'info.light',
-                }}
-              >
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Shape
+                  {t('admin_estado_forma', 'Forma')}
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" color="text.primary">
                   {infrastructure.oci.shape?.name}
@@ -423,17 +413,10 @@ function InfrastructurePanel({ infrastructure }) {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Paper
-                sx={{
-                  p: 1.5,
-                  bgcolor: 'success.lighter',
-                  border: '1px solid',
-                  borderColor: 'success.light',
-                }}
-              >
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Region
+                  {t('admin_estado_region', 'Región')}
                 </Typography>
                 <Typography variant="body2" fontWeight="bold" color="text.primary">
                   {infrastructure.oci.location?.region}
@@ -454,11 +437,11 @@ function InfrastructurePanel({ infrastructure }) {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
           <MonitorHeartIcon sx={{ width: 16, height: 16, color: 'success.main' }} />
           <Typography variant="body2" fontWeight={500} color="text.secondary">
-            {t('admin_system_resources', 'Recursos del Sistema')}
+            {t('admin_system_resources', 'Recursos del sistema')}
           </Typography>
           {infrastructure.system?.uptime && (
             <Chip
-              label={`Uptime: ${infrastructure.system.uptime.formatted}`}
+              label={`${t('admin_estado_tiempo_activo', 'Tiempo activo')}: ${infrastructure.system.uptime.formatted}`}
               size="small"
             />
           )}
@@ -466,10 +449,10 @@ function InfrastructurePanel({ infrastructure }) {
         <Grid container spacing={2}>
           {/* Memory */}
           {infrastructure.system?.memory && (
-            <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Memoria RAM
+                  {t('admin_estado_memoria_ram', 'Memoria RAM')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="text.primary">
                   {infrastructure.system.memory.percent_used}%
@@ -498,10 +481,10 @@ function InfrastructurePanel({ infrastructure }) {
           )}
           {/* Disk */}
           {infrastructure.services?.system?.disk && (
-            <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  Disco
+                  {t('admin_estado_disco', 'Disco')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="text.primary">
                   {infrastructure.services.system.disk.percent_used}%
@@ -530,10 +513,10 @@ function InfrastructurePanel({ infrastructure }) {
           )}
           {/* Load Average */}
           {infrastructure.services?.system?.load && (
-            <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                  {t('admin_cpu_load', 'Carga CPU')}
+                  {t('admin_cpu_load', 'Carga de CPU')}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" color="text.primary">
                   {infrastructure.services.system.load['1min']}
@@ -546,8 +529,8 @@ function InfrastructurePanel({ infrastructure }) {
           )}
           {/* Network */}
           {infrastructure.oci?.shape?.network_gbps && (
-            <Grid item xs={6} md={3}>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+            <Grid size={{ xs: 6, md: 3 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                 <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
                   {t('admin_network', 'Red')}
                 </Typography>
@@ -555,7 +538,7 @@ function InfrastructurePanel({ infrastructure }) {
                   {infrastructure.oci.shape.network_gbps} Gbps
                 </Typography>
                 <Typography variant="caption" color="text.disabled">
-                  {t('admin_bandwidth_available', 'Bandwidth disponible')}
+                  {t('admin_bandwidth_available', 'Ancho de banda disponible')}
                 </Typography>
               </Paper>
             </Grid>
@@ -569,7 +552,7 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <ViewInArIcon sx={{ width: 16, height: 16, color: 'primary.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              {t('admin_docker_containers', 'Docker Containers')}
+              {t('admin_docker_containers', 'Contenedores Docker')}
             </Typography>
             <Chip
               label={`v${infrastructure.docker.docker_version}`}
@@ -578,15 +561,14 @@ function InfrastructurePanel({ infrastructure }) {
           </Stack>
           <Grid container spacing={1.5}>
             {infrastructure.docker.containers?.map((container) => (
-              <Grid item xs={12} sm={6} md={4} key={container.name}>
-                <Paper
-                  sx={{
-                    p: 1.5,
-                    bgcolor: container.running ? 'success.lighter' : 'error.lighter',
-                    border: '1px solid',
-                    borderColor: container.running ? 'success.light' : 'error.light',
-                  }}
-                >
+              <Grid
+                key={container.name}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4
+                }}>
+                <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                     <Box
                       sx={{
@@ -625,12 +607,12 @@ function InfrastructurePanel({ infrastructure }) {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <GitHubIcon sx={{ width: 16, height: 16, color: 'warning.main' }} />
             <Typography variant="body2" fontWeight={500} color="text.secondary">
-              {t('admin_git_status', 'Git Status')}
+              {t('admin_git_status', 'Estado de Git')}
             </Typography>
             <Chip label={infrastructure.git.branch} size="small" />
           </Stack>
           {infrastructure.git.last_commit && (
-            <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+            <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
                 <Box
                   component="code"
@@ -658,7 +640,7 @@ function InfrastructurePanel({ infrastructure }) {
         </Box>
       )}
     </Stack>
-  )
+  );
 }
 
 /**
@@ -679,8 +661,8 @@ export function TechnicalMetrics({
       <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <DnsIcon sx={{ width: 20, height: 20, color: 'primary.main' }} />
-          <Typography variant="h6" fontWeight={600}>
-            {t('technical_metrics', 'Metricas Tecnicas')}
+          <Typography variant="subtitle1" component="h2" fontWeight={600}>
+            {t('technical_metrics', 'Métricas técnicas')}
           </Typography>
         </Stack>
       </Box>
@@ -695,7 +677,7 @@ export function TechnicalMetrics({
         </CollapsibleSection>
 
         <CollapsibleSection
-          title={t('cache_performance', 'Cache Performance')}
+          title={t('cache_performance', 'Rendimiento de la caché')}
           icon={StorageIcon}
           iconColor="primary.main"
           defaultOpen={false}
@@ -704,7 +686,7 @@ export function TechnicalMetrics({
         </CollapsibleSection>
 
         <CollapsibleSection
-          title={t('system_resources', 'Recursos del Sistema')}
+          title={t('system_resources', 'Recursos del sistema')}
           icon={DnsIcon}
           iconColor="info.main"
           defaultOpen={false}

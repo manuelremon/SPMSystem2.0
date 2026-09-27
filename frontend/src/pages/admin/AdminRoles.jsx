@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { admin } from "../../services/spm";
 import { useI18n } from "../../context/i18n";
-import { useNavigate } from "react-router-dom";
 import { SPMAgGrid } from "../../components/ui/SPMAgGrid";
+import PageLayout from "../../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../../components/admin/AdminCrudParts";
 
 // MUI Components
 import {
@@ -18,22 +19,17 @@ import {
   Alert,
   Stack,
   Drawer,
-  Chip,
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
 
 const ROLES_OPTIONS = [
   { value: "solicitante", label: "Solicitante" },
-  { value: "aprobador_solicitudes", label: "Aprobador de Solicitudes" },
-  { value: "aprobador_presupuestos", label: "Aprobador de Presupuestos" },
+  { value: "aprobador_solicitudes", label: "Aprobador de solicitudes" },
+  { value: "aprobador_presupuestos", label: "Aprobador de presupuestos" },
   { value: "planificador", label: "Planificador" },
   { value: "administrador", label: "Administrador" },
 ];
@@ -47,7 +43,6 @@ const initialForm = {
    Main Component
 ───────────────────────────────────────────────────────────── */
 export default function AdminRoles() {
-  const navigate = useNavigate();
   const { t } = useI18n();
 
   const [roles, setRoles] = useState([]);
@@ -162,137 +157,43 @@ export default function AdminRoles() {
         headerName: t('common_codigo', 'Código'),
         flex: 0.6,
         minWidth: 150,
-        cellRenderer: (params) => (
-          <Typography
-            variant="body2"
-            sx={{ fontFamily: "monospace", fontSize: "0.875rem", color: "text.primary" }}
-          >
-            {params.value}
-          </Typography>
-        ),
+        tooltipField: "nombre",
+        cellStyle: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
       },
       {
+        colId: "descripcion",
         headerName: t('common_descripcion', 'Descripción'),
         flex: 1,
         minWidth: 200,
+        wrapText: true,
+        autoHeight: true,
+        cellStyle: { lineHeight: "1.4", paddingTop: 10, paddingBottom: 10 },
         valueGetter: (params) => getRoleLabel(params.data.nombre),
       },
       {
         field: "activo",
         headerName: t('common_estado', 'Estado'),
         flex: 0.4,
-        minWidth: 100,
-        cellRenderer: (params) => (
-          <Chip
-            label={
-              params.value === 1 || params.value === true
-                ? t('common_activo', 'Activo')
-                : t('common_inactivo', 'Inactivo')
-            }
-            size="small"
-            color={
-              params.value === 1 || params.value === true
-                ? "success"
-                : "default"
-            }
-            sx={{
-              fontSize: "0.625rem",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              height: 20,
-            }}
-          />
-        ),
+        minWidth: 110,
+        cellRenderer: (params) => <ActiveStatus activo={params.value} />,
       },
-      {
-        headerName: t('common_acciones', 'Acciones'),
-        flex: 0.4,
-        minWidth: 100,
-        sortable: false,
-        filter: false,
-        cellRenderer: (params) => (
-          <Stack direction="row" spacing={0.5} justifyContent="center">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.data)}
-              title={t('common_editar', 'Editar')}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  color: "primary.main",
-                  bgcolor: "primary.lighter",
-                },
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => setDeletingId(params.data.nombre)}
-              title={t('common_eliminar', 'Eliminar')}
-              sx={{
-                color: "text.secondary",
-                "&:hover": {
-                  color: "error.main",
-                  bgcolor: "error.lighter",
-                },
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-        ),
-      },
+      actionsColumn(t('common_acciones', 'Acciones'), (params) => (
+        <RowActions
+          onEdit={() => handleEdit(params.data)}
+          onDelete={() => setDeletingId(params.data.nombre)}
+        />
+      )),
     ],
     [t]
   );
 
   // ─── Render ───────────────────────────────────────────────
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton
-            onClick={() => navigate("/admin")}
-            sx={{
-              color: "text.disabled",
-              "&:hover": {
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-              },
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h5"
-            component="h1"
-            sx={{
-              fontWeight: 700,
-              color: "text.primary",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            {t("admin_roles", "Roles")}
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={handleNew}
-          sx={{ textTransform: "none" }}
-        >
-          {t("crud_new", "Nuevo")}
-        </Button>
-      </Box>
-
+    <PageLayout
+      title={t("admin_roles", "Roles")}
+      backTo="/admin"
+      actions={<NewButton onClick={handleNew} />}
+    >
       {/* Alerts */}
       {error && (
         <Alert severity="error" onClose={() => setError("")}>
@@ -332,7 +233,7 @@ export default function AdminRoles() {
             </Stack>
           }
         >
-          Eliminar rol <strong>{getRoleLabel(deletingId)}</strong>?
+          {t("admin_roles_confirm_delete", "¿Eliminar el rol")} <strong>{getRoleLabel(deletingId)}</strong>?
         </Alert>
       )}
 
@@ -344,6 +245,7 @@ export default function AdminRoles() {
         }}
       >
         <SPMAgGrid
+            searchable
           rowData={roles}
           columnDefs={columnDefs}
           loading={loading}
@@ -379,15 +281,10 @@ export default function AdminRoles() {
           }}
         >
           <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: "text.primary",
-            }}
+            variant="subtitle1"
+            sx={{ fontWeight: 600, color: "text.primary" }}
           >
-            {editingId ? `${t('common_editar', 'Editar')} Rol` : `${t('common_nuevo', 'Nuevo')} Rol`}
+            {editingId ? t("admin_roles_editar", "Editar rol") : t("admin_roles_nuevo", "Nuevo rol")}
           </Typography>
           <IconButton
             onClick={() => setDrawerOpen(false)}
@@ -415,14 +312,7 @@ export default function AdminRoles() {
             )}
 
             <FormControl size="small" fullWidth required disabled={!!editingId}>
-              <InputLabel
-                sx={{
-                  fontSize: "0.6875rem",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
+              <InputLabel>
                 {t('common_rol', 'Rol')}
               </InputLabel>
               <Select
@@ -432,7 +322,7 @@ export default function AdminRoles() {
                 label={t('common_rol', 'Rol')}
               >
                 <MenuItem value="">
-                  <em>Seleccionar...</em>
+                  <em>{t("common_seleccionar", "Selecciona...")}</em>
                 </MenuItem>
                 {ROLES_OPTIONS.map((opt) => (
                   <MenuItem key={opt.value} value={opt.value}>
@@ -497,7 +387,6 @@ export default function AdminRoles() {
           </Stack>
         </Box>
       </Drawer>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

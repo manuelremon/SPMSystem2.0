@@ -255,7 +255,7 @@ describe('Materials', () => {
     })
     // Wait for the solicitud to load and component to render past loading state
     await waitFor(() => {
-      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
+      expect(screen.getByText('Agregar materiales')).toBeInTheDocument()
       expect(screen.getByText('#123')).toBeInTheDocument()
     })
   }
@@ -322,13 +322,13 @@ describe('Materials', () => {
       renderWithRouter(<Materials />)
       await waitForLoaded()
       // Title is rendered
-      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
+      expect(screen.getByText('Agregar materiales')).toBeInTheDocument()
     })
 
     it('debe mostrar el titulo "Agregar Materiales"', async () => {
       renderWithRouter(<Materials />)
       await waitForLoaded()
-      expect(screen.getByText('Agregar Materiales')).toBeInTheDocument()
+      expect(screen.getByText('Agregar materiales')).toBeInTheDocument()
     })
 
     it('debe cargar la solicitud al montar', async () => {
@@ -420,10 +420,10 @@ describe('Materials', () => {
 
       // Click the clear search button (has aria-label "Limpiar busqueda")
       await waitFor(() => {
-        expect(screen.getByLabelText('Limpiar busqueda')).toBeInTheDocument()
+        expect(screen.getByLabelText('Limpiar búsqueda')).toBeInTheDocument()
       })
       await act(async () => {
-        fireEvent.click(screen.getByLabelText('Limpiar busqueda'))
+        fireEvent.click(screen.getByLabelText('Limpiar búsqueda'))
       })
       await act(async () => {
         await vi.runAllTimersAsync()
@@ -661,12 +661,12 @@ describe('Materials', () => {
 
       // Click "Enviar Solicitud"
       await act(async () => {
-        fireEvent.click(screen.getByText('Enviar Solicitud'))
+        fireEvent.click(screen.getByText('Enviar solicitud'))
       })
 
       // The submit confirm dialog should open (MUI Dialog with "Si, enviar solicitud")
       await waitFor(() => {
-        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
+        expect(screen.getByText('Sí, enviar solicitud')).toBeInTheDocument()
       })
     })
 
@@ -680,15 +680,15 @@ describe('Materials', () => {
       await addMaterial()
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Enviar Solicitud'))
+        fireEvent.click(screen.getByText('Enviar solicitud'))
       })
 
       await waitFor(() => {
-        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
+        expect(screen.getByText('Sí, enviar solicitud')).toBeInTheDocument()
       })
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Si, enviar solicitud'))
+        fireEvent.click(screen.getByText('Sí, enviar solicitud'))
       })
       await act(async () => {
         await vi.runAllTimersAsync()
@@ -709,15 +709,15 @@ describe('Materials', () => {
       await addMaterial()
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Enviar Solicitud'))
+        fireEvent.click(screen.getByText('Enviar solicitud'))
       })
 
       await waitFor(() => {
-        expect(screen.getByText('Si, enviar solicitud')).toBeInTheDocument()
+        expect(screen.getByText('Sí, enviar solicitud')).toBeInTheDocument()
       })
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Si, enviar solicitud'))
+        fireEvent.click(screen.getByText('Sí, enviar solicitud'))
       })
       await act(async () => {
         await vi.advanceTimersByTimeAsync(5000)
@@ -733,7 +733,7 @@ describe('Materials', () => {
       await waitForLoaded()
 
       // Without items, the Enviar Solicitud button should be disabled
-      const enviarButton = screen.getByText('Enviar Solicitud').closest('button')
+      const enviarButton = screen.getByText('Enviar solicitud').closest('button')
       expect(enviarButton).toBeDisabled()
     })
   })
@@ -747,7 +747,7 @@ describe('Materials', () => {
       await waitForLoaded()
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Cancelar Solicitud'))
+        fireEvent.click(screen.getByText('Cancelar solicitud'))
       })
 
       // ConfirmDialog opens with "Confirmar" button
@@ -763,7 +763,7 @@ describe('Materials', () => {
       await waitForLoaded()
 
       await act(async () => {
-        fireEvent.click(screen.getByText('Cancelar Solicitud'))
+        fireEvent.click(screen.getByText('Cancelar solicitud'))
       })
 
       await waitFor(() => {

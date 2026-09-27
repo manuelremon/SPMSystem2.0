@@ -296,13 +296,13 @@ const ProductionDetail = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="body2" color="text.secondary">
                 {t('common_status', 'Status')}
               </Typography>
               <Chip label={plan.estado} color={estadoColors[plan.estado] || 'default'} />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="body2" color="text.secondary">
                 {t('prod_period', 'Period')}
               </Typography>
@@ -310,20 +310,20 @@ const ProductionDetail = () => {
                 {plan.periodo_desde || '-'} → {plan.periodo_hasta || '-'}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="body2" color="text.secondary">
                 {t('prod_responsible', 'Responsible')}
               </Typography>
               <Typography>{plan.responsable_nombre || '-'}</Typography>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Typography variant="body2" color="text.secondary">
                 {t('prod_total_items', 'Total Items')}
               </Typography>
               <Typography>{items.length}</Typography>
             </Grid>
             {plan.notas && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Typography variant="body2" color="text.secondary">
                   {t('prod_notes', 'Notes')}
                 </Typography>

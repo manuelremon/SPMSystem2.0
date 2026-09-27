@@ -5,6 +5,8 @@ import { useAuthStore } from "../store/authStore";
 import { useI18n } from "../context/i18n";
 import { formatDate, formatCurrency, getSectorNombre, formatAlmacen } from "../utils/formatters";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
+import PageLayout from "../components/ui/PageLayout";
+import { getCriticidadConfig } from "../utils/styleConfig";
 
 // MUI Components
 import Box from "@mui/material/Box";
@@ -13,7 +15,6 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
@@ -24,7 +25,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import BusinessIcon from "@mui/icons-material/Business";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -41,6 +41,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 
 import StatusBadge from "../components/ui/StatusBadge";
+import EmptyState from "../components/ui/EmptyState";
 
 /**
  * Tabla de items migrada a SPMAgGrid
@@ -110,20 +111,18 @@ function ItemsTable({ items, totalMonto }) {
     },
     {
       field: 'precio_unitario',
-      headerName: t('detalle_item_precio', 'Precio Unit.'),
+      headerName: t('detalle_item_precio_unit', 'Precio unit.'),
       flex: 0.3,
-      minWidth: 100,
-      type: 'numericColumn',
-      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      minWidth: 130,
+      type: 'rightAligned',
       valueFormatter: (params) => formatCurrency(params.data?.precio_unitario || 0),
     },
     {
       field: 'subtotal',
       headerName: t('detalle_item_subtotal', 'Subtotal'),
       flex: 0.3,
-      minWidth: 100,
-      type: 'numericColumn',
-      cellStyle: { textAlign: 'right', paddingRight: '16px' },
+      minWidth: 130,
+      type: 'rightAligned',
       valueFormatter: (params) => formatCurrency(params.data?.subtotal || 0),
     },
   ], [t]);
@@ -160,7 +159,6 @@ function ItemsTable({ items, totalMonto }) {
           <Typography
             variant="body1"
             sx={{
-              fontFamily: 'monospace',
               fontWeight: 700,
               color: 'primary.main',
               minWidth: 120,
@@ -172,6 +170,21 @@ function ItemsTable({ items, totalMonto }) {
         </Stack>
       </Box>
     </Stack>
+  );
+}
+
+/* Criticidad: mismo formato visual que StatusBadge y que las tablas (icono + texto coloreado) */
+function CriticidadBadge({ value }) {
+  const { t } = useI18n();
+  const config = getCriticidadConfig(value || "Normal");
+  const Icon = config.icon;
+  return (
+    <span className="inline-flex items-center gap-1.5" style={{ color: config.color }}>
+      {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
+      <span className="text-xs font-semibold">
+        {t(`criticidad_${String(config.label).toLowerCase()}`, config.label)}
+      </span>
+    </span>
   );
 }
 
@@ -250,7 +263,7 @@ export default function SolicitudDetalle() {
       } else if (res.data) {
         setSolicitud(res.data);
       } else {
-        setError(t("solicitud_not_found_error", "No se encontro la solicitud"));
+        setError(t("solicitud_not_found_error", "No se encontró la solicitud"));
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || err.message || t("solicitud_load_error", "Error al cargar la solicitud"));
@@ -343,63 +356,29 @@ export default function SolicitudDetalle() {
     }
   };
 
-  // Header component
-  const PageHeader = ({ title, extra }) => (
-    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            color: "text.disabled",
-            "&:hover": { color: "text.secondary", bgcolor: "background.paper", border: 1, borderColor: "divider" },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography
-          variant="h5"
-          component="h1"
-          sx={{ fontWeight: 700, color: "text.primary", textTransform: "uppercase", letterSpacing: "0.5px" }}
-        >
-          {title}
-        </Typography>
-      </Box>
-      {extra}
-    </Box>
-  );
-
   if (loading) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-          <PageHeader title={t("detalle_loading", "Cargando solicitud...")} />
-          <LoadingSkeleton />
-        </Box>
-      </Box>
+      <PageLayout title={t("detalle_loading", "Cargando solicitud...")}>
+        <LoadingSkeleton />
+      </PageLayout>
     );
   }
 
   if (error && !solicitud) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-          <PageHeader title={t("detalle_error_title", "Error")} />
-          <Alert severity="error">{error}</Alert>
-        </Box>
-      </Box>
+      <PageLayout title={t("detalle_error_title", "Error")}>
+        <Alert severity="error">{error}</Alert>
+      </PageLayout>
     );
   }
 
   if (!solicitud) {
     return (
-      <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-        <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-          <PageHeader title={t("detalle_not_found", "Solicitud no encontrada")} />
-          <Alert severity="warning">
-            {t("detalle_not_found_msg", "La solicitud solicitada no existe o fue eliminada.")}
-          </Alert>
-        </Box>
-      </Box>
+      <PageLayout title={t("detalle_not_found", "Solicitud no encontrada")}>
+        <Alert severity="warning">
+          {t("detalle_not_found_msg", "La solicitud no existe o fue eliminada.")}
+        </Alert>
+      </PageLayout>
     );
   }
 
@@ -422,13 +401,10 @@ export default function SolicitudDetalle() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
-      <PageHeader
-        title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
-        extra={<StatusBadge estado={estado} tooltipInfo={tooltipInfo} />}
-      />
+    <PageLayout
+      title={`${t("detalle_title", "Solicitud")} #${solicitud.id}`}
+      status={<StatusBadge estado={estado} tooltipInfo={tooltipInfo} />}
+    >
 
       {/* Alerts */}
       {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
@@ -437,9 +413,9 @@ export default function SolicitudDetalle() {
       {/* Acciones de aprobacion */}
       {canApprove && (
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-          <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "warning.50", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Box sx={{ px: 2.5, py: 1.5, borderBottom: 1, borderColor: "divider", bgcolor: "warning.50", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1.5 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "warning.dark" }}>
-              {t('solicitud_requires_approval', 'Esta solicitud requiere tu aprobacion')}
+              {t('solicitud_requires_approval', 'Esta solicitud requiere tu aprobación')}
             </Typography>
             <Stack direction="row" spacing={1}>
               <Button
@@ -498,7 +474,7 @@ export default function SolicitudDetalle() {
                   {t("detalle_criticidad", "Criticidad")}
                 </Typography>
                 <Box sx={{ mt: 0.5 }}>
-                  <Chip label={criticidad} size="small" color={isAltaCriticidad ? "error" : "default"} sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: "0.7rem" }} />
+                  <CriticidadBadge value={criticidad} />
                 </Box>
               </Box>
             </Box>
@@ -562,12 +538,11 @@ export default function SolicitudDetalle() {
         </Box>
         <Box sx={{ p: items.length === 0 ? 2.5 : 0 }}>
           {items.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 4 }}>
-              <InventoryIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1.5 }} />
-              <Typography variant="body2" color="text.secondary">
-                {t("detalle_sin_items", "No hay materiales en esta solicitud")}
-              </Typography>
-            </Box>
+            <EmptyState
+              icon={<InventoryIcon sx={{ fontSize: 32, color: "text.disabled" }} />}
+              title={t("detalle_sin_items", "No hay materiales en esta solicitud")}
+              className="py-6"
+            />
           ) : (
             <Box sx={{ p: 2.5 }}>
               <ItemsTable items={items} totalMonto={solicitud.total_monto} />
@@ -603,7 +578,7 @@ export default function SolicitudDetalle() {
 
       {/* Acciones segun estado */}
       {esPropietario && ["borrador", "draft"].includes(estado.toLowerCase()) && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, flexWrap: "wrap" }}>
           <Button variant="outlined" size="small" onClick={() => navigate(`/solicitudes/${solicitud.id}/materiales`)} sx={{ textTransform: "none" }}>
             {t("detalle_btn_editar", "Editar solicitud")}
           </Button>
@@ -620,13 +595,13 @@ export default function SolicitudDetalle() {
       {/* Reject Dialog */}
       <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, motivo: "" })} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-          {t('solicitud_reject_title', 'Rechazar Solicitud')} #{id}
+          {t('solicitud_reject_title', 'Rechazar solicitud')} #{id}
           <IconButton size="small" onClick={() => setRejectDialog({ open: false, motivo: "" })}><CloseIcon /></IconButton>
         </DialogTitle>
         <Divider />
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            {t('solicitud_reject_warning', 'Esta accion no se puede deshacer. El solicitante sera notificado.')}
+            {t('solicitud_reject_warning', 'Esta acción no se puede deshacer. El solicitante será notificado.')}
           </Alert>
           <TextField
             fullWidth
@@ -635,9 +610,9 @@ export default function SolicitudDetalle() {
             label={t('solicitud_reject_reason', 'Motivo del rechazo')}
             value={rejectDialog.motivo}
             onChange={(e) => setRejectDialog(prev => ({ ...prev, motivo: e.target.value }))}
-            placeholder={t('solicitud_reject_placeholder', 'Explica el motivo del rechazo (min. 5 caracteres)...')}
+            placeholder={t('solicitud_reject_placeholder', 'Explica el motivo del rechazo (mín. 5 caracteres)...')}
             error={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5}
-            helperText={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5 ? t('solicitud_min_chars', 'Minimo 5 caracteres') : ""}
+            helperText={rejectDialog.motivo.length > 0 && rejectDialog.motivo.length < 5 ? t('solicitud_min_chars', 'Mínimo 5 caracteres') : ""}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -650,11 +625,10 @@ export default function SolicitudDetalle() {
             disabled={actionLoading || rejectDialog.motivo.trim().length < 5}
             sx={{ textTransform: "none" }}
           >
-            {actionLoading ? t('solicitud_processing', 'Procesando...') : t('solicitud_confirm_reject', 'Confirmar Rechazo')}
+            {actionLoading ? t('solicitud_processing', 'Procesando...') : t('solicitud_confirm_reject', 'Confirmar rechazo')}
           </Button>
         </DialogActions>
       </Dialog>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

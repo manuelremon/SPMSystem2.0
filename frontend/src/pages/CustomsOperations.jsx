@@ -335,7 +335,7 @@ const CustomsOperations = () => {
 
       {kpis && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -351,7 +351,7 @@ const CustomsOperations = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -367,7 +367,7 @@ const CustomsOperations = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -460,7 +460,7 @@ const CustomsOperations = () => {
         <DialogTitle>{t('customs_new_operation', 'Nueva Operación Aduanera')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select
@@ -473,7 +473,7 @@ const CustomsOperations = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('customs_operation_number', 'Número de Despacho')}
@@ -482,7 +482,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('customs_supplier_cuit', 'CUIT Proveedor')}
@@ -491,7 +491,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -502,7 +502,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -515,7 +515,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -528,7 +528,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -541,7 +541,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select
@@ -555,7 +555,7 @@ const CustomsOperations = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline
@@ -566,7 +566,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Paper sx={{ p: 2, bgcolor: 'info.light' }}>
                 <Typography variant="body2">
                   {t('customs_cif_formula', 'Valor CIF = FOB + Flete + Seguro')}
@@ -591,7 +591,7 @@ const CustomsOperations = () => {
         <DialogTitle>{t('customs_new_agreement', 'Nuevo Acuerdo Comercial')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('customs_agreement_name', 'Nombre')}
@@ -600,7 +600,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select
@@ -615,7 +615,7 @@ const CustomsOperations = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('customs_partner_country', 'País Socio')}
@@ -624,7 +624,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -637,7 +637,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -648,7 +648,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -659,7 +659,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline
@@ -684,7 +684,7 @@ const CustomsOperations = () => {
         <DialogTitle>{t('customs_calculate_duties', 'Calculadora de Tributos')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 type="number"
@@ -697,7 +697,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 type="number"
@@ -710,7 +710,7 @@ const CustomsOperations = () => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 type="number"
@@ -724,7 +724,7 @@ const CustomsOperations = () => {
             </Grid>
 
             {calculatorResult && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Paper sx={{ p: 2, bgcolor: 'success.light' }}>
                   <Typography variant="subtitle2">{t('customs_calculation_result', 'Resultado del Cálculo')}</Typography>
                   <Typography variant="body1">Valor CIF: ${calculatorResult.valor_cif}</Typography>

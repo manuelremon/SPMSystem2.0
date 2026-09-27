@@ -15,8 +15,8 @@ export function useScrollReveal(options = {}) {
   const [isRevealed, setIsRevealed] = useState(false);
 
   const {
-    threshold = 0.1,      // 10% visible para triggear
-    rootMargin = '0px',   // Margen extra
+    threshold = 0,                   // cualquier pixel visible (secciones altas nunca llegan al 10%)
+    rootMargin = '0px 0px 120px 0px', // revelar un poco antes de entrar en pantalla
     once = true           // Solo animar una vez
   } = options;
 
@@ -46,7 +46,15 @@ export function useScrollReveal(options = {}) {
     );
 
     observer.observe(element);
-    return () => observer.disconnect();
+
+    // Seguridad: el contenido nunca queda invisible si el observer no se dispara
+    // (scroll rapido, capturas de pagina completa, contenedores con overflow propio).
+    const fallback = once ? setTimeout(() => setIsRevealed(true), 1200) : null;
+
+    return () => {
+      observer.disconnect();
+      if (fallback) clearTimeout(fallback);
+    };
   }, [threshold, rootMargin, once]);
 
   return { ref, isRevealed };

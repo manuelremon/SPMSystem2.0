@@ -59,10 +59,10 @@ function FiltersBar({
         },
       }}
     >
-      <Box sx={{ py: 1, px: 3, height: 73, maxWidth: 1850 }}>
-        <Stack direction="row" alignItems="center" gap={3} sx={{ height: '100%' }}>
+      <Box sx={{ py: 1, px: { xs: 2, md: 3 }, minHeight: 73 }}>
+        <Stack direction="row" alignItems="center" gap={{ xs: 1.5, md: 3 }} sx={{ minHeight: 57, flexWrap: 'wrap' }}>
           {/* Slider de rango de fechas - con debounce */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, minWidth: 320, ml: '180px' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: { xs: '100%', md: 320 }, px: { xs: 1, md: 0 } }}>
             <Typography variant="caption" sx={{ fontWeight: 500, color: 'grey.600', mt: 1 }}>
               {t('common_desde', 'Desde')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> {t('common_hasta', 'hasta')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
             </Typography>
@@ -93,10 +93,10 @@ function FiltersBar({
           </Box>
 
           {/* Separador vertical */}
-          <Divider orientation="vertical" flexItem sx={{ height: 64 }} />
+          <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
 
           {/* Centro Multiselect */}
-          <FormControl size="small" sx={{ minWidth: 160, ml: '40px' }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
             <InputLabel id="centro-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_centro', 'Centro')}</InputLabel>
             <Select
               labelId="centro-label"
@@ -133,7 +133,7 @@ function FiltersBar({
           </FormControl>
 
           {/* Almacen Multiselect */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
             <InputLabel id="almacen-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_almacen', 'Almacén')}</InputLabel>
             <Select
               labelId="almacen-label"
@@ -170,7 +170,7 @@ function FiltersBar({
           </FormControl>
 
           {/* Sector Multiselect */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 } }}>
             <InputLabel id="sector-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_sector', 'Sector')}</InputLabel>
             <Select
               labelId="sector-label"
@@ -207,7 +207,7 @@ function FiltersBar({
           </FormControl>
 
           {/* Solicitante Multiselect */}
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
             <InputLabel id="solicitante-label" sx={{ fontSize: FONT_SIZES.md }}>{t('common_solicitante', 'Solicitante')}</InputLabel>
             <Select
               labelId="solicitante-label"
@@ -269,7 +269,7 @@ function FiltersBar({
               textTransform: 'none',
             }}
           >
-            {t('dash_limpiar_filtros', 'Limpiar Filtros')}
+            {t('dash_limpiar_filtros', 'Limpiar filtros')}
           </Button>
         </Stack>
       </Box>

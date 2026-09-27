@@ -28,7 +28,7 @@ function QuickActions() {
   const actions = [
     {
       key: 'new_request',
-      label: t('dash_quick_new_request', 'Nueva Solicitud'),
+      label: t('dash_quick_new_request', 'Nueva solicitud'),
       icon: <AddIcon />,
       path: '/solicitudes/nueva',
       visible: true,

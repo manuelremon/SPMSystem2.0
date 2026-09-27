@@ -50,7 +50,7 @@ function ToolCard({ icon: Icon, iconColor, title, chipLabel, chipColor, descript
       <Box sx={{ px: 2.5, py: 2, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" gap={1}>
           <Icon sx={{ fontSize: 20, color: iconColor }} />
-          <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <Typography variant="body2" fontWeight={700}>
             {title}
           </Typography>
           <Chip
@@ -128,9 +128,9 @@ export function ToolsTab({
           icon={FlashOnIcon}
           iconColor="warning.main"
           title={t("admin_db_tools_optimize", "Optimizar")}
-          chipLabel="All DBs"
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description={isPostgres ? "VACUUM ANALYZE" : "Indices + ANALYZE + VACUUM"}
+          description={isPostgres ? "VACUUM ANALYZE" : t("admin_db_desc_optimizar", "Índices + ANALYZE + VACUUM")}
         >
           <Button
             variant="contained"
@@ -141,7 +141,7 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <FlashOnIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Ejecutar Optimizacion
+            {t("admin_db_ejecutar_optimizacion", "Ejecutar optimización")}
           </Button>
         </ToolCard>
 
@@ -150,9 +150,9 @@ export function ToolsTab({
           icon={StorageIcon}
           iconColor="info.main"
           title={t("admin_db_tools_vacuum", "VACUUM")}
-          chipLabel="All DBs"
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description="Compactar y liberar espacio"
+          description={t("admin_db_desc_vacuum", "Compactar y liberar espacio")}
         >
           <Button
             variant="outlined"
@@ -163,7 +163,7 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <StorageIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Ejecutar VACUUM
+            {t("admin_db_ejecutar_vacuum", "Ejecutar VACUUM")}
           </Button>
         </ToolCard>
 
@@ -172,9 +172,9 @@ export function ToolsTab({
           icon={AccessTimeIcon}
           iconColor="success.main"
           title={t("admin_db_tools_analyze", "ANALYZE")}
-          chipLabel="All DBs"
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description="Actualizar estadisticas de tablas"
+          description={t("admin_db_desc_analyze", "Actualizar estadísticas de tablas")}
         >
           <Button
             variant="outlined"
@@ -185,7 +185,7 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <AccessTimeIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Ejecutar ANALYZE
+            {t("admin_db_ejecutar_analyze", "Ejecutar ANALYZE")}
           </Button>
         </ToolCard>
 
@@ -193,10 +193,10 @@ export function ToolsTab({
         <ToolCard
           icon={ListIcon}
           iconColor="primary.main"
-          title={t("admin_db_tools_create_indexes", "Crear Indices")}
+          title={t("admin_db_tools_create_indexes", "Crear índices")}
           chipLabel="SQLite"
           chipColor="warning"
-          description="Indices recomendados para rendimiento"
+          description={t("admin_db_desc_indices", "Índices recomendados para mejorar el rendimiento")}
           disabled={isPostgres}
         >
           <Button
@@ -208,11 +208,11 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <ListIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Crear Indices
+            {t("admin_db_crear_indices", "Crear índices")}
           </Button>
           {isPostgres && (
             <Typography variant="caption" color="warning.main" sx={{ display: "block", mt: 1 }}>
-              No disponible para PostgreSQL
+              {t("admin_db_no_disponible_pg", "No disponible para PostgreSQL")}
             </Typography>
           )}
         </ToolCard>
@@ -221,10 +221,10 @@ export function ToolsTab({
         <ToolCard
           icon={ShieldIcon}
           iconColor="error.main"
-          title={t("admin_db_tools_integrity", "Verificar Integridad")}
-          chipLabel="All DBs"
+          title={t("admin_db_tools_integrity", "Verificar integridad")}
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description={isPostgres ? "Indices invalidos y fragmentacion" : "PRAGMA integrity_check"}
+          description={isPostgres ? t("admin_db_desc_integridad_pg", "Índices inválidos y fragmentación") : "PRAGMA integrity_check"}
         >
           <Button
             variant="outlined"
@@ -235,7 +235,7 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <ShieldIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Verificar
+            {t("admin_db_verificar", "Verificar")}
           </Button>
           {integrityResult && (
             <Box
@@ -275,10 +275,10 @@ export function ToolsTab({
         <ToolCard
           icon={DownloadIcon}
           iconColor="info.main"
-          title={t("admin_db_tools_backup", "Backup")}
+          title={t("admin_db_tools_backup", "Copia de seguridad")}
           chipLabel="SQLite"
           chipColor="warning"
-          description="Descargar copia de la BD"
+          description={t("admin_db_desc_backup", "Descargar una copia de la base de datos")}
           disabled={isPostgres}
         >
           <Button
@@ -303,10 +303,10 @@ export function ToolsTab({
         <ToolCard
           icon={BarChartIcon}
           iconColor="primary.main"
-          title={t("admin_db_tools_stats", "Estadisticas")}
-          chipLabel="All DBs"
+          title={t("admin_db_tools_stats", "Estadísticas")}
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description="Ver tamano, filas e indices de una tabla"
+          description={t("admin_db_desc_stats", "Ver tamaño, filas e índices de una tabla")}
         >
           <Stack direction="row" gap={1}>
             <FormControl size="small" sx={{ flex: 1 }}>
@@ -316,7 +316,7 @@ export function ToolsTab({
                 displayEmpty
                 sx={{ fontSize: '0.8125rem' }}
               >
-                <MenuItem value="">Seleccionar tabla...</MenuItem>
+                <MenuItem value="">{t("admin_db_seleccionar_tabla", "Selecciona una tabla…")}</MenuItem>
                 {tables.map((t) => (
                   <MenuItem key={t.name} value={t.name}>
                     {t.name}
@@ -340,10 +340,10 @@ export function ToolsTab({
         <ToolCard
           icon={HistoryIcon}
           iconColor="warning.main"
-          title={t("admin_db_tools_audit", "Audit Log")}
-          chipLabel="All DBs"
+          title={t("admin_db_tools_audit", "Registro de auditoría")}
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description="Ver historial de operaciones CRUD"
+          description={t("admin_db_desc_audit", "Ver el historial de altas, cambios y bajas")}
         >
           <Button
             variant="outlined"
@@ -354,7 +354,7 @@ export function ToolsTab({
             startIcon={<HistoryIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Ver Ultimos 7 dias
+            {t("admin_db_ver_ultimos_7", "Ver últimos 7 días")}
           </Button>
         </ToolCard>
 
@@ -365,7 +365,7 @@ export function ToolsTab({
           title={t("admin_db_tools_connections", "Conexiones")}
           chipLabel="PostgreSQL"
           chipColor="info"
-          description="Ver conexiones activas"
+          description={t("admin_db_desc_conexiones", "Ver conexiones activas")}
           disabled={!isPostgres}
         >
           <Button
@@ -377,11 +377,11 @@ export function ToolsTab({
             startIcon={operationLoading ? loadingIcon : <PeopleIcon />}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Ver Conexiones
+            {t("admin_db_ver_conexiones", "Ver conexiones")}
           </Button>
           {!isPostgres && (
             <Typography variant="caption" color="warning.main" sx={{ display: "block", mt: 1 }}>
-              Solo disponible para PostgreSQL
+              {t("admin_db_solo_pg", "Solo disponible para PostgreSQL")}
             </Typography>
           )}
         </ToolCard>
@@ -390,10 +390,10 @@ export function ToolsTab({
         <ToolCard
           icon={ShowChartIcon}
           iconColor="success.main"
-          title={t("admin_db_tools_pool_stats", "Pool Stats")}
-          chipLabel="All DBs"
+          title={t("admin_db_tools_pool_stats", "Pool de conexiones")}
+          chipLabel={t("admin_db_todas", "Todas las BD")}
           chipColor="success"
-          description="Estadisticas del pool de conexiones"
+          description={t("admin_db_desc_pool", "Estadísticas del pool de conexiones")}
         >
           {poolStats ? (
             <Stack spacing={1}>
@@ -403,14 +403,14 @@ export function ToolsTab({
                     {pool}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Activas: {stats.active || 0} | Idle: {stats.idle || 0}
+                    {t("admin_db_activas", "Activas")}: {stats.active || 0} · {t("admin_db_inactivas", "Inactivas")}: {stats.idle || 0}
                   </Typography>
                 </Box>
               ))}
             </Stack>
           ) : (
             <Typography variant="caption" color="text.secondary">
-              Cargando...
+              {t("common_cargando", "Cargando…")}
             </Typography>
           )}
         </ToolCard>
@@ -426,8 +426,8 @@ export function ToolsTab({
           <Box sx={{ px: 2, py: 1.5, bgcolor: 'var(--warning-bg)', borderBottom: 1, borderColor: 'warning.light' }}>
             <Stack direction="row" alignItems="center" gap={1}>
               <UploadIcon sx={{ fontSize: 18, color: "warning.main" }} />
-              <Typography variant="body2" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Datos Temporales
+              <Typography variant="body2" fontWeight={700}>
+                {t("admin_db_datos_temporales", "Datos temporales")}
               </Typography>
               <Chip
                 label="MRP/Forecast"
@@ -437,12 +437,12 @@ export function ToolsTab({
               />
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Importar Excel para operar MRP y Forecast con datos temporales
+              {t("admin_db_desc_temporales", "Importa un Excel para operar MRP y pronóstico con datos temporales")}
             </Typography>
           </Box>
           <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
             <Typography variant="caption" color="text.secondary">
-              Permite trabajar con datos importados desde Excel sin afectar las bases de datos del sistema.
+              {t("admin_db_desc_temporales_2", "Permite trabajar con datos importados desde Excel sin afectar las bases de datos del sistema.")}
             </Typography>
             <Button
               variant="contained"
@@ -454,11 +454,11 @@ export function ToolsTab({
               startIcon={<UploadIcon />}
               sx={{ textTransform: 'none', fontWeight: 600 }}
             >
-              {tempModeActive ? "Modo Temporal Activo" : "Importar Excel"}
+              {tempModeActive ? t("admin_db_modo_temporal_activo", "Modo temporal activo") : t("admin_db_importar_excel", "Importar Excel")}
             </Button>
             {tempModeActive && (
               <Typography variant="caption" color="warning.main" sx={{ textAlign: "center" }}>
-                Desactive el modo temporal desde el banner superior
+                {t("admin_db_desactivar_temporal", "Desactiva el modo temporal desde el aviso superior")}
               </Typography>
             )}
           </Box>
@@ -467,7 +467,7 @@ export function ToolsTab({
 
       {isProduction && (
         <Alert severity="info" icon={<WarningAmberIcon />}>
-          PostgreSQL en produccion: Algunas operaciones requieren permisos adecuados.
+          {t("admin_db_aviso_produccion", "PostgreSQL en producción: algunas operaciones requieren permisos adecuados.")}
         </Alert>
       )}
     </Box>

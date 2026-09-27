@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import { TempDataBanner } from "../components/ui/TempDataBanner";
+import PageLayout from "../components/ui/PageLayout";
+import EmptyState from "../components/ui/EmptyState";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import { formatDate, formatNumber } from "../utils/formatters";
 // MUI Components
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
-import Alert from "@mui/material/Alert";
 import Tooltip from "@mui/material/Tooltip";
 import Slider from "@mui/material/Slider";
 import FormControl from "@mui/material/FormControl";
@@ -21,7 +23,6 @@ import ListItemText from "@mui/material/ListItemText";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 // MUI Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WarningIcon from "@mui/icons-material/Warning";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import SpeedIcon from "@mui/icons-material/Speed";
@@ -34,8 +35,6 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
-// Chart.js Components
-import { SPMGauge } from "../components/ui/SPMChartJS";
 
 // Colores del sistema SPM (usando CSS variables)
 const COLORS = {
@@ -69,31 +68,56 @@ const kpiColors = {
   velocidad_respuesta: COLORS.info,
 };
 
+// Etiquetas legibles de cada KPI (claves del backend)
+const KPI_LABELS = {
+  materiales_en_riesgo: ["mrp_kpi_materiales_en_riesgo", "Materiales en riesgo"],
+  materiales_sobrestock: ["mrp_kpi_materiales_sobrestock", "Materiales en sobrestock"],
+  rotacion_promedio: ["mrp_kpi_rotacion_promedio", "Rotación promedio"],
+  lead_time_promedio: ["mrp_kpi_lead_time_promedio", "Lead time promedio"],
+  cumplimiento_mrp: ["mrp_kpi_cumplimiento_mrp", "Cumplimiento MRP"],
+  pedidos_vencidos: ["mrp_kpi_pedidos_vencidos", "Pedidos vencidos"],
+  pct_pedidos_vencidos: ["mrp_kpi_pct_pedidos_vencidos", "% de pedidos vencidos"],
+  velocidad_respuesta: ["mrp_kpi_velocidad_respuesta", "Velocidad de respuesta"],
+};
+
+// KPIs donde un valor mas alto es mejor (el resto: mas bajo es mejor)
+const HIGHER_IS_BETTER = new Set(["cumplimiento_mrp", "rotacion_promedio"]);
+
+/** Formatea con coma decimal (max. 1 decimal) */
+function formatKpiValue(valor) {
+  if (valor == null || valor === "") return "-";
+  const num = Number(valor);
+  if (!Number.isFinite(num)) return String(valor);
+  return formatNumber(Math.round(num * 10) / 10);
+}
+
+/** Color semantico para porcentajes donde mas alto es mejor */
+function colorCumplimiento(pct) {
+  if (pct >= 80) return COLORS.success;
+  if (pct >= 50) return COLORS.warning;
+  return COLORS.error;
+}
+
 // KPI Card component
-function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon, color = COLORS.primary }) {
-  const getTendenciaIcon = () => {
-    switch (tendencia) {
-      case "up": return <TrendingUpIcon sx={{ fontSize: 16, color: COLORS.success }} />;
-      case "down": return <TrendingDownIcon sx={{ fontSize: 16, color: COLORS.error }} />;
-      default: return <TrendingFlatIcon sx={{ fontSize: 16, color: COLORS.warning }} />;
-    }
-  };
+function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon: Icon, color = COLORS.primary, higherIsBetter = false }) {
+  const { t } = useI18n();
+  // Una tendencia es "buena" si va en la direccion deseada del indicador
+  const isGood = tendencia === "up" ? higherIsBetter : tendencia === "down" ? !higherIsBetter : null;
+  const trendColor = isGood === null ? "var(--fg-muted)" : isGood ? COLORS.success : COLORS.error;
+  const trendBg = isGood === null
+    ? "var(--bg-soft)"
+    : `color-mix(in srgb, ${isGood ? "var(--success)" : "var(--danger)"} 15%, transparent)`;
 
-  const getTendenciaLabel = () => {
-    switch (tendencia) {
-      case "up": return "Subiendo";
-      case "down": return "Bajando";
-      default: return "Estable";
-    }
-  };
+  const TrendIcon = tendencia === "up" ? TrendingUpIcon : tendencia === "down" ? TrendingDownIcon : TrendingFlatIcon;
+  const trendLabel = tendencia === "up"
+    ? t("mrp_tendencia_up", "Subiendo")
+    : tendencia === "down"
+      ? t("mrp_tendencia_down", "Bajando")
+      : t("mrp_tendencia_stable", "Estable");
 
-  const getTendenciaBg = () => {
-    switch (tendencia) {
-      case "up": return "color-mix(in srgb, var(--success) 15%, transparent)";
-      case "down": return "color-mix(in srgb, var(--danger) 15%, transparent)";
-      default: return "color-mix(in srgb, var(--warning) 15%, transparent)";
-    }
-  };
+  const numValor = Number(valor);
+  const numObjetivo = Number(objetivo);
+  const cumpleObjetivo = higherIsBetter ? numValor >= numObjetivo : numValor <= numObjetivo;
 
   return (
     <Paper
@@ -102,6 +126,7 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
         p: 2,
         border: "1px solid var(--border)",
         height: "100%",
+        minHeight: 168,
         display: "flex",
         flexDirection: "column",
       }}
@@ -110,7 +135,8 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
         <Box
           sx={{
             p: 1,
-            backgroundColor: `${color}15`,
+            borderRadius: 1,
+            backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -125,19 +151,23 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
             gap: 0.5,
             px: 1,
             py: 0.25,
-            backgroundColor: getTendenciaBg(),
+            borderRadius: 1,
+            backgroundColor: trendBg,
           }}
         >
-          {getTendenciaIcon()}
-          <Typography variant="caption" sx={{ fontWeight: 500, fontSize: "0.7rem" }}>
-            {getTendenciaLabel()}
+          <TrendIcon sx={{ fontSize: 16, color: trendColor }} />
+          <Typography variant="caption" sx={{ fontWeight: 500, fontSize: "0.7rem", color: trendColor }}>
+            {trendLabel}
           </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ mb: 0.5, flex: 1 }}>
+      <Typography variant="body2" sx={{ fontWeight: 600, color: "var(--fg-muted)" }}>
+        {titulo}
+      </Typography>
+      <Box sx={{ mb: 0.5 }}>
         <Typography variant="h5" component="span" sx={{ fontWeight: 700, color: "var(--fg-strong)" }}>
-          {valor}
+          {formatKpiValue(valor)}
         </Typography>
         {unidad && (
           <Typography variant="body2" component="span" sx={{ color: "var(--fg-muted)", ml: 0.5 }}>
@@ -145,30 +175,26 @@ function KPICard({ titulo, valor, unidad, tendencia, objetivo, descripcion, icon
           </Typography>
         )}
       </Box>
-
-      <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--fg-strong)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-        {titulo}
-      </Typography>
       {descripcion && (
-        <Typography variant="caption" sx={{ color: "var(--fg-subtle)", fontSize: "0.65rem", mt: 0.25 }}>
+        <Typography variant="caption" sx={{ color: "var(--fg-subtle)", flex: 1 }}>
           {descripcion}
         </Typography>
       )}
 
-      {objetivo && (
+      {objetivo != null && objetivo !== "" && (
         <Box sx={{ mt: 1.5, pt: 1, borderTop: "1px solid var(--border)" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
-              Objetivo:
+              {t("mrp_objetivo", "Objetivo:")}
             </Typography>
             <Typography
               variant="caption"
               sx={{
                 fontWeight: 600,
-                color: valor <= objetivo ? COLORS.success : COLORS.error,
+                color: cumpleObjetivo ? COLORS.success : COLORS.error,
               }}
             >
-              {objetivo} {unidad}
+              {formatKpiValue(objetivo)} {unidad}
             </Typography>
           </Box>
         </Box>
@@ -206,13 +232,13 @@ function DonutChart({ data = [], t }) {
   if (!data || data.length === 0) {
     return (
       <Typography color="text.secondary" textAlign="center" py={4}>
-        Sin datos disponibles
+        {t("common_sin_datos", "Sin datos")}
       </Typography>
     );
   }
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap", justifyContent: "center" }}>
       <svg viewBox="0 0 180 180" width={160} height={160}>
         {data.map((item, idx) => {
           const angle = total > 0 ? (item.valor / total) * 360 : 0;
@@ -227,7 +253,7 @@ function DonutChart({ data = [], t }) {
           {t("mrp_total", "Total")}
         </text>
         <text x="90" y="105" textAnchor="middle" fontSize="18" fontWeight="bold" fill="var(--fg-strong)">
-          {Number(total).toFixed(0)}%
+          {formatNumber(Math.round(total))}%
         </text>
       </svg>
 
@@ -247,7 +273,7 @@ function DonutChart({ data = [], t }) {
               {item.nombre}
             </Typography>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
-              {Number(item.valor || 0).toFixed(1)}%
+              {formatKpiValue(item.valor || 0)}%
             </Typography>
           </Box>
         ))}
@@ -258,6 +284,7 @@ function DonutChart({ data = [], t }) {
 
 // Bar Chart component
 function SimpleBarChart({ data = [], height = 160 }) {
+  const { t } = useI18n();
   const maxValue = useMemo(() => {
     if (!data || data.length === 0) return 1;
     return Math.max(...data.map(d => Math.max(d.alertas || 0, d.resueltas || 0)), 1);
@@ -266,7 +293,7 @@ function SimpleBarChart({ data = [], height = 160 }) {
   if (!data || data.length === 0) {
     return (
       <Typography color="text.secondary" textAlign="center" py={4}>
-        Sin datos disponibles
+        {t("common_sin_datos", "Sin datos")}
       </Typography>
     );
   }
@@ -276,7 +303,7 @@ function SimpleBarChart({ data = [], height = 160 }) {
       {data.map((item, idx) => (
         <Box key={idx} sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "flex-end", height: "100%" }}>
-            <Tooltip title={`Alertas: ${item.alertas || 0}`}>
+            <Tooltip title={`${t("mrp_alertas_generadas_tooltip", "Alertas generadas")}: ${formatNumber(item.alertas || 0)}`}>
               <Box
                 sx={{
                   width: 14,
@@ -288,7 +315,7 @@ function SimpleBarChart({ data = [], height = 160 }) {
                 }}
               />
             </Tooltip>
-            <Tooltip title={`Resueltas: ${item.resueltas || 0}`}>
+            <Tooltip title={`${t("mrp_alertas_resueltas_tooltip", "Alertas resueltas")}: ${formatNumber(item.resueltas || 0)}`}>
               <Box
                 sx={{
                   width: 14,
@@ -310,18 +337,29 @@ function SimpleBarChart({ data = [], height = 160 }) {
   );
 }
 
-// Gauge Chart using Chart.js
-function GaugeChartMUI({ value, label }) {
+// Indicador de porcentaje: numero grande + barra de progreso (mas alto es mejor)
+function PercentMetric({ value, label }) {
+  const pct = Math.min(100, Math.max(0, Number(value) || 0));
+  const color = colorCumplimiento(pct);
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <SPMGauge
-        value={value}
-        max={100}
-        thresholds={{ warning: 50, danger: 80 }}
-        height={140}
-        label={label}
-        unit="%"
+    <Box sx={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 1, py: 2 }}>
+      <Typography variant="h3" component="p" sx={{ fontWeight: 700, color, textAlign: "center" }}>
+        {formatKpiValue(pct)}%
+      </Typography>
+      <LinearProgress
+        variant="determinate"
+        value={pct}
+        aria-label={label}
+        sx={{
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: "var(--bg-soft)",
+          "& .MuiLinearProgress-bar": { backgroundColor: color, borderRadius: 5 },
+        }}
       />
+      <Typography variant="body2" sx={{ color: "var(--fg-muted)", textAlign: "center" }}>
+        {label}
+      </Typography>
     </Box>
   );
 }
@@ -329,14 +367,13 @@ function GaugeChartMUI({ value, label }) {
 // Estados posibles para filtro
 const ESTADOS_OPTIONS = [
   { id: "critico", label: "Crítico" },
-  { id: "bajo_stock", label: "Bajo Stock" },
+  { id: "bajo_stock", label: "Bajo stock" },
   { id: "sobrestock", label: "Sobrestock" },
   { id: "normal", label: "Normal" },
 ];
 
 export default function MRPKPIs() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [kpisData, setKpisData] = useState(null);
@@ -391,7 +428,8 @@ export default function MRPKPIs() {
             estados: ESTADOS_OPTIONS.map((e) => e.id),
           });
         }
-      } catch (err) {
+      } catch {
+        // Sin catálogos: los filtros quedan vacíos
       }
     };
     fetchCatalogos();
@@ -415,14 +453,14 @@ export default function MRPKPIs() {
       if (res.data?.ok) {
         setKpisData(res.data);
       } else {
-        setError(res.data?.error?.message || "Error al cargar KPIs");
+        setError(t("mrp_kpis_error_carga", "Revisa tu conexión e intenta nuevamente."));
       }
     } catch (err) {
-      setError(err.response?.data?.error?.message || "Error de conexión");
+      setError(t("mrp_kpis_error_carga", "Revisa tu conexión e intenta nuevamente."));
     } finally {
       setLoading(false);
     }
-  }, [filtros, rangoFechas]);
+  }, [filtros, rangoFechas, t]);
 
   useEffect(() => {
     fetchKPIs();
@@ -454,29 +492,19 @@ export default function MRPKPIs() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <IconButton onClick={() => navigate(-1)} size="small" sx={{ color: "var(--fg-muted)" }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {t("mrp_kpis_titulo", "KPI'S MRP")}
-        </Typography>
-      </Box>
+    <PageLayout title={t("mrp_indicadores_titulo", "Indicadores MRP")}>
 
       {/* Temp Data Banner */}
       <TempDataBanner />
 
       {/* Filtros - estilo Dashboard */}
-      <Paper elevation={0} sx={{ mb: 3, border: "1px solid var(--border)", overflow: "hidden" }}>
-        <Box sx={{ py: 1.5, px: 3, height: "73px" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3, height: "100%" }}>
+      <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
+        <Box sx={{ py: 1.5, px: { xs: 2, md: 3 } }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           {/* Slider de fechas */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: "320px" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0, width: { xs: "100%", md: 320 } }}>
             <Typography component="label" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--fg-muted)", mt: 1 }}>
-              Desde <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> hasta <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
+              {t("mrp_rango_desde", "Desde")} <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[0])}</Box> {t("mrp_rango_hasta", "hasta")} <Box component="span" sx={{ color: "var(--primary)", fontWeight: 600 }}>{sliderAFecha(rangoFechasLocal[1])}</Box>
             </Typography>
             <Slider
               size="small"
@@ -486,34 +514,34 @@ export default function MRPKPIs() {
               max={365}
               valueLabelDisplay="auto"
               valueLabelFormat={(value) => sliderAFecha(value)}
-              getAriaLabel={() => "Rango de fechas"}
+              getAriaLabel={() => t("mrp_rango_fechas", "Rango de fechas")}
               sx={{ color: "var(--primary)", "& .MuiSlider-thumb": { width: 14, height: 14 }, "& .MuiSlider-valueLabel": { fontSize: 10 } }}
             />
             <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-2xs)", color: "var(--fg-subtle)", mt: -0.5 }}>
-              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>Hace 1 año</Typography>
-              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>Hoy</Typography>
+              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>{t("mrp_hace_un_anio", "Hace 1 año")}</Typography>
+              <Typography variant="caption" sx={{ fontSize: "var(--text-2xs)", color: "inherit" }}>{t("mrp_hoy", "Hoy")}</Typography>
             </Box>
           </Box>
 
           {/* Separador */}
-          <Box sx={{ height: 64, width: "1px", backgroundColor: "var(--border)" }} />
+          <Box sx={{ height: 48, width: "1px", backgroundColor: "var(--border)", display: { xs: "none", md: "block" } }} />
 
           {/* Centro */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="centro-label" sx={{ fontSize: "0.75rem" }}>Centro</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+            <InputLabel id="centro-label" sx={{ fontSize: "0.75rem" }}>{t("mrp_filtro_centro", "Centro")}</InputLabel>
             <Select
               labelId="centro-label"
               multiple
               value={filtros.centros}
               onChange={handleFiltroChange("centros", catalogos.centros)}
-              input={<OutlinedInput label="Centro" />}
-              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              input={<OutlinedInput label={t("mrp_filtro_centro", "Centro")} />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t("mrp_seleccionados", "seleccionados")}` : selected.join(", ")}
               MenuProps={MenuProps}
               sx={{ fontSize: "0.75rem" }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={filtros.centros.length === catalogos.centros.length && catalogos.centros.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+                <ListItemText primary={t("common_seleccionar_todos", "Seleccionar todos")} primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
               </MenuItem>
               {catalogos.centros.map((centro) => (
                 <MenuItem key={centro.id} value={centro.id}>
@@ -525,21 +553,21 @@ export default function MRPKPIs() {
           </FormControl>
 
           {/* Almacén */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="almacen-label" sx={{ fontSize: "0.75rem" }}>Almacén</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+            <InputLabel id="almacen-label" sx={{ fontSize: "0.75rem" }}>{t("mrp_filtro_almacen", "Almacén")}</InputLabel>
             <Select
               labelId="almacen-label"
               multiple
               value={filtros.almacenes}
               onChange={handleFiltroChange("almacenes", catalogos.almacenes)}
-              input={<OutlinedInput label="Almacén" />}
-              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              input={<OutlinedInput label={t("mrp_filtro_almacen", "Almacén")} />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t("mrp_seleccionados", "seleccionados")}` : selected.join(", ")}
               MenuProps={MenuProps}
               sx={{ fontSize: "0.75rem" }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={filtros.almacenes.length === catalogos.almacenes.length && catalogos.almacenes.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+                <ListItemText primary={t("common_seleccionar_todos", "Seleccionar todos")} primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
               </MenuItem>
               {catalogos.almacenes.map((almacen) => (
                 <MenuItem key={almacen.id} value={almacen.id}>
@@ -551,21 +579,21 @@ export default function MRPKPIs() {
           </FormControl>
 
           {/* Sector */}
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="sector-label" sx={{ fontSize: "0.75rem" }}>Sector</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+            <InputLabel id="sector-label" sx={{ fontSize: "0.75rem" }}>{t("mrp_filtro_sector", "Sector")}</InputLabel>
             <Select
               labelId="sector-label"
               multiple
               value={filtros.sectores}
               onChange={handleFiltroChange("sectores", catalogos.sectores)}
-              input={<OutlinedInput label="Sector" />}
-              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              input={<OutlinedInput label={t("mrp_filtro_sector", "Sector")} />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t("mrp_seleccionados", "seleccionados")}` : selected.join(", ")}
               MenuProps={MenuProps}
               sx={{ fontSize: "0.75rem" }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={filtros.sectores.length === catalogos.sectores.length && catalogos.sectores.length > 0} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+                <ListItemText primary={t("common_seleccionar_todos", "Seleccionar todos")} primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
               </MenuItem>
               {catalogos.sectores.map((sector) => (
                 <MenuItem key={sector.id} value={sector.id}>
@@ -577,21 +605,21 @@ export default function MRPKPIs() {
           </FormControl>
 
           {/* Estado */}
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="estado-label" sx={{ fontSize: "0.75rem" }}>Estado</InputLabel>
+          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 } }}>
+            <InputLabel id="estado-label" sx={{ fontSize: "0.75rem" }}>{t("mrp_filtro_estado", "Estado")}</InputLabel>
             <Select
               labelId="estado-label"
               multiple
               value={filtros.estados}
               onChange={handleFiltroChange("estados", ESTADOS_OPTIONS)}
-              input={<OutlinedInput label="Estado" />}
-              renderValue={(selected) => selected.length > 1 ? `${selected.length} seleccionados` : selected.join(", ")}
+              input={<OutlinedInput label={t("mrp_filtro_estado", "Estado")} />}
+              renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t("mrp_seleccionados", "seleccionados")}` : selected.join(", ")}
               MenuProps={MenuProps}
               sx={{ fontSize: "0.75rem" }}
             >
               <MenuItem value="__todos__">
                 <Checkbox checked={filtros.estados.length === ESTADOS_OPTIONS.length} size="small" />
-                <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
+                <ListItemText primary={t("common_seleccionar_todos", "Seleccionar todos")} primaryTypographyProps={{ fontSize: "0.75rem", fontWeight: 600 }} />
               </MenuItem>
               {ESTADOS_OPTIONS.map((estado) => (
                 <MenuItem key={estado.id} value={estado.id}>
@@ -602,29 +630,15 @@ export default function MRPKPIs() {
             </Select>
           </FormControl>
 
-            {/* Limpiar Filtros */}
-            <Box
-              component="button"
-              type="button"
+            {/* Limpiar filtros */}
+            <Button
+              variant="outlined"
+              size="small"
               onClick={handleLimpiarFiltros}
-              sx={{
-                px: 1.5,
-                py: 0.75,
-                fontSize: "0.75rem",
-                fontWeight: 500,
-                color: "var(--fg-muted)",
-                border: "1px solid var(--border)",
-                backgroundColor: "transparent",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  color: "var(--primary)",
-                  borderColor: "var(--primary)",
-                },
-              }}
+              sx={{ textTransform: "none" }}
             >
-              Limpiar Filtros
-            </Box>
+              {t("mrp_limpiar_filtros", "Limpiar filtros")}
+            </Button>
           </Box>
         </Box>
       </Paper>
@@ -634,7 +648,14 @@ export default function MRPKPIs() {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        <Paper elevation={0} sx={{ border: "1px solid var(--border)" }}>
+          <EmptyState
+            title={t("mrp_kpis_error_titulo", "No se pudieron cargar los indicadores")}
+            description={error}
+            action={t("mrp_reintentar", "Reintentar")}
+            onAction={fetchKPIs}
+          />
+        </Paper>
       ) : kpisData ? (
         <>
           {/* KPI Cards Grid */}
@@ -643,20 +664,20 @@ export default function MRPKPIs() {
               display: "grid",
               gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
               gap: 2,
-              mb: 3,
             }}
           >
             {Object.entries(kpisData.kpis || {}).map(([key, kpi]) => (
               <KPICard
                 key={key}
-                titulo={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                titulo={KPI_LABELS[key] ? t(KPI_LABELS[key][0], KPI_LABELS[key][1]) : key.replace(/_/g, " ")}
                 valor={kpi.valor}
                 unidad={kpi.unidad}
                 tendencia={kpi.tendencia}
                 objetivo={kpi.objetivo}
                 descripcion={kpi.descripcion}
                 icon={kpiIcons[key] || BarChartIcon}
-                color={kpiColors[key] || COLORS.primary}
+                color={key === "cumplimiento_mrp" ? colorCumplimiento(Number(kpi.valor) || 0) : kpiColors[key] || COLORS.primary}
+                higherIsBetter={HIGHER_IS_BETTER.has(key)}
               />
             ))}
           </Box>
@@ -667,7 +688,6 @@ export default function MRPKPIs() {
               display: "grid",
               gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
               gap: 2,
-              mb: 3,
             }}
           >
             {/* Distribution Chart */}
@@ -694,7 +714,7 @@ export default function MRPKPIs() {
                 </Typography>
               </Box>
               <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
-                <GaugeChartMUI
+                <PercentMetric
                   value={kpisData.kpis?.cumplimiento_mrp?.valor || 0}
                   label={t("mrp_nivel_cumplimiento", "Nivel de Cumplimiento")}
                 />
@@ -703,7 +723,7 @@ export default function MRPKPIs() {
           </Box>
 
           {/* Evolution Chart */}
-          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden", mb: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
             <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
               <ShowChartIcon sx={{ color: COLORS.primary, fontSize: 20 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -732,7 +752,7 @@ export default function MRPKPIs() {
           </Paper>
 
           {/* Top Materials at Risk */}
-          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden", mb: 3 }}>
+          <Paper elevation={0} sx={{ border: "1px solid var(--border)", overflow: "hidden" }}>
             <Box sx={{ p: 1.5, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 1 }}>
               <WarningIcon sx={{ color: COLORS.warning, fontSize: 20 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "var(--fg-strong)" }}>
@@ -744,7 +764,7 @@ export default function MRPKPIs() {
                 <Box sx={{ textAlign: "center", py: 4 }}>
                   <CheckCircleIcon sx={{ fontSize: 40, color: COLORS.success, opacity: 0.6, mb: 1 }} />
                   <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
-                    No hay materiales en riesgo
+                    {t("mrp_sin_materiales_riesgo", "No hay materiales en riesgo")}
                   </Typography>
                 </Box>
               ) : (
@@ -780,7 +800,7 @@ export default function MRPKPIs() {
                           {idx + 1}
                         </Box>
                         <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace", color: COLORS.primary }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: COLORS.primary }}>
                             {mat.codigo}
                           </Typography>
                           <Typography variant="caption" sx={{ color: "var(--fg-muted)" }}>
@@ -790,7 +810,7 @@ export default function MRPKPIs() {
                       </Box>
                       <Box sx={{ textAlign: "right" }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: COLORS.error }}>
-                          {mat.dias_sin_stock} {t("mrp_dias", "días")}
+                          {formatNumber(mat.dias_sin_stock)} {t("mrp_dias", "días")}
                         </Typography>
                         <Typography variant="caption" sx={{ color: "var(--fg-subtle)" }}>
                           {t("mrp_sin_stock", "sin stock")}
@@ -812,18 +832,17 @@ export default function MRPKPIs() {
               backgroundColor: "var(--bg-soft)",
             }}
           >
-            <Box sx={{ display: "flex", gap: 4 }}>
+            <Box sx={{ display: "flex", gap: { xs: 1, md: 4 }, flexWrap: "wrap" }}>
               <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
-                <strong>{t("mrp_periodo", "Período:")}</strong> {kpisData.fecha_inicio} a {kpisData.fecha_fin}
+                <strong>{t("mrp_periodo", "Período:")}</strong> {formatDate(kpisData.fecha_inicio)} {t("mrp_periodo_a", "a")} {formatDate(kpisData.fecha_fin)}
               </Typography>
               <Typography variant="body2" sx={{ color: "var(--fg-muted)" }}>
-                <strong>{t("mrp_total_materiales", "Total materiales:")}</strong> {kpisData.total_materiales}
+                <strong>{t("mrp_kpis_total_materiales", "Total de materiales")}:</strong> {formatNumber(kpisData.total_materiales)}
               </Typography>
             </Box>
           </Paper>
         </>
       ) : null}
-    </Box>
-    </Box>
+    </PageLayout>
   );
 }

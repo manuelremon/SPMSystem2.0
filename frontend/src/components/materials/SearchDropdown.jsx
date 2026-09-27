@@ -106,7 +106,7 @@ export function SearchDropdown({
         },
       }}
       role="listbox"
-      aria-label={t('materials_resultados', 'Resultados de busqueda')}
+      aria-label={t('materials_resultados', 'Resultados de búsqueda')}
     >
       {/* Header del dropdown - Sticky con blur */}
       <Box
@@ -182,7 +182,7 @@ export function SearchDropdown({
               {t('materials_sin_resultados', 'No se encontraron materiales')}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-              {t('materials_intenta_otro_termino', 'Intenta con otro termino de busqueda')}
+              {t('materials_intenta_otro_termino', 'Intenta con otro término de búsqueda')}
             </Typography>
           </Box>
         )}
@@ -369,7 +369,7 @@ export function SearchDropdown({
               >
                 ↓
               </Box>
-              navegar
+              {t("materials_atajo_navegar", "navegar")}
             </Box>
             <Box>
               <Box
@@ -386,7 +386,7 @@ export function SearchDropdown({
               >
                 Enter
               </Box>
-              seleccionar
+              {t("materials_atajo_seleccionar", "seleccionar")}
             </Box>
             <Box>
               <Box
@@ -403,7 +403,7 @@ export function SearchDropdown({
               >
                 Esc
               </Box>
-              cerrar
+              {t("materials_atajo_cerrar", "cerrar")}
             </Box>
           </Stack>
         </Box>

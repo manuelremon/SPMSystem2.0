@@ -8,12 +8,13 @@ import { MetricCard } from '../../../components/ui/MetricCard'
 import { Activity, AlertTriangle, Zap, Clock } from '../../../components/ui/Icons'
 import { useI18n } from '../../../context/i18n'
 import { getVariantByMetric } from '../../../config/thresholds'
+import { formatNumber } from '../../../utils/formatters'
 
 /**
  * Formatea el uptime en formato legible
  */
 function formatUptime(seconds) {
-  if (!seconds) return '--'
+  if (!seconds) return '—'
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
@@ -31,33 +32,33 @@ export function RequestMetrics({ metrics, health, errorRate }) {
       <MetricCard
         icon={Activity}
         iconColor="text-pink-500"
-        label={t('total_requests', 'Total Requests')}
-        value={metrics?.total_requests?.toLocaleString() || '0'}
+        label={t('admin_estado_total_peticiones', 'Total de peticiones')}
+        value={formatNumber(metrics?.total_requests || 0)}
         variant="primary"
-        tooltip="Total de peticiones HTTP procesadas desde el ultimo reinicio del servidor"
+        tooltip={t('admin_estado_tt_peticiones', 'Total de peticiones HTTP procesadas desde el último reinicio del servidor')}
       />
       <MetricCard
         icon={AlertTriangle}
         label={t('admin_estado_errors', 'Errores')}
-        value={`${metrics?.total_errors?.toLocaleString() || '0'} (${errorRate.toFixed(1)}%)`}
+        value={`${formatNumber(metrics?.total_errors || 0)} (${formatNumber(errorRate, 1)}%)`}
         variant={getVariantByMetric(errorRate, 'errorRate')}
-        tooltip="Peticiones que retornaron error (4xx o 5xx). Porcentaje respecto al total"
+        tooltip={t('admin_estado_tt_errores', 'Peticiones que devolvieron error (4xx o 5xx). Porcentaje respecto del total')}
       />
       <MetricCard
         icon={Zap}
         iconColor="text-amber-500"
         label={t('latency_p50', 'Latencia P50')}
-        value={`${Math.round(metrics?.latency?.p50_ms || 0)}ms`}
+        value={`${formatNumber(Math.round(metrics?.latency?.p50_ms || 0))} ms`}
         variant={getVariantByMetric(metrics?.latency?.p50_ms || 0, 'latency')}
-        tooltip="Tiempo de respuesta mediano (50% de requests son mas rapidas que este valor)"
+        tooltip={t('admin_estado_tt_latencia', 'Tiempo de respuesta mediano (el 50 % de las peticiones es más rápido que este valor)')}
       />
       <MetricCard
         icon={Clock}
         iconColor="text-cyan-500"
-        label={t('admin_estado_uptime', 'Uptime')}
+        label={t('admin_estado_tiempo_activo', 'Tiempo activo')}
         value={formatUptime(health?.uptime_seconds)}
         variant="info"
-        tooltip="Tiempo desde el ultimo reinicio del servidor backend"
+        tooltip={t('admin_estado_tt_uptime', 'Tiempo desde el último reinicio del servidor')}
       />
     </div>
   )

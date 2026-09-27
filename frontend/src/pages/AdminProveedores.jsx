@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useI18n } from "../context/i18n";
 import {
@@ -9,7 +9,6 @@ import {
   Button,
   TextField,
   MenuItem,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,7 +20,8 @@ import {
   Tab,
 } from "@mui/material";
 import { SPMAgGrid } from "../components/ui/SPMAgGrid";
-import { ArrowBack } from "@mui/icons-material";
+import PageLayout from "../components/ui/PageLayout";
+import { NewButton, ActiveStatus, RowActions, actionsColumn } from "../components/admin/AdminCrudParts";
 
 const CALIFICACION_OPTIONS = [
   { value: "sin_calificar", label: "Sin calificar", color: "var(--neutral)" },
@@ -58,7 +58,6 @@ const initialFormExterno = {
 
 export default function AdminProveedores() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") === "externos" ? 1 : 0;
   const [tab, setTab] = useState(initialTab);
@@ -129,9 +128,9 @@ export default function AdminProveedores() {
 
   // Columns for internos (AG Grid format)
   const columnDefsInternos = useMemo(() => [
-    { field: "centro", headerName: t('admin_prov_centro', 'Centro'), flex: 0.4, minWidth: 80 },
+    { field: "centro", headerName: t('admin_prov_centro', 'Centro'), flex: 0.5, minWidth: 110 },
     { field: "centro_nombre", headerName: t('admin_prov_nombre_centro', 'Nombre Centro'), flex: 1, minWidth: 150 },
-    { field: "almacen", headerName: t('admin_prov_almacen', 'Almacén'), flex: 0.4, minWidth: 80 },
+    { field: "almacen", headerName: t('admin_prov_almacen', 'Almacén'), flex: 0.5, minWidth: 120 },
     { field: "almacen_nombre", headerName: t('admin_prov_nombre_almacen', 'Nombre Almacén'), flex: 1, minWidth: 150 },
     { field: "sector", headerName: t('admin_prov_sector', 'Sector'), flex: 0.6, minWidth: 100 },
     { field: "responsable_centro", headerName: t('admin_prov_responsable', 'Responsable'), flex: 0.8, minWidth: 120 },
@@ -141,48 +140,14 @@ export default function AdminProveedores() {
       headerName: t('admin_prov_estado', 'Estado'),
       flex: 0.5,
       minWidth: 80,
-      cellRenderer: (params) => (
-        <Typography
-          variant="caption"
-          sx={{
-            color: params.value ? "var(--success-text)" : "var(--danger-text)",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            fontSize: "var(--text-xs)",
-          }}
-        >
-          {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
-        </Typography>
-      ),
+      cellRenderer: (params) => <ActiveStatus activo={params.value} />,
     },
-    {
-      field: "acciones",
-      headerName: t('admin_prov_acciones', 'Acciones'),
-      flex: 0.6,
-      minWidth: 150,
-      sortable: false,
-      cellRenderer: (params) => (
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "center", height: "100%", width: "100%" }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => handleEditInterno(params.data)}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
-          >
-            {t('admin_prov_editar', 'Editar')}
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={() => setDeleteDialogInterno({ open: true, item: params.data })}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
-          >
-            {t('admin_prov_eliminar', 'Eliminar')}
-          </Button>
-        </Box>
-      ),
-    },
+    actionsColumn(t('admin_prov_acciones', 'Acciones'), (params) => (
+      <RowActions
+        onEdit={() => handleEditInterno(params.data)}
+        onDelete={() => setDeleteDialogInterno({ open: true, item: params.data })}
+      />
+    )),
   ], [t]);
 
   // Columns for externos (AG Grid format)
@@ -196,7 +161,7 @@ export default function AdminProveedores() {
       headerName: t('admin_prov_lead_time', 'Lead Time'),
       flex: 0.5,
       minWidth: 100,
-      valueFormatter: (params) => `${params.value || 0} días`,
+      valueFormatter: (params) => `${params.value || 0} ${t('common_dias', 'días')}`,
     },
     {
       field: "calificacion",
@@ -211,11 +176,10 @@ export default function AdminProveedores() {
             sx={{
               color: opt.color,
               fontWeight: 600,
-              textTransform: "uppercase",
               fontSize: "var(--text-xs)",
             }}
           >
-            {opt.label}
+            {t(`admin_prov_calif_${opt.value}`, opt.label)}
           </Typography>
         );
       },
@@ -225,48 +189,14 @@ export default function AdminProveedores() {
       headerName: t('admin_prov_estado', 'Estado'),
       flex: 0.5,
       minWidth: 80,
-      cellRenderer: (params) => (
-        <Typography
-          variant="caption"
-          sx={{
-            color: params.value ? "var(--success-text)" : "var(--danger-text)",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            fontSize: "var(--text-xs)",
-          }}
-        >
-          {params.value ? t('admin_prov_activo', 'Activo') : t('admin_prov_inactivo', 'Inactivo')}
-        </Typography>
-      ),
+      cellRenderer: (params) => <ActiveStatus activo={params.value} />,
     },
-    {
-      field: "acciones",
-      headerName: t('admin_prov_acciones', 'Acciones'),
-      flex: 0.6,
-      minWidth: 150,
-      sortable: false,
-      cellRenderer: (params) => (
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "center", height: "100%", width: "100%" }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => handleEditExterno(params.data)}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
-          >
-            {t('admin_prov_editar', 'Editar')}
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={() => setDeleteDialogExterno({ open: true, item: params.data })}
-            sx={{ minWidth: 60, textTransform: "uppercase", fontSize: "var(--text-xs)" }}
-          >
-            {t('admin_prov_eliminar', 'Eliminar')}
-          </Button>
-        </Box>
-      ),
-    },
+    actionsColumn(t('admin_prov_acciones', 'Acciones'), (params) => (
+      <RowActions
+        onEdit={() => handleEditExterno(params.data)}
+        onDelete={() => setDeleteDialogExterno({ open: true, item: params.data })}
+      />
+    )),
   ], [t]);
 
   // Handlers Internos
@@ -303,7 +233,7 @@ export default function AdminProveedores() {
     setSuccess("");
 
     if (!formInterno.centro || !formInterno.almacen) {
-      setError("Centro y Almacén son requeridos");
+      setError(t('admin_prov_err_interno_requeridos', 'Centro y almacén son obligatorios'));
       return;
     }
 
@@ -312,10 +242,10 @@ export default function AdminProveedores() {
       if (editingInterno) {
         const [centro, almacen] = editingInterno.split("_");
         await api.put(`/admin/proveedores/internos/${centro}/${almacen}`, formInterno);
-        setSuccess("Proveedor interno actualizado correctamente");
+        setSuccess(t('admin_prov_interno_actualizado', 'Proveedor interno actualizado correctamente'));
       } else {
         await api.post("/admin/proveedores/internos", formInterno);
-        setSuccess("Proveedor interno creado correctamente");
+        setSuccess(t('admin_prov_interno_creado', 'Proveedor interno creado correctamente'));
       }
 
       setShowFormInterno(false);
@@ -328,7 +258,7 @@ export default function AdminProveedores() {
     } finally {
       setSubmitting(false);
     }
-  }, [formInterno, editingInterno, loadInternos]);
+  }, [formInterno, editingInterno, loadInternos, t]);
 
   const handleDeleteInterno = useCallback(async () => {
     if (!deleteDialogInterno.item) return;
@@ -336,7 +266,7 @@ export default function AdminProveedores() {
     try {
       const { centro, almacen } = deleteDialogInterno.item;
       await api.delete(`/admin/proveedores/internos/${centro}/${almacen}`);
-      setSuccess("Proveedor interno eliminado correctamente");
+      setSuccess(t('admin_prov_interno_eliminado', 'Proveedor interno eliminado correctamente'));
       setDeleteDialogInterno({ open: false, item: null });
       await loadInternos();
       setTimeout(() => setSuccess(""), 3000);
@@ -345,7 +275,7 @@ export default function AdminProveedores() {
     } finally {
       setSubmitting(false);
     }
-  }, [deleteDialogInterno.item, loadInternos]);
+  }, [deleteDialogInterno.item, loadInternos, t]);
 
   // Handlers Externos
   const handleEditExterno = useCallback((row) => {
@@ -380,7 +310,7 @@ export default function AdminProveedores() {
     setSuccess("");
 
     if (!formExterno.cuit || !formExterno.nombre) {
-      setError("CUIT y Nombre son requeridos");
+      setError(t('admin_prov_err_externo_requeridos', 'CUIT y nombre son obligatorios'));
       return;
     }
 
@@ -388,10 +318,10 @@ export default function AdminProveedores() {
     try {
       if (editingExterno) {
         await api.put(`/admin/proveedores/externos/${encodeURIComponent(editingExterno)}`, formExterno);
-        setSuccess("Proveedor externo actualizado correctamente");
+        setSuccess(t('admin_prov_externo_actualizado', 'Proveedor externo actualizado correctamente'));
       } else {
         await api.post("/admin/proveedores/externos", formExterno);
-        setSuccess("Proveedor externo creado correctamente");
+        setSuccess(t('admin_prov_externo_creado', 'Proveedor externo creado correctamente'));
       }
 
       setShowFormExterno(false);
@@ -404,14 +334,14 @@ export default function AdminProveedores() {
     } finally {
       setSubmitting(false);
     }
-  }, [formExterno, editingExterno, loadExternos]);
+  }, [formExterno, editingExterno, loadExternos, t]);
 
   const handleDeleteExterno = useCallback(async () => {
     if (!deleteDialogExterno.item) return;
     setSubmitting(true);
     try {
       await api.delete(`/admin/proveedores/externos/${encodeURIComponent(deleteDialogExterno.item.cuit)}`);
-      setSuccess("Proveedor externo eliminado correctamente");
+      setSuccess(t('admin_prov_externo_eliminado', 'Proveedor externo eliminado correctamente'));
       setDeleteDialogExterno({ open: false, item: null });
       await loadExternos();
       setTimeout(() => setSuccess(""), 3000);
@@ -420,46 +350,34 @@ export default function AdminProveedores() {
     } finally {
       setSubmitting(false);
     }
-  }, [deleteDialogExterno.item, loadExternos]);
+  }, [deleteDialogExterno.item, loadExternos, t]);
 
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-      <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton onClick={() => navigate("/admin")} size="small" sx={{ color: "text.secondary" }}>
-              <ArrowBack />
-            </IconButton>
-            <Typography variant="h5" component="h1" fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.primary">
-              {t('admin_prov_title', 'Proveedores')}
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            onClick={tab === 0 ? handleNewInterno : handleNewExterno}
-            sx={{ textTransform: "uppercase" }}
-          >
-            {t('admin_prov_nuevo', 'Nuevo')}
-          </Button>
-      </Box>
-
+    <PageLayout
+      title={t('admin_prov_title', 'Proveedores')}
+      backTo="/admin"
+      actions={
+        <NewButton onClick={tab === 0 ? handleNewInterno : handleNewExterno}>
+          {t('admin_prov_nuevo', 'Nuevo')}
+        </NewButton>
+      }
+    >
       {/* Alertas */}
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>{success}</Alert>}
+      {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
+      {success && <Alert severity="success" onClose={() => setSuccess("")}>{success}</Alert>}
 
       {/* Tabs */}
-      <Box sx={{ mb: 2 }}>
-        <Tabs value={tab} onChange={(e, v) => setTab(v)}>
-          <Tab label={t('admin_prov_tab_internos', 'Internos (Almacenes)')} sx={{ textTransform: "uppercase", fontWeight: 600 }} />
-          <Tab label={t('admin_prov_tab_externos', 'Externos')} sx={{ textTransform: "uppercase", fontWeight: 600 }} />
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" allowScrollButtonsMobile>
+          <Tab label={t('admin_prov_tab_internos', 'Internos (almacenes)')} sx={{ textTransform: "none", fontWeight: 600 }} />
+          <Tab label={t('admin_prov_tab_externos', 'Externos')} sx={{ textTransform: "none", fontWeight: 600 }} />
         </Tabs>
       </Box>
 
       {/* AG Grid Internos */}
       {tab === 0 && (
-        <Paper elevation={2}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <SPMAgGrid
             rowData={internos}
             columnDefs={columnDefsInternos}
@@ -467,9 +385,7 @@ export default function AdminProveedores() {
             loading={loadingInternos}
             height={600}
             pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[20, 50, 100]}
-            rowHeight={67}
+            paginationPageSize={25}
             enableQuickFilter={true}
             exportFileName="proveedores_internos"
           />
@@ -478,7 +394,7 @@ export default function AdminProveedores() {
 
       {/* AG Grid Externos */}
       {tab === 1 && (
-        <Paper elevation={2}>
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <SPMAgGrid
             rowData={externos}
             columnDefs={columnDefsExternos}
@@ -486,9 +402,7 @@ export default function AdminProveedores() {
             loading={loadingExternos}
             height={600}
             pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[20, 50, 100]}
-            rowHeight={67}
+            paginationPageSize={25}
             enableQuickFilter={true}
             exportFileName="proveedores_externos"
           />
@@ -497,7 +411,7 @@ export default function AdminProveedores() {
 
       {/* Modal Formulario Interno */}
       <Dialog open={showFormInterno} onClose={() => setShowFormInterno(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>
           {editingInterno ? t('admin_prov_editar_interno', 'Editar Proveedor Interno') : t('admin_prov_nuevo_interno', 'Nuevo Proveedor Interno')}
         </DialogTitle>
         <form onSubmit={handleSubmitInterno}>
@@ -625,10 +539,10 @@ export default function AdminProveedores() {
             </Grid>
           </DialogContent>
           <DialogActions sx={{ p: 2, gap: 1 }}>
-            <Button variant="outlined" color="inherit" onClick={() => setShowFormInterno(false)} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
+            <Button variant="outlined" color="inherit" onClick={() => setShowFormInterno(false)} disabled={submitting} sx={{ textTransform: "none", color: "text.secondary", borderColor: "divider" }}>
               {t('admin_prov_cancelar', 'Cancelar')}
             </Button>
-            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
+            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "none" }}>
               {submitting ? t('admin_prov_guardando', 'Guardando...') : editingInterno ? t('admin_prov_actualizar', 'Actualizar') : t('admin_prov_crear', 'Crear')}
             </Button>
           </DialogActions>
@@ -637,7 +551,7 @@ export default function AdminProveedores() {
 
       {/* Modal Formulario Externo */}
       <Dialog open={showFormExterno} onClose={() => setShowFormExterno(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>
           {editingExterno ? t('admin_prov_editar_externo', 'Editar Proveedor Externo') : t('admin_prov_nuevo_externo', 'Nuevo Proveedor Externo')}
         </DialogTitle>
         <form onSubmit={handleSubmitExterno}>
@@ -741,17 +655,17 @@ export default function AdminProveedores() {
                   slotProps={{ inputLabel: { shrink: true } }}
                 >
                   {CALIFICACION_OPTIONS.map(opt => (
-                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    <MenuItem key={opt.value} value={opt.value}>{t(`admin_prov_calif_${opt.value}`, opt.label)}</MenuItem>
                   ))}
                 </TextField>
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions sx={{ p: 2, gap: 1 }}>
-            <Button variant="outlined" color="inherit" onClick={() => setShowFormExterno(false)} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
+            <Button variant="outlined" color="inherit" onClick={() => setShowFormExterno(false)} disabled={submitting} sx={{ textTransform: "none", color: "text.secondary", borderColor: "divider" }}>
               {t('admin_prov_cancelar', 'Cancelar')}
             </Button>
-            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
+            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "none" }}>
               {submitting ? t('admin_prov_guardando', 'Guardando...') : editingExterno ? t('admin_prov_actualizar', 'Actualizar') : t('admin_prov_crear', 'Crear')}
             </Button>
           </DialogActions>
@@ -760,17 +674,17 @@ export default function AdminProveedores() {
 
       {/* Modal Eliminar Interno */}
       <Dialog open={deleteDialogInterno.open} onClose={() => setDeleteDialogInterno({ open: false, item: null })}>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
         <DialogContent>
           <Typography>
             {t('admin_prov_confirmar_eliminar_interno', '¿Eliminar el proveedor interno')} <strong>{deleteDialogInterno.item?.centro_nombre || deleteDialogInterno.item?.centro}</strong> - <strong>{deleteDialogInterno.item?.almacen_nombre || deleteDialogInterno.item?.almacen}</strong>?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogInterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
+          <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogInterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "none", color: "text.secondary", borderColor: "divider" }}>
             {t('admin_prov_cancelar', 'Cancelar')}
           </Button>
-          <Button variant="contained" color="error" onClick={handleDeleteInterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
+          <Button variant="contained" color="error" onClick={handleDeleteInterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "none" }}>
             {submitting ? t('admin_prov_eliminando', 'Eliminando...') : t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </DialogActions>
@@ -778,22 +692,21 @@ export default function AdminProveedores() {
 
       {/* Modal Eliminar Externo */}
       <Dialog open={deleteDialogExterno.open} onClose={() => setDeleteDialogExterno({ open: false, item: null })}>
-        <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: "error.main" }}>{t('admin_prov_eliminar', 'Eliminar')}</DialogTitle>
         <DialogContent>
           <Typography>
             {t('admin_prov_confirmar_eliminar_externo', '¿Eliminar el proveedor externo')} <strong>{deleteDialogExterno.item?.nombre}</strong> ({deleteDialogExterno.item?.cuit})?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogExterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "uppercase", color: "text.secondary", borderColor: "divider" }}>
+          <Button variant="outlined" color="inherit" onClick={() => setDeleteDialogExterno({ open: false, item: null })} disabled={submitting} sx={{ textTransform: "none", color: "text.secondary", borderColor: "divider" }}>
             {t('admin_prov_cancelar', 'Cancelar')}
           </Button>
-          <Button variant="contained" color="error" onClick={handleDeleteExterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "uppercase" }}>
+          <Button variant="contained" color="error" onClick={handleDeleteExterno} disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ textTransform: "none" }}>
             {submitting ? t('admin_prov_eliminando', 'Eliminando...') : t('admin_prov_eliminar', 'Eliminar')}
           </Button>
         </DialogActions>
       </Dialog>
-      </Box>
-    </Box>
+    </PageLayout>
   );
 }

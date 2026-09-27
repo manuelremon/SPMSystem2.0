@@ -187,7 +187,13 @@ const BenchmarkAnalysis = () => {
 
                 const latestBench = benchs[0]; // Most recent benchmark
                 return (
-                  <Grid item xs={12} sm={6} md={4} key={kpiKey}>
+                  <Grid
+                    key={kpiKey}
+                    size={{
+                      xs: 12,
+                      sm: 6,
+                      md: 4
+                    }}>
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="subtitle2" gutterBottom>
@@ -242,7 +248,7 @@ const BenchmarkAnalysis = () => {
         <DialogTitle>{t('exec_add_benchmark', 'Agregar Benchmark')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 select
                 fullWidth
@@ -259,7 +265,7 @@ const BenchmarkAnalysis = () => {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('exec_industry', 'Industria')}
@@ -269,7 +275,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('exec_region', 'Región')}
@@ -279,7 +285,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -290,7 +296,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -301,7 +307,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -312,7 +318,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('exec_source', 'Fuente')}
@@ -321,7 +327,7 @@ const BenchmarkAnalysis = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="month"

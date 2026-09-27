@@ -136,7 +136,7 @@ export default function ShipmentCreate() {
             {t('tms_info_general', 'Informacion General')}
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('tms_label_tipo', 'Tipo')}</InputLabel>
                 <Select
@@ -150,7 +150,7 @@ export default function ShipmentCreate() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 label={t('tms_label_origen', 'Origen')}
                 value={form.origen}
@@ -160,7 +160,7 @@ export default function ShipmentCreate() {
                 autoComplete="off"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 label={t('tms_label_destino', 'Destino')}
                 value={form.destino}
@@ -170,7 +170,7 @@ export default function ShipmentCreate() {
                 autoComplete="off"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('tms_label_prioridad', 'Prioridad')}</InputLabel>
                 <Select
@@ -186,7 +186,7 @@ export default function ShipmentCreate() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('tms_label_tipo_carga', 'Tipo de Carga')}</InputLabel>
                 <Select
@@ -200,7 +200,7 @@ export default function ShipmentCreate() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 label={t('tms_label_fecha_prog', 'Fecha Programada')}
                 type="date"
@@ -211,7 +211,7 @@ export default function ShipmentCreate() {
                 autoComplete="off"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 label={t('tms_label_instrucciones', 'Instrucciones Especiales')}
                 value={form.instrucciones}
@@ -222,7 +222,7 @@ export default function ShipmentCreate() {
                 autoComplete="off"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -233,7 +233,7 @@ export default function ShipmentCreate() {
                 label={t('tms_label_cadena_frio', 'Cadena de Frio')}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -275,7 +275,7 @@ export default function ShipmentCreate() {
                 </IconButton>
               </Box>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     label={t('tms_item_material', 'Codigo Material')}
                     value={item.material_id}
@@ -285,7 +285,7 @@ export default function ShipmentCreate() {
                     autoComplete="off"
                   />
                 </Grid>
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                   <TextField
                     label={t('tms_item_descripcion', 'Descripcion')}
                     value={item.descripcion}
@@ -295,7 +295,7 @@ export default function ShipmentCreate() {
                     autoComplete="off"
                   />
                 </Grid>
-                <Grid item xs={6} md={3}>
+                <Grid size={{ xs: 6, md: 3 }}>
                   <TextField
                     label={t('tms_item_cantidad', 'Cantidad')}
                     type="number"
@@ -306,7 +306,7 @@ export default function ShipmentCreate() {
                     autoComplete="off"
                   />
                 </Grid>
-                <Grid item xs={6} md={3}>
+                <Grid size={{ xs: 6, md: 3 }}>
                   <TextField
                     label={t('tms_item_peso', 'Peso (kg)')}
                     type="number"
@@ -317,7 +317,7 @@ export default function ShipmentCreate() {
                     autoComplete="off"
                   />
                 </Grid>
-                <Grid item xs={6} md={3}>
+                <Grid size={{ xs: 6, md: 3 }}>
                   <TextField
                     label={t('tms_item_volumen', 'Volumen (m3)')}
                     type="number"
@@ -328,7 +328,7 @@ export default function ShipmentCreate() {
                     autoComplete="off"
                   />
                 </Grid>
-                <Grid item xs={6} md={3}>
+                <Grid size={{ xs: 6, md: 3 }}>
                   <TextField
                     label={t('tms_item_valor', 'Valor Declarado')}
                     type="number"
@@ -361,5 +361,5 @@ export default function ShipmentCreate() {
       </Box>
       </Box>
     </Box>
-  )
+  );
 }

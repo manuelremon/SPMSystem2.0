@@ -4,8 +4,7 @@
  * Permite analizar y predecir demanda para un material específico
  */
 
-import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useI18n } from '../context/i18n';
 import { useForecast } from '../hooks/useForecast';
 
@@ -24,6 +23,9 @@ import {
   MaterialSearchInput
 } from '../components/forecast';
 import { TempDataBanner } from '../components/ui/TempDataBanner';
+import PageLayout from '../components/ui/PageLayout';
+import EmptyState from '../components/ui/EmptyState';
+import { formatDate, formatDateTime, formatNumber } from '../utils/formatters';
 import api from '../services/api';
 import { FONT_SIZES } from '../components/ui/SPMChartJS';
 
@@ -33,7 +35,6 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -66,7 +67,6 @@ const MODELO_TOOLTIPS = {
 };
 
 // MUI Icons
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import ScienceIcon from '@mui/icons-material/Science';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
@@ -81,9 +81,11 @@ const selectSx = { fontSize: FONT_SIZES.md, '& .MuiSelect-select': { py: '8px' }
 const labelSx = { fontSize: FONT_SIZES.md };
 const menuProps = { PaperProps: { style: { maxHeight: 300 } } };
 
+// Fechas "YYYY-MM-DD" se interpretan en hora local para no correrse un día
+const fmtFecha = (v) => formatDate(typeof v === 'string' && v.length === 10 ? `${v}T00:00:00` : v);
+
 const ForecastIndividual = () => {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const {
     materialCodigo,
     setMaterialCodigo,
@@ -132,19 +134,21 @@ const ForecastIndividual = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('');
   const progressIntervalRef = useRef(null);
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // Simular progreso durante el análisis
   useEffect(() => {
     if (loading) {
       setLoadingProgress(0);
-      setLoadingMessage('Iniciando análisis...');
+      setLoadingMessage(tRef.current('forecast_prog_inicio', 'Iniciando análisis...'));
 
       const messages = [
-        { progress: 15, message: 'Cargando datos históricos...' },
-        { progress: 35, message: 'Procesando series temporales...' },
-        { progress: 55, message: 'Entrenando modelo ML...' },
-        { progress: 75, message: 'Generando predicciones...' },
-        { progress: 90, message: 'Calculando métricas...' },
+        { progress: 15, message: tRef.current('forecast_prog_15', 'Cargando datos históricos...') },
+        { progress: 35, message: tRef.current('forecast_prog_35', 'Procesando series temporales...') },
+        { progress: 55, message: tRef.current('forecast_prog_55', 'Entrenando modelo de ML...') },
+        { progress: 75, message: tRef.current('forecast_prog_75', 'Generando predicciones...') },
+        { progress: 90, message: tRef.current('forecast_prog_90', 'Calculando métricas...') },
       ];
 
       let currentStep = 0;
@@ -165,7 +169,7 @@ const ForecastIndividual = () => {
       // Completar al 100% brevemente antes de cerrar
       if (loadingProgress > 0) {
         setLoadingProgress(100);
-        setLoadingMessage('¡Análisis completado!');
+        setLoadingMessage(tRef.current('forecast_prog_fin', '¡Análisis completado!'));
         setTimeout(() => {
           setLoadingProgress(0);
           setLoadingMessage('');
@@ -242,65 +246,28 @@ const ForecastIndividual = () => {
   );
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "grey.100" }}>
-    <Box sx={{ maxWidth: 1700, mx: "auto", px: 4, py: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Stack direction="row" alignItems="center" gap={1.5}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            size="small"
-            sx={{
-              color: "var(--fg-muted)",
-              border: '1px solid',
-              borderColor: 'divider',
-              width: 32,
-              height: 32,
-              '&:hover': { borderColor: 'var(--primary)', color: 'var(--primary)' },
-            }}
-          >
-            <ArrowBackIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-          <Box>
-            <Typography
-              variant="h5"
-              component="h1"
-              sx={{
-                fontWeight: 700,
-                color: 'var(--fg-strong)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                fontSize: FONT_SIZES.h4,
-                lineHeight: 1.2,
-              }}
-            >
-              {t('forecast_titulo', 'Forecast de Demanda')}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'var(--fg-muted)', fontSize: FONT_SIZES.sm }}>
-              Predicción de consumo basada en modelos ML
-            </Typography>
-          </Box>
-        </Stack>
-        {forecastData && (
-          <Button
-            onClick={limpiar}
-            variant="outlined"
-            size="small"
-            startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
-            sx={{
-              fontSize: FONT_SIZES.md,
-              fontWeight: 500,
-              color: "var(--fg-muted)",
-              borderColor: "var(--border)",
-              px: 2,
-              "&:hover": { color: "var(--danger, #dc2626)", borderColor: "var(--danger, #dc2626)", bgcolor: 'var(--danger-bg)' },
-            }}
-          >
-            Limpiar
-          </Button>
-        )}
-      </Stack>
-
+    <PageLayout
+      title={t('forecast_titulo', 'Forecast de demanda')}
+      subtitle={t('forecast_subtitulo', 'Predicción de consumo basada en modelos de ML')}
+      actions={forecastData ? (
+        <Button
+          onClick={limpiar}
+          variant="outlined"
+          size="small"
+          startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+          sx={{
+            fontWeight: 500,
+            textTransform: 'none',
+            color: "var(--fg-muted)",
+            borderColor: "var(--border)",
+            px: 2,
+            "&:hover": { color: "var(--danger)", borderColor: "var(--danger)", bgcolor: 'var(--danger-bg)' },
+          }}
+        >
+          {t('common_limpiar', 'Limpiar')}
+        </Button>
+      ) : null}
+    >
       {/* Banner de Modo Temporal */}
       <TempDataBanner />
 
@@ -308,7 +275,6 @@ const ForecastIndividual = () => {
       <Paper
         elevation={0}
         sx={{
-          mb: 2.5,
           border: "1px solid",
           borderColor: 'divider',
           overflow: "hidden",
@@ -318,10 +284,10 @@ const ForecastIndividual = () => {
       >
         <form onSubmit={handleSearch}>
           {/* Fila 1: Búsqueda + Ubicación */}
-          <Box sx={{ px: 3, pt: 2, pb: 1.5 }}>
+          <Box sx={{ px: { xs: 2, md: 3 }, pt: 2, pb: 1.5 }}>
             <Stack direction="row" alignItems="flex-end" gap={2.5} flexWrap="wrap">
               {/* Búsqueda de material */}
-              <Box sx={{ flex: '1 1 320px', minWidth: 280, maxWidth: 420 }}>
+              <Box sx={{ flex: '1 1 320px', minWidth: { xs: '100%', sm: 280 }, maxWidth: 420 }}>
                 <Typography
                   component="label"
                   sx={{
@@ -350,7 +316,7 @@ const ForecastIndividual = () => {
 
               {/* Centro */}
               <FormControl size="small" sx={{ minWidth: 150, flex: '0 1 170px' }}>
-                <InputLabel sx={labelSx}>Centro</InputLabel>
+                <InputLabel sx={labelSx}>{t('common_centro', 'Centro')}</InputLabel>
                 <Select
                   multiple
                   value={Array.isArray(centro) ? centro : (centro ? [centro] : [])}
@@ -365,14 +331,14 @@ const ForecastIndividual = () => {
                     }
                   }}
                   disabled={loading || loadingCatalogos}
-                  input={<OutlinedInput label="Centro" />}
-                  renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
+                  input={<OutlinedInput label={t('common_centro', 'Centro')} />}
+                  renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t('forecast_selec', 'selec.')}` : selected.join(", ")}
                   MenuProps={menuProps}
                   sx={selectSx}
                 >
                   <MenuItem value="__todos__">
                     <Checkbox checked={Array.isArray(centro) && centro.length === centrosDisponibles.length && centrosDisponibles.length > 0} size="small" />
-                    <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                    <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
                   </MenuItem>
                   {centrosDisponibles.map((c) => (
                     <MenuItem key={c.id} value={c.id}>
@@ -385,7 +351,7 @@ const ForecastIndividual = () => {
 
               {/* Almacén */}
               <FormControl size="small" sx={{ minWidth: 150, flex: '0 1 170px' }}>
-                <InputLabel sx={labelSx}>Almacén</InputLabel>
+                <InputLabel sx={labelSx}>{t('common_almacen', 'Almacén')}</InputLabel>
                 <Select
                   multiple
                   value={Array.isArray(almacen) ? almacen : (almacen ? [almacen] : [])}
@@ -400,14 +366,14 @@ const ForecastIndividual = () => {
                     }
                   }}
                   disabled={loading || loadingCatalogos}
-                  input={<OutlinedInput label="Almacén" />}
-                  renderValue={(selected) => selected.length > 1 ? `${selected.length} selec.` : selected.join(", ")}
+                  input={<OutlinedInput label={t('common_almacen', 'Almacén')} />}
+                  renderValue={(selected) => selected.length > 1 ? `${selected.length} ${t('forecast_selec', 'selec.')}` : selected.join(", ")}
                   MenuProps={menuProps}
                   sx={selectSx}
                 >
                   <MenuItem value="__todos__">
                     <Checkbox checked={Array.isArray(almacen) && almacen.length === almacenesDisponibles.length && almacenesDisponibles.length > 0} size="small" />
-                    <ListItemText primary="Seleccionar todos" primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
+                    <ListItemText primary={t('common_seleccionar_todos', 'Seleccionar todos')} primaryTypographyProps={{ fontSize: FONT_SIZES.md, fontWeight: 600 }} />
                   </MenuItem>
                   {almacenesDisponibles.map((a) => (
                     <MenuItem key={a.id} value={a.id}>
@@ -434,16 +400,16 @@ const ForecastIndividual = () => {
                   '&:hover': { boxShadow: 'var(--shadow-md)' },
                 }}
               >
-                {loading ? 'Analizando...' : 'Analizar'}
+                {loading ? t('forecast_analizando', 'Analizando...') : t('forecast_analizar', 'Analizar')}
               </Button>
             </Stack>
           </Box>
 
           {/* Divider */}
-          <Divider sx={{ mx: 3 }} />
+          <Divider sx={{ mx: { xs: 2, md: 3 } }} />
 
           {/* Fila 2: Parámetros del modelo */}
-          <Box sx={{ px: 3, py: 1.25 }}>
+          <Box sx={{ px: { xs: 2, md: 3 }, py: 1.25 }}>
             <Stack direction="row" alignItems="center" gap={2.5} flexWrap="wrap">
               <Typography
                 variant="caption"
@@ -456,73 +422,75 @@ const ForecastIndividual = () => {
                   mr: 0.5,
                 }}
               >
-                Modelo
+                {t('forecast_modelo', 'Modelo')}
               </Typography>
 
               {/* Histórico */}
               <Tooltip
-                title="Meses de consumo histórico para entrenar el modelo. Más datos puede mejorar la precisión pero también incluir patrones obsoletos."
+                title={t('forecast_tip_historico', 'Meses de consumo histórico para entrenar el modelo. Más datos pueden mejorar la precisión, pero también incluir patrones obsoletos.')}
                 placement="top"
                 arrow
                 slotProps={{ tooltip: { sx: { fontSize: FONT_SIZES.sm, maxWidth: 280 } } }}
               >
                 <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel sx={labelSx}>Histórico</InputLabel>
+                  <InputLabel sx={labelSx}>{t('forecast_historico', 'Histórico')}</InputLabel>
                   <Select
                     value={mesesHistorico}
                     onChange={(e) => setMesesHistorico(Number(e.target.value))}
-                    label="Histórico"
+                    label={t('forecast_historico', 'Histórico')}
                     sx={selectSx}
                   >
-                    <MenuItem value={0}>Todo</MenuItem>
-                    <MenuItem value={1}>1 mes</MenuItem>
-                    <MenuItem value={3}>3 meses</MenuItem>
-                    <MenuItem value={6}>6 meses</MenuItem>
-                    <MenuItem value={12}>12 meses</MenuItem>
-                    <MenuItem value={18}>18 meses</MenuItem>
-                    <MenuItem value={24}>24 meses</MenuItem>
+                    <MenuItem value={0}>{t('forecast_todo', 'Todo')}</MenuItem>
+                    <MenuItem value={1}>{t('forecast_m_1', '1 mes')}</MenuItem>
+                    <MenuItem value={3}>{t('forecast_m_3', '3 meses')}</MenuItem>
+                    <MenuItem value={6}>{t('forecast_m_6', '6 meses')}</MenuItem>
+                    <MenuItem value={12}>{t('forecast_m_12', '12 meses')}</MenuItem>
+                    <MenuItem value={18}>{t('forecast_m_18', '18 meses')}</MenuItem>
+                    <MenuItem value={24}>{t('forecast_m_24', '24 meses')}</MenuItem>
                   </Select>
                 </FormControl>
               </Tooltip>
 
               {/* Horizonte */}
               <FormControl size="small" sx={{ minWidth: 115 }}>
-                <InputLabel sx={labelSx}>Horizonte</InputLabel>
+                <InputLabel sx={labelSx}>{t('forecast_horizonte', 'Horizonte')}</InputLabel>
                 <Select
                   value={diasPrediccion}
                   onChange={(e) => setDiasPrediccion(Number(e.target.value))}
-                  label="Horizonte"
+                  label={t('forecast_horizonte', 'Horizonte')}
                   sx={selectSx}
                 >
-                  <MenuItem value={30}>1 mes</MenuItem>
-                  <MenuItem value={90}>3 meses</MenuItem>
-                  <MenuItem value={180}>6 meses</MenuItem>
-                  <MenuItem value={240}>8 meses</MenuItem>
-                  <MenuItem value={300}>10 meses</MenuItem>
-                  <MenuItem value={365}>12 meses</MenuItem>
+                  <MenuItem value={30}>{t('forecast_d_30', '1 mes')}</MenuItem>
+                  <MenuItem value={90}>{t('forecast_d_90', '3 meses')}</MenuItem>
+                  <MenuItem value={180}>{t('forecast_d_180', '6 meses')}</MenuItem>
+                  <MenuItem value={240}>{t('forecast_d_240', '8 meses')}</MenuItem>
+                  <MenuItem value={300}>{t('forecast_d_300', '10 meses')}</MenuItem>
+                  <MenuItem value={365}>{t('forecast_d_365', '12 meses')}</MenuItem>
                 </Select>
               </FormControl>
 
               {/* Modelo ML */}
               <FormControl size="small" sx={{ minWidth: 170 }}>
-                <InputLabel sx={labelSx}>Algoritmo</InputLabel>
+                <InputLabel sx={labelSx}>{t('forecast_algoritmo', 'Algoritmo')}</InputLabel>
+                {/* El Tooltip va dentro del MenuItem: si lo envuelve, Select no encuentra el valor y queda vacío */}
                 <Select
-                  value={modelosDisponibles.length > 0 ? modeloSeleccionado : ''}
+                  value={modelosDisponibles.some((m) => m.id === modeloSeleccionado) ? modeloSeleccionado : ''}
                   onChange={(e) => setModeloSeleccionado(e.target.value)}
                   disabled={loading || loadingCatalogos || modelosDisponibles.length === 0}
-                  label="Algoritmo"
+                  label={t('forecast_algoritmo', 'Algoritmo')}
                   sx={selectSx}
                 >
                   {modelosDisponibles.map((modelo) => (
-                    <Tooltip
-                      key={modelo.id}
-                      title={MODELO_TOOLTIPS[modelo.id] || "Modelo de predicción de demanda"}
-                      placement="right"
-                      arrow
-                      slotProps={{ tooltip: { sx: { fontSize: FONT_SIZES.sm, maxWidth: 280 } } }}
-                    >
-                      <MenuItem value={modelo.id}>{modelo.nombre}</MenuItem>
-                    </Tooltip>
+                    <MenuItem key={modelo.id} value={modelo.id}>
+                      <Tooltip
+                        title={MODELO_TOOLTIPS[modelo.id] || t('forecast_tip_modelo', 'Modelo de predicción de demanda')}
+                        placement="right"
+                        arrow
+                        slotProps={{ tooltip: { sx: { fontSize: FONT_SIZES.sm, maxWidth: 280 } } }}
+                      >
+                        <Box component="span" sx={{ width: '100%' }}>{modelo.nombre}</Box>
+                      </Tooltip>
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -530,7 +498,7 @@ const ForecastIndividual = () => {
               {/* Indicador de parámetros modificados */}
               {parametrosModificados && (
                 <Chip
-                  label="Parámetros modificados"
+                  label={t('forecast_param_modificados', 'Parámetros modificados')}
                   size="small"
                   sx={{
                     fontSize: FONT_SIZES.xs,
@@ -561,8 +529,8 @@ const ForecastIndividual = () => {
 
         if (isColdStart && materialCodigo) {
           return (
-            <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ mb: 2 }} />}>
-              <Box sx={{ mb: 3 }}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={300} />}>
+              <Box>
                 <ForecastSimulationPanel
                   onSimulate={generateSyntheticData}
                   materialCodigo={materialCodigo}
@@ -578,7 +546,6 @@ const ForecastIndividual = () => {
             <Alert
               severity="error"
               sx={{
-                mb: 2,
                 border: '1px solid',
                 borderColor: 'error.light',
                 '& .MuiAlert-message': { fontSize: FONT_SIZES.md },
@@ -594,8 +561,8 @@ const ForecastIndividual = () => {
 
       {/* ForecastPlaceholder */}
       {!loading && !error && forecastData && !simulationMode && historicoParaGrafico && historicoParaGrafico.length < 3 && materialCodigo && (
-        <Suspense fallback={<Skeleton variant="rectangular" height={300} sx={{ mb: 2 }} />}>
-          <Box sx={{ mb: 3 }}>
+        <Suspense fallback={<Skeleton variant="rectangular" height={300} />}>
+          <Box>
             <ForecastPlaceholder
               historicalData={historicoParaGrafico}
               onGenerateForecast={handleManualForecast}
@@ -613,7 +580,6 @@ const ForecastIndividual = () => {
           <Paper
             elevation={0}
             sx={{
-              mb: 2,
               border: "1px solid",
               borderColor: 'divider',
               overflow: 'hidden',
@@ -622,8 +588,8 @@ const ForecastIndividual = () => {
             }}
           >
             {/* Material header */}
-            <Box sx={{ px: 3, pt: 2, pb: 1.5 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Box sx={{ px: { xs: 2, md: 3 }, pt: 2, pb: 1.5 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2} flexWrap="wrap">
                 <Stack direction="row" alignItems="center" gap={2}>
                   {/* Material icon badge */}
                   <Box
@@ -640,7 +606,7 @@ const ForecastIndividual = () => {
                     <AutoGraphIcon sx={{ fontSize: 22, color: simulationMode ? 'var(--warning, #d97706)' : 'var(--primary)' }} />
                   </Box>
                   <Box>
-                    <Stack direction="row" alignItems="baseline" gap={1}>
+                    <Stack direction="row" alignItems="baseline" gap={1} flexWrap="wrap">
                       <Typography
                         sx={{
                           fontWeight: 700,
@@ -684,7 +650,7 @@ const ForecastIndividual = () => {
                         }}
                       />
                       <Chip
-                        label={`${forecastData?.dias || diasPrediccion}d horizonte`}
+                        label={`${t('forecast_horizonte', 'Horizonte')}: ${forecastData?.dias || diasPrediccion} ${t('common_dias', 'días')}`}
                         size="small"
                         sx={{
                           height: 22,
@@ -698,7 +664,7 @@ const ForecastIndividual = () => {
                       />
                       {historicoInfo?.total_registros && (
                         <Chip
-                          label={`${historicoInfo.total_registros} registros`}
+                          label={`${formatNumber(historicoInfo.total_registros)} ${t('forecast_registros', 'registros')}`}
                           size="small"
                           sx={{
                             height: 22,
@@ -719,7 +685,7 @@ const ForecastIndividual = () => {
                 <Stack direction="row" gap={1} sx={{ flexShrink: 0 }}>
                   {!simulationMode && (
                     <>
-                      <Tooltip title="Validación temporal del modelo con datos históricos" placement="top" arrow>
+                      <Tooltip title={t('forecast_tip_backtest', 'Validación temporal del modelo con datos históricos')} placement="top" arrow>
                         <span>
                           <Button
                             onClick={handleBacktest}
@@ -735,11 +701,11 @@ const ForecastIndividual = () => {
                               '&:hover': { bgcolor: 'var(--bg-soft)' },
                             }}
                           >
-                            {loadingBacktest ? 'Ejecutando...' : 'Backtesting'}
+                            {loadingBacktest ? t('forecast_ejecutando', 'Ejecutando...') : t('forecast_backtesting', 'Backtesting')}
                           </Button>
                         </span>
                       </Tooltip>
-                      <Tooltip title="Comparar rendimiento entre modelos ML" placement="top" arrow>
+                      <Tooltip title={t('forecast_tip_comparar', 'Comparar el rendimiento entre modelos de ML')} placement="top" arrow>
                         <span>
                           <Button
                             onClick={handleCompararModelos}
@@ -755,7 +721,7 @@ const ForecastIndividual = () => {
                               '&:hover': { bgcolor: 'var(--bg-soft)' },
                             }}
                           >
-                            {loadingComparacion ? 'Comparando...' : 'Comparar'}
+                            {loadingComparacion ? t('forecast_comparando', 'Comparando...') : t('forecast_comparar', 'Comparar')}
                           </Button>
                         </span>
                       </Tooltip>
@@ -774,7 +740,7 @@ const ForecastIndividual = () => {
                         '&:hover': { bgcolor: 'var(--warning-bg)' },
                       }}
                     >
-                      {t('forecast_salir_simulacion', 'Salir de Simulación')}
+                      {t('forecast_salir_simulacion', 'Salir de simulación')}
                     </Button>
                   )}
                 </Stack>
@@ -785,9 +751,12 @@ const ForecastIndividual = () => {
             <Tabs
               value={activeTab}
               onChange={(e, v) => setActiveTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
               sx={{
                 minHeight: 40,
-                px: 3,
+                px: { xs: 1, md: 3 },
                 borderTop: '1px solid',
                 borderColor: 'divider',
                 bgcolor: 'var(--bg-soft)',
@@ -858,30 +827,35 @@ const ForecastIndividual = () => {
                       mb: 2,
                     }}
                   >
-                    {t('forecast_detalles_modelo', 'Detalles del Modelo')}
+                    {t('forecast_detalles_modelo', 'Detalles del modelo')}
                   </Typography>
                   <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 2.5 }}>
                     {[
                       {
-                        label: 'Modelo',
+                        key: 'modelo',
+                        label: t('forecast_modelo', 'Modelo'),
                         value: forecastData?.nombre_modelo || getNombreModelo(modeloSeleccionado),
                       },
                       {
-                        label: 'Datos históricos',
-                        value: historicoInfo ? `${historicoInfo.total_registros} registros` : `${historicoParaGrafico.length} días`,
-                        sub: historicoInfo?.fecha_inicio ? `${historicoInfo.fecha_inicio} → ${historicoInfo.fecha_fin}` : null,
+                        key: 'historico',
+                        label: t('forecast_datos_historicos', 'Datos históricos'),
+                        value: historicoInfo
+                          ? `${formatNumber(historicoInfo.total_registros)} ${t('forecast_registros', 'registros')}`
+                          : `${formatNumber(historicoParaGrafico.length)} ${t('common_dias', 'días')}`,
+                        sub: historicoInfo?.fecha_inicio ? `${fmtFecha(historicoInfo.fecha_inicio)} → ${fmtFecha(historicoInfo.fecha_fin)}` : null,
                       },
                       {
-                        label: 'Predicciones',
-                        value: `${prediccionesParaGrafico.length} días`,
+                        key: 'predicciones',
+                        label: t('forecast_predicciones', 'Predicciones'),
+                        value: `${formatNumber(prediccionesParaGrafico.length)} ${t('common_dias', 'días')}`,
                       },
                       {
-                        label: 'Generado',
-                        value: new Date().toLocaleDateString(),
-                        sub: new Date().toLocaleTimeString(),
+                        key: 'generado',
+                        label: t('forecast_generado', 'Generado'),
+                        value: formatDateTime(new Date()),
                       },
                     ].map((item) => (
-                      <Box key={item.label}>
+                      <Box key={item.key}>
                         <Typography variant="caption" sx={{ color: 'var(--fg-muted)', fontSize: FONT_SIZES.sm, display: 'block', mb: 0.25 }}>
                           {item.label}
                         </Typography>
@@ -919,8 +893,8 @@ const ForecastIndividual = () => {
 
           {/* Panel de Backtesting */}
           {showBacktest && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ mt: 2.5 }} />}>
-              <Box sx={{ mt: 2.5 }}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} />}>
+              <Box>
                 <BacktestResults data={backtestData} loading={loadingBacktest} />
               </Box>
             </Suspense>
@@ -928,8 +902,8 @@ const ForecastIndividual = () => {
 
           {/* Panel de Comparación */}
           {showComparacion && (
-            <Suspense fallback={<Skeleton variant="rectangular" height={400} sx={{ mt: 2.5 }} />}>
-              <Box sx={{ mt: 2.5 }}>
+            <Suspense fallback={<Skeleton variant="rectangular" height={400} />}>
+              <Box>
                 <ModelComparison data={comparacionData} loading={loadingComparacion} onSelectModel={handleSelectModelFromComparison} />
               </Box>
             </Suspense>
@@ -939,74 +913,25 @@ const ForecastIndividual = () => {
 
       {/* Estado vacío */}
       {!forecastData && !loading && !error && (
-        <Paper
-          elevation={0}
-          sx={{
-            border: "1px solid",
-            borderColor: 'divider',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              py: 8,
-              px: 4,
-              textAlign: "center",
-              background: 'linear-gradient(180deg, var(--bg-soft) 0%, var(--surface) 100%)',
-            }}
-          >
-            {/* Decorative icon */}
-            <Box
-              sx={{
-                width: 72,
-                height: 72,
-                borderRadius: 3,
-                bgcolor: 'var(--primary-bg-light)',
-                border: '1px solid var(--info-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <TrendingUpIcon sx={{ fontSize: 36, color: 'var(--primary)', opacity: 0.7 }} />
-            </Box>
-            <Typography
-              sx={{
-                fontWeight: 700,
-                color: 'var(--fg-strong)',
-                fontSize: FONT_SIZES.h4,
-                mb: 1,
-              }}
-            >
-              {t('forecast_empty_titulo', 'Analiza la demanda de un material')}
-            </Typography>
-            <Typography
-              sx={{
-                color: 'var(--fg-muted)',
-                fontSize: FONT_SIZES.lg,
-                maxWidth: 480,
-                mx: "auto",
-                lineHeight: 1.6,
-                mb: 3,
-              }}
-            >
-              {t('forecast_empty_descripcion', 'Ingresa el código de un material para obtener predicciones de demanda basadas en histórico de consumo.')}
-            </Typography>
-            <Stack direction="row" justifyContent="center" gap={3} sx={{ opacity: 0.5 }}>
-              {[
-                { icon: <BarChartIcon sx={{ fontSize: 20 }} />, text: 'Series temporales' },
-                { icon: <ScienceIcon sx={{ fontSize: 20 }} />, text: 'Backtesting' },
-                { icon: <CompareArrowsIcon sx={{ fontSize: 20 }} />, text: 'Comparación' },
-              ].map((feat) => (
-                <Stack key={feat.text} direction="row" alignItems="center" gap={0.75} sx={{ color: 'var(--fg-muted)' }}>
-                  {feat.icon}
-                  <Typography sx={{ fontSize: FONT_SIZES.sm, fontWeight: 500 }}>{feat.text}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </Box>
+        <Paper elevation={0} sx={{ border: "1px solid", borderColor: 'divider', py: { xs: 2, md: 4 } }}>
+          <EmptyState
+            icon={<TrendingUpIcon sx={{ fontSize: 32, color: 'var(--primary)' }} />}
+            title={t('forecast_empty_titulo', 'Analiza la demanda de un material')}
+            description={t('forecast_empty_descripcion', 'Ingresa el código de un material para obtener predicciones de demanda basadas en el histórico de consumo.')}
+            className="py-6"
+          />
+          <Stack direction="row" justifyContent="center" gap={3} flexWrap="wrap" sx={{ opacity: 0.6, px: 2 }}>
+            {[
+              { key: 'series', icon: <BarChartIcon sx={{ fontSize: 20 }} />, text: t('forecast_feat_series', 'Series temporales') },
+              { key: 'backtest', icon: <ScienceIcon sx={{ fontSize: 20 }} />, text: t('forecast_backtesting', 'Backtesting') },
+              { key: 'comparacion', icon: <CompareArrowsIcon sx={{ fontSize: 20 }} />, text: t('forecast_feat_comparacion', 'Comparación') },
+            ].map((feat) => (
+              <Stack key={feat.key} direction="row" alignItems="center" gap={0.75} sx={{ color: 'var(--fg-muted)' }}>
+                {feat.icon}
+                <Typography sx={{ fontSize: FONT_SIZES.sm, fontWeight: 500 }}>{feat.text}</Typography>
+              </Stack>
+            ))}
+          </Stack>
         </Paper>
       )}
 
@@ -1031,7 +956,7 @@ const ForecastIndividual = () => {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 380,
+              width: { xs: 'calc(100% - 32px)', sm: 380 },
               bgcolor: 'var(--surface)',
               border: '1px solid',
               borderColor: 'divider',
@@ -1074,7 +999,7 @@ const ForecastIndividual = () => {
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography sx={{ fontWeight: 700, color: 'var(--fg-strong)', fontSize: FONT_SIZES.h5 }}>
-                  Analizando
+                  {t('forecast_analizando_titulo', 'Analizando')}
                 </Typography>
                 <Typography
                   sx={{
@@ -1083,7 +1008,7 @@ const ForecastIndividual = () => {
                     fontFamily: 'var(--font-mono, monospace)',
                   }}
                 >
-                  {materialCodigo || 'Material'}
+                  {materialCodigo || t('forecast_buscar_material', 'Material')}
                 </Typography>
               </Box>
               <Typography
@@ -1150,7 +1075,7 @@ const ForecastIndividual = () => {
                 }}
               />
               <Chip
-                label={`${diasPrediccion}d`}
+                label={`${diasPrediccion} ${t('common_dias', 'días')}`}
                 size="small"
                 sx={{
                   height: 22,
@@ -1165,8 +1090,7 @@ const ForecastIndividual = () => {
           </Box>
         </Fade>
       </Modal>
-    </Box>
-    </Box>
+    </PageLayout>
   );
 };
 

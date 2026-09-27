@@ -317,7 +317,7 @@ const WarrantyList = () => {
       {/* KPIs */}
       {kpis && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -330,7 +330,7 @@ const WarrantyList = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -343,7 +343,7 @@ const WarrantyList = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -356,7 +356,7 @@ const WarrantyList = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -420,7 +420,7 @@ const WarrantyList = () => {
         <DialogTitle>{t('warranty_create_title', 'Nueva Garantía')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('warranty_material_code', 'Código Material')}
@@ -428,7 +428,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormGarantia({ ...formGarantia, material_codigo: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('warranty_supplier_cuit', 'CUIT Proveedor')}
@@ -436,7 +436,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormGarantia({ ...formGarantia, proveedor_cuit: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('warranty_type', 'Tipo')}</InputLabel>
                 <Select
@@ -450,7 +450,7 @@ const WarrantyList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -459,7 +459,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormGarantia({ ...formGarantia, duracion_meses: parseInt(e.target.value) })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="date"
@@ -469,7 +469,7 @@ const WarrantyList = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('warranty_po_id', 'ID Orden de Compra')}
@@ -477,7 +477,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormGarantia({ ...formGarantia, orden_compra_id: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline
@@ -502,7 +502,7 @@ const WarrantyList = () => {
         <DialogTitle>{t('warranty_create_claim_title', 'Nuevo Reclamo')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth>
                 <InputLabel>{t('warranty_select_warranty', 'Garantía')}</InputLabel>
                 <Select
@@ -518,7 +518,7 @@ const WarrantyList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>{t('warranty_claim_type', 'Tipo Reclamo')}</InputLabel>
                 <Select
@@ -533,7 +533,7 @@ const WarrantyList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -542,7 +542,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormReclamo({ ...formReclamo, cantidad_afectada: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -551,7 +551,7 @@ const WarrantyList = () => {
                 onChange={(e) => setFormReclamo({ ...formReclamo, costo_estimado: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 multiline

@@ -245,7 +245,7 @@ export default function ConsignmentPrograms() {
 
       {/* KPI Cards */}
       <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
@@ -261,7 +261,7 @@ export default function ConsignmentPrograms() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
@@ -277,7 +277,7 @@ export default function ConsignmentPrograms() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>

@@ -36,6 +36,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ShieldIcon from "@mui/icons-material/Shield";
 import { getInputType } from "./useAdminDatabase";
 import { useI18n } from '../../../context/i18n';
+import { formatNumber, formatDateTime } from "../../../utils/formatters";
 
 // Modal de Estructura de Tabla
 export function StructureModal({ isOpen, onClose, tableStructure }) {
@@ -47,25 +48,25 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
       maxWidth="lg"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+      <DialogTitle sx={{ fontWeight: 700 }}>
         {t('admin_estructura', 'Estructura') + ':'} {tableStructure?.table}
       </DialogTitle>
       <DialogContent dividers>
         {tableStructure && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
                 {t('admin_columnas', 'Columnas')}
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: "action.hover" }}>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Tipo</TableCell>
+                      <TableCell>{t('common_nombre', 'Nombre')}</TableCell>
+                      <TableCell>{t('db_label_tipo', 'Tipo')}</TableCell>
                       <TableCell align="center">PK</TableCell>
-                      <TableCell align="center">Nullable</TableCell>
-                      <TableCell>Default</TableCell>
+                      <TableCell align="center">{t('admin_db_admite_nulos', 'Admite nulos')}</TableCell>
+                      <TableCell>{t('admin_db_valor_defecto', 'Valor por defecto')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -87,7 +88,7 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
 
             {tableStructure.indexes?.length > 0 && (
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", mb: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
                   {t('admin_indices', 'Índices')}
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -102,7 +103,7 @@ export function StructureModal({ isOpen, onClose, tableStructure }) {
                         </Typography>
                       )}
                       {idx.unique && (
-                        <Chip label="UNIQUE" color="info" size="small" sx={{ mt: 0.5 }} />
+                        <Chip label={t('admin_db_unico', 'Único')} color="info" size="small" sx={{ mt: 0.5 }} />
                       )}
                     </Paper>
                   ))}
@@ -139,7 +140,7 @@ export function PreviewModal({
       maxWidth="xl"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+      <DialogTitle sx={{ fontWeight: 700 }}>
         Datos: {tablePreview?.table}
       </DialogTitle>
       <DialogContent dividers>
@@ -171,7 +172,7 @@ export function PreviewModal({
                   <TableRow>
                     {!isReadOnly && (
                       <TableCell align="center" sx={{ fontWeight: 600, color: "text.secondary", width: 80, bgcolor: "background.paper" }}>
-                        Acciones
+                        {t('common_acciones', 'Acciones')}
                       </TableCell>
                     )}
                     {tablePreview.columns.map((col) => (
@@ -190,14 +191,14 @@ export function PreviewModal({
                             <IconButton
                               size="small"
                               onClick={() => onEdit(row)}
-                              title="Editar"
+                              title={t('common_editar', 'Editar')}
                             >
                               <EditIcon fontSize="small" color="info" />
                             </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => onDelete(row)}
-                              title="Eliminar"
+                              title={t('common_eliminar', 'Eliminar')}
                             >
                               <DeleteIcon fontSize="small" color="error" />
                             </IconButton>
@@ -225,7 +226,7 @@ export function PreviewModal({
               </Table>
             </TableContainer>
             <Typography variant="caption" color="text.secondary" align="center">
-              Mostrando {tablePreview.rows.length} de {tablePreview.total.toLocaleString()} registros
+              {t('admin_db_mostrando', 'Mostrando')} {formatNumber(tablePreview.rows.length)} {t('admin_db_de', 'de')} {formatNumber(tablePreview.total)} {t('admin_db_registros', 'registros')}
             </Typography>
           </Box>
         )}
@@ -261,7 +262,7 @@ export function CrudFormModal({
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
+      <DialogTitle sx={{ fontWeight: 700 }}>
         {title}
       </DialogTitle>
       <DialogContent dividers>
@@ -324,16 +325,16 @@ export function CrudFormModal({
           color="inherit"
           onClick={onClose}
           disabled={loading}
-          sx={{ textTransform: "uppercase" }}
+          sx={{ textTransform: "none" }}
         >
-          Cancelar
+          {t('common_cancelar', 'Cancelar')}
         </Button>
         <Button
           variant="contained"
           onClick={onSubmit}
           disabled={loading}
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : isEdit ? <EditIcon /> : <AddIcon />}
-          sx={{ textTransform: "uppercase" }}
+          sx={{ textTransform: "none" }}
         >
           {isEdit ? t('common_guardar', 'Guardar cambios') : t('admin_crear_registro', 'Crear registro')}
         </Button>
@@ -359,7 +360,7 @@ export function DeleteModal({
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700, color: "error.main" }}>
+      <DialogTitle sx={{ fontWeight: 700, color: "error.main" }}>
         {t('admin_confirm_delete', 'Confirmar eliminación')}
       </DialogTitle>
       <DialogContent dividers>
@@ -370,7 +371,7 @@ export function DeleteModal({
 
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Datos del registro:
+              {t('admin_db_datos_registro', 'Datos del registro')}:
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               {row && Object.entries(row).slice(0, 8).map(([key, val]) => (
@@ -408,9 +409,9 @@ export function DeleteModal({
           color="inherit"
           onClick={onClose}
           disabled={loading}
-          sx={{ textTransform: "uppercase" }}
+          sx={{ textTransform: "none" }}
         >
-          Cancelar
+          {t('common_cancelar', 'Cancelar')}
         </Button>
         <Button
           variant="outlined"
@@ -418,9 +419,9 @@ export function DeleteModal({
           onClick={onSoftDelete}
           disabled={loading}
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <CancelIcon />}
-          sx={{ textTransform: "uppercase" }}
+          sx={{ textTransform: "none" }}
         >
-          {t('admin_soft_delete', 'Soft Delete')}
+          {t('admin_soft_delete', 'Desactivar (baja lógica)')}
         </Button>
         <Button
           variant="contained"
@@ -428,7 +429,7 @@ export function DeleteModal({
           onClick={onDelete}
           disabled={loading}
           startIcon={loading ? <RefreshIcon sx={{ animation: "spin 1s linear infinite", "@keyframes spin": { from: { transform: "rotate(0deg)" }, to: { transform: "rotate(360deg)" } } }} /> : <DeleteIcon />}
-          sx={{ textTransform: "uppercase" }}
+          sx={{ textTransform: "none" }}
         >
           {t('common_eliminar', 'Eliminar')}
         </Button>
@@ -447,28 +448,28 @@ export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-        Estadisticas: {tableName}
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {t('admin_db_estadisticas', 'Estadísticas')}: {tableName}
       </DialogTitle>
       <DialogContent dividers>
         {tableStats && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="body2" color="text.secondary">Filas</Typography>
-                <Typography variant="h5" fontWeight={700}>{tableStats.stats.actual_rows?.toLocaleString()}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('admin_db_filas', 'Filas')}</Typography>
+                <Typography variant="h5" fontWeight={700}>{formatNumber(tableStats.stats.actual_rows || 0)}</Typography>
               </Paper>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="body2" color="text.secondary">Tamaño</Typography>
+                <Typography variant="body2" color="text.secondary">{t('db_label_tamano', 'Tamaño')}</Typography>
                 <Typography variant="h5" fontWeight={700}>{tableStats.stats.total_size_mb} MB</Typography>
               </Paper>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="body2" color="text.secondary">Indices</Typography>
+                <Typography variant="body2" color="text.secondary">{t('admin_indices', 'Índices')}</Typography>
                 <Typography variant="h5" fontWeight={700}>{tableStats.stats.index_count}</Typography>
               </Paper>
               {tableStats.type === "postgresql" && (
                 <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="body2" color="text.secondary">Fragmentacion</Typography>
+                  <Typography variant="body2" color="text.secondary">{t('admin_db_fragmentacion', 'Fragmentación')}</Typography>
                   <Typography
                     variant="h5"
                     fontWeight={700}
@@ -483,22 +484,22 @@ export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
             {tableStats.type === "postgresql" && (
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  Ultimo Mantenimiento
+                  {t('admin_db_ultimo_mantenimiento', 'Último mantenimiento')}
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                   <Typography variant="body2">
-                    <Typography component="span" color="text.secondary">VACUUM:</Typography> {tableStats.stats.last_vacuum || tableStats.stats.last_autovacuum || "Nunca"}
+                    <Typography component="span" color="text.secondary">VACUUM:</Typography> {tableStats.stats.last_vacuum || tableStats.stats.last_autovacuum || t('admin_db_nunca', 'Nunca')}
                   </Typography>
                   <Typography variant="body2">
-                    <Typography component="span" color="text.secondary">ANALYZE:</Typography> {tableStats.stats.last_analyze || tableStats.stats.last_autoanalyze || "Nunca"}
+                    <Typography component="span" color="text.secondary">ANALYZE:</Typography> {tableStats.stats.last_analyze || tableStats.stats.last_autoanalyze || t('admin_db_nunca', 'Nunca')}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 1 }}>
                   <Typography variant="body2">
-                    <Typography component="span" color="text.secondary">Live tuples:</Typography> {tableStats.stats.live_tuples?.toLocaleString()}
+                    <Typography component="span" color="text.secondary">{t('admin_db_tuplas_vivas', 'Tuplas vivas')}:</Typography> {formatNumber(tableStats.stats.live_tuples || 0)}
                   </Typography>
                   <Typography variant="body2">
-                    <Typography component="span" color="text.secondary">Dead tuples:</Typography> {tableStats.stats.dead_tuples?.toLocaleString()}
+                    <Typography component="span" color="text.secondary">{t('admin_db_tuplas_muertas', 'Tuplas muertas')}:</Typography> {formatNumber(tableStats.stats.dead_tuples || 0)}
                   </Typography>
                 </Box>
               </Box>
@@ -507,10 +508,10 @@ export function StatsModal({ isOpen, onClose, tableName, tableStats }) {
             {tableStats.type === "sqlite" && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                 <Typography variant="body2">
-                  <Typography component="span" color="text.secondary">Paginas:</Typography> {tableStats.stats.page_count?.toLocaleString()}
+                  <Typography component="span" color="text.secondary">{t('admin_db_paginas', 'Páginas')}:</Typography> {formatNumber(tableStats.stats.page_count || 0)}
                 </Typography>
                 <Typography variant="body2">
-                  <Typography component="span" color="text.secondary">Tamaño pagina:</Typography> {tableStats.stats.page_size} bytes
+                  <Typography component="span" color="text.secondary">{t('admin_db_tamano_pagina', 'Tamaño de página')}:</Typography> {tableStats.stats.page_size} bytes
                 </Typography>
               </Box>
             )}
@@ -543,30 +544,30 @@ export function AuditModal({ isOpen, onClose, auditLogs }) {
       maxWidth="xl"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-        Audit Log - Ultimos 7 dias
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {t('admin_db_audit_titulo', 'Registro de auditoría: últimos 7 días')}
       </DialogTitle>
       <DialogContent dividers>
         <TableContainer sx={{ maxHeight: "60vh" }}>
           {auditLogs.length === 0 ? (
             <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
-              No hay registros de auditoria
+              {t('admin_db_sin_auditoria', 'No hay registros de auditoría')}
             </Typography>
           ) : (
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Fecha</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Accion</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Entidad</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Usuario</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('common_fecha', 'Fecha')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('admin_db_accion', 'Acción')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('admin_db_entidad', 'Entidad')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('common_usuario', 'Usuario')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {auditLogs.map((log) => (
                   <TableRow key={log.id} hover>
                     <TableCell sx={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
-                      {new Date(log.created_at).toLocaleString()}
+                      {formatDateTime(log.created_at)}
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -609,24 +610,24 @@ export function ConnectionsModal({ isOpen, onClose, connections }) {
       maxWidth="xl"
       fullWidth
     >
-      <DialogTitle sx={{ textTransform: "uppercase", fontWeight: 700 }}>
-        Conexiones Activas - PostgreSQL
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {t('admin_db_conexiones_titulo', 'Conexiones activas: PostgreSQL')}
       </DialogTitle>
       <DialogContent dividers>
         <TableContainer sx={{ maxHeight: "60vh" }}>
           {connections.length === 0 ? (
             <Typography color="text.secondary" align="center" sx={{ py: 8 }}>
-              No hay conexiones activas
+              {t('admin_db_sin_conexiones', 'No hay conexiones activas')}
             </Typography>
           ) : (
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ bgcolor: "background.paper" }}>PID</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Usuario</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>App</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Estado</TableCell>
-                  <TableCell sx={{ bgcolor: "background.paper" }}>Duracion</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('common_usuario', 'Usuario')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('admin_db_aplicacion', 'Aplicación')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('common_estado', 'Estado')}</TableCell>
+                  <TableCell sx={{ bgcolor: "background.paper" }}>{t('admin_db_duracion', 'Duración')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

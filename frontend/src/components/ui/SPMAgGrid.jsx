@@ -10,10 +10,14 @@ import PropTypes from 'prop-types';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
 import Tooltip from '@mui/material/Tooltip';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import * as XLSX from 'xlsx';
+import { useI18n } from '../../context/i18n';
 
 // Registrar módulos de AG Grid Community (requerido en v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -135,6 +139,7 @@ export function SPMAgGrid({
   paginationPageSize = 25,
   paginationPageSizeSelector = [10, 25, 50, 100],
   enableQuickFilter = true,
+  searchable = false,
   onRowClick,
   onRowDoubleClick,
   onSelectionChanged,
@@ -148,6 +153,8 @@ export function SPMAgGrid({
   ...props
 }) {
   const gridRef = useRef(null);
+  const { t } = useI18n();
+  const [quickFilterText, setQuickFilterText] = useState('');
 
   // Ensure paginationPageSize is included in selector to avoid AG Grid warning
   const resolvedPageSizeSelector = useMemo(() => {
@@ -255,9 +262,9 @@ export function SPMAgGrid({
   // Mensaje de carga
   const overlayLoadingTemplate = useMemo(() => (
     `<div style="padding: 20px; text-align: center; color: var(--fg-muted);">
-      <span>Cargando...</span>
+      <span>${t('common_cargando', 'Cargando…')}</span>
     </div>`
-  ), []);
+  ), [t]);
 
   // Normalizar altura
   const normalizedHeight = typeof height === 'number' ? `${height}px` : height;
@@ -269,7 +276,8 @@ export function SPMAgGrid({
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: searchable ? 'space-between' : 'flex-end',
+            flexWrap: 'wrap',
             alignItems: 'center',
             p: 1,
             borderBottom: '1px solid var(--border)',
@@ -277,24 +285,34 @@ export function SPMAgGrid({
             gap: 1,
           }}
         >
-          <Tooltip title="Descargar XLSX">
-            <IconButton
+          {searchable && (
+            <TextField
+              size="small"
+              value={quickFilterText}
+              onChange={(e) => setQuickFilterText(e.target.value)}
+              placeholder={t('common_buscar_placeholder', 'Buscar…')}
+              inputProps={{ 'aria-label': t('common_buscar', 'Buscar') }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ minWidth: { xs: '100%', sm: 280 }, bgcolor: 'background.paper' }}
+            />
+          )}
+          <Tooltip title={t('grid_descargar_xlsx', 'Descargar Excel (XLSX)')}>
+            <Button
               onClick={handleExportXLSX}
               size="small"
-              sx={{
-                color: 'var(--success)',
-                border: '1px solid var(--success)',
-                borderRadius: 'var(--radius-xs)',
-                padding: '4px 8px',
-                '&:hover': {
-                  backgroundColor: 'var(--success)',
-                  color: 'var(--card)',
-                },
-              }}
+              variant="outlined"
+              color="success"
+              startIcon={<FileDownloadIcon fontSize="small" />}
+              sx={{ textTransform: 'none', py: 0.25 }}
             >
-              <FileDownloadIcon sx={{ fontSize: '1rem', mr: 0.5 }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>XLSX</span>
-            </IconButton>
+              XLSX
+            </Button>
           </Tooltip>
         </Box>
       )}
@@ -317,6 +335,7 @@ export function SPMAgGrid({
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          quickFilterText={searchable ? quickFilterText : undefined}
           getRowId={getRowId}
           localeText={AG_GRID_LOCALE_ES}
           pagination={pagination}
@@ -352,6 +371,7 @@ SPMAgGrid.propTypes = {
   paginationPageSize: PropTypes.number,
   paginationPageSizeSelector: PropTypes.arrayOf(PropTypes.number),
   enableQuickFilter: PropTypes.bool,
+  searchable: PropTypes.bool,
   onRowClick: PropTypes.func,
   onRowDoubleClick: PropTypes.func,
   onSelectionChanged: PropTypes.func,
