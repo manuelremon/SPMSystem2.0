@@ -124,22 +124,26 @@ def _puntaje(material: dict, grupos: list[list[str]]) -> int:
 
 
 def contar_equivalencias(codigos: list[str]) -> dict[str, int]:
-    """Cantidad de equivalencias por codigo (como base o como equivalente). Omite los que tienen 0."""
+    """Cantidad de equivalencias por codigo (como base o como equivalente).
+
+    Cuenta codigos de contraparte DISTINTOS: un par A<->B no se duplica aunque
+    exista en ambos sentidos (A->B y B->A) o repetido bajo varios tipos. Omite
+    los codigos que quedan en 0.
+    """
     if not codigos:
         return {}
     marcas = ", ".join(["%s"] * len(codigos))
-    conteo: dict[str, int] = {}
     with get_db_connection(DB_MATERIALES) as conn:
         cur = conn.cursor()
-        for columna in ("material_base", "material_equivalente"):
-            cur.execute(
-                f"SELECT {columna} AS codigo, COUNT(*) AS n FROM materiales_equivalencias "
-                f"WHERE {columna} IN ({marcas}) GROUP BY {columna}",
-                list(codigos),
-            )
-            for f in cur.fetchall():
-                conteo[f["codigo"]] = conteo.get(f["codigo"], 0) + int(f["n"])
-    return conteo
+        cur.execute(
+            "SELECT codigo, COUNT(DISTINCT otro) AS n FROM ("
+            f"SELECT material_base AS codigo, material_equivalente AS otro FROM materiales_equivalencias WHERE material_base IN ({marcas}) "
+            "UNION ALL "
+            f"SELECT material_equivalente AS codigo, material_base AS otro FROM materiales_equivalencias WHERE material_equivalente IN ({marcas})"
+            ") t WHERE otro <> codigo GROUP BY codigo",
+            list(codigos) + list(codigos),
+        )
+        return {f["codigo"]: int(f["n"]) for f in cur.fetchall()}
 
 
 def buscar_por_descripcion(texto: str, limite: int = 8) -> list[dict]:

@@ -136,6 +136,28 @@ class TestBuscarPorDescripcion:
             "0101-0000090": 1,
         }
 
+    def test_contar_equivalencias_no_duplica_par_invertido(self, db_materiales):
+        """Una fila inversa del mismo par (o el mismo par bajo otro tipo) no debe duplicar el conteo."""
+        conn = db_module._connect_sqlite(db_materiales)
+        conn.execute(
+            "INSERT INTO materiales_equivalencias VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                "0101-0000081",
+                "BOMBA CENTRIF. 2HP",
+                "0101-0000080",
+                "BOMBA CENTRIF./REP",
+                "E2_SUPLIBLE",
+                "Potencia",
+                "Reverso del par ya existente",
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        esperado = sum(len(g["items"]) for g in svc.equivalencias_de("0101-0000080")["grupos"])
+        assert esperado == 2
+        assert svc.contar_equivalencias(["0101-0000080"])["0101-0000080"] == esperado
+
 
 class TestEquivalenciasYResponder:
     def test_equivalencias_agrupadas_en_orden(self, db_materiales):
@@ -186,6 +208,12 @@ class TestEquivalenciasYResponder:
     def test_responder_sin_resultados(self, db_materiales):
         r = svc.responder("zzzz qqqq")
         assert r["intencion"] == "sin_resultados" and r["materiales"] == []
+
+    def test_responder_codigo_valido_sin_equivalencias(self, db_materiales):
+        r = svc.responder("0303-0000001")
+        assert r["intencion"] == "codigo"
+        assert r["materiales"][0]["codigo"] == "0303-0000001"
+        assert r["equivalencias"]["grupos"] == []
 
 
 class TestEndpointAsistente:
