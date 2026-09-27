@@ -215,7 +215,7 @@ export default function BuscadorMaterialesPanel({ onFiltrarTabla, onCerrar }) {
         onClose={() => setMenu({ material: null, anchorEl: null })}
         onAviso={setAviso}
       />
-      <Snackbar open={Boolean(aviso)} autoHideDuration={6000} onClose={() => setAviso(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+      <Snackbar open={Boolean(aviso)} autoHideDuration={6000} onClose={() => setAviso(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         {aviso ? (
           <Alert
             severity={aviso.tipo === "success" ? "success" : "error"}
