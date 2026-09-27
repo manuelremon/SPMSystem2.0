@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useI18n } from "../context/i18n";
 import api from "../services/api";
 import PageLayout from "../components/ui/PageLayout";
-import { formatCurrency as fmtCurrency, formatNumber as fmtNumber } from "../utils/formatters";
+import { formatCurrency as fmtCurrency, formatNumber as fmtNumber, formatDateFull } from "../utils/formatters";
 
 // MUI Components
 import {
@@ -163,10 +163,17 @@ function BooleanCellRenderer({ value }) {
   );
 }
 
-/** Days without movement cell renderer with color coding */
+/** Days without movement cell renderer with color coding (null = nunca consumio) */
 function DaysCellRenderer({ value }) {
+  const { t } = useI18n();
   const days = value;
-  if (days == null) return <span style={{ color: "var(--fg-subtle)" }}>-</span>;
+  if (days == null) {
+    return (
+      <span style={{ color: "var(--danger)", fontWeight: 500 }}>
+        {t("stock_sin_consumo_registrado", "Sin consumo")}
+      </span>
+    );
+  }
 
   let color = "var(--fg-muted)";
   let fontWeight = 400;
@@ -263,8 +270,18 @@ export default function Stock() {
       headerName: t("stock_inmovilizado", "Inmovilizado"),
       field: "inmovilizado",
       width: 130,
+      headerTooltip: t("stock_inmovilizado_tt", "Sin consumo en los 12 meses previos a la fecha de corte del stock"),
       cellRenderer: BooleanCellRenderer,
       cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
+      filter: true,
+    },
+    {
+      headerName: t("stock_col_marca_sap", "Marca SAP"),
+      field: "inmovilizado_sap",
+      width: 120,
+      cellRenderer: BooleanCellRenderer,
+      cellStyle: { textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' },
+      headerTooltip: t("stock_col_marca_sap_tt", "Marca de inmovilizado informada por SAP (solo informativa)"),
       filter: true,
     },
     {
@@ -357,6 +374,11 @@ export default function Stock() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  // "al 19/07/2025": fecha de corte del stock con la que se calcula el inmovilizado
+  const alCorte = resumen?.fecha_corte
+    ? t("stock_al_corte", "al {fecha}").replace("{fecha}", formatDateFull(resumen.fecha_corte))
+    : null;
+
   const clearFilters = () => {
     setSearch("");
     setCentro("");
@@ -399,12 +421,13 @@ export default function Stock() {
           <SummaryCard
             label={t("stock_inmovilizado", "Inmovilizado")}
             value={formatNumber(resumen.inmovilizado_items)}
-            subvalue={formatCurrency(resumen.inmovilizado_valor)}
+            subvalue={alCorte ? `${formatCurrency(resumen.inmovilizado_valor)} · ${alCorte}` : formatCurrency(resumen.inmovilizado_valor)}
             variant="warning"
           />
           <SummaryCard
-            label={t("stock_sin_consumo", "Sin consumo 365 días")}
+            label={t("stock_sin_consumo_12m", "Sin consumo 12 meses")}
             value={formatNumber(resumen.sin_consumo_365d)}
+            subvalue={alCorte}
             variant="danger"
           />
           <SummaryCard
@@ -417,6 +440,14 @@ export default function Stock() {
             subvalue={t("stock_unidades_sub", "unidades")}
           />
         </Box>
+      )}
+      {resumen?.fecha_corte && (
+        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+          {t(
+            "stock_leyenda_inmovilizado",
+            "Inmovilizado: sin consumo en los 12 meses previos a la fecha de corte del stock ({fecha}), por material, centro y almacén. La marca SAP es solo informativa."
+          ).replace("{fecha}", formatDateFull(resumen.fecha_corte))}
+        </Typography>
       )}
 
       {/* Main Card with Filters and Table */}

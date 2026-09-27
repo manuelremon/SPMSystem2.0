@@ -3,6 +3,7 @@ import { ScrollReveal } from "../../components/ui/ScrollReveal";
 import { FONT_SIZES } from '../../components/ui/SPMChartJS';
 import MrpAlertsCard from './MrpAlertsCard';
 import { useI18n } from '../../context/i18n';
+import { formatDateFull } from '../../utils/formatters';
 // MUI Components
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -153,6 +154,11 @@ function KPIRow3({
                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: FONT_SIZES.md }}>
                   {t('dash_stock_inmovilizado', 'Stock Inmovilizado Global')}
                 </Typography>
+                {stockInmovilizadoFiltrado.fechaCorte && (
+                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                    {t('dash_stock_inmovilizado_corte', 'Sin consumo en 12 meses, al {fecha}').replace('{fecha}', formatDateFull(stockInmovilizadoFiltrado.fechaCorte))}
+                  </Typography>
+                )}
               </Box>
               <Box sx={{ px: 2, pb: 2 }}>
                 <Box sx={{ '& > *:not(:last-child)': { borderBottom: '1px solid', borderColor: 'grey.200' } }}>

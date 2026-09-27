@@ -451,6 +451,7 @@ export default function DashboardAdmin() {
             valorTotal: response.data.valorTotal || 0,
             globalTotal: response.data.globalTotal || response.data.total || 0,
             globalValorTotal: response.data.globalValorTotal || response.data.valorTotal || 0,
+            fechaCorte: response.data.fecha_corte || null,
           });
         }
       } catch (err) {
@@ -637,6 +638,7 @@ export default function DashboardAdmin() {
       valorTotal: stockInmovilizado.valorTotal,
       globalTotal: stockInmovilizado.globalTotal || 0,
       globalValorTotal: stockInmovilizado.globalValorTotal || 0,
+      fechaCorte: stockInmovilizado.fechaCorte || null,
       hayDatos: stockInmovilizado.items.length > 0,
     };
   }, [stockInmovilizado]);
