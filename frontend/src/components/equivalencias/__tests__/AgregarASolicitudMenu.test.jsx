@@ -32,7 +32,6 @@ describe('sumarMaterial', () => {
 describe('AgregarASolicitudMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    sessionStorage.clear()
     solicitudes.listar.mockResolvedValue({ data: { solicitudes: BORRADORES } })
   })
 
@@ -70,9 +69,9 @@ describe('AgregarASolicitudMenu', () => {
   it('nueva solicitud precarga el material y navega', async () => {
     abrir()
     fireEvent.click(await screen.findByText('Nueva solicitud'))
-    expect(JSON.parse(sessionStorage.getItem('suggested_items'))).toEqual([
+    expect(sessionStorage.setItem).toHaveBeenCalledWith('suggested_items', JSON.stringify([
       { codigo: '0101-0000080', descripcion: 'BOMBA CENTRIF./REP', unidad: 'UNI', cantidad: 1 },
-    ])
+    ]))
     expect(mockNavigate).toHaveBeenCalledWith('/solicitudes/nueva')
   })
 })
