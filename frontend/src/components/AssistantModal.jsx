@@ -87,7 +87,7 @@ export function AssistantModal({ isOpen, onClose, onUseSuggestions }) {
         codigo_sap: s.codigo_sap,
         descripcion: s.descripcion,
         cantidad: s.cantidad_sugerida,
-        precio_unitario: s.precio_unitario || 0,
+        precio_unitario: s.precio_unitario ?? null, // null = sin precio: el carrito lo omite
         unidad: s.unidad,
       }));
 

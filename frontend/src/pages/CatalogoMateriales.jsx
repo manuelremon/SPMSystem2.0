@@ -256,7 +256,9 @@ function DetailModal({
                     {t("catalogo_precio_usd", "Precio USD")}
                   </Typography>
                   <Typography variant="body2" fontWeight={600} color="text.primary">
-                    {formatCurrency(material.precio_usd || 0)}
+                    {material.precio_usd == null
+                      ? t("materials_sin_precio", "Sin precio")
+                      : formatCurrency(material.precio_usd)}
                   </Typography>
                 </Box>
               </Paper>
@@ -778,7 +780,9 @@ export default function CatalogoMateriales() {
         cellStyle: { textAlign: 'right' },
         headerClass: 'ag-right-aligned-header',
         cellRenderer: (params) => (
-          <Typography variant="body2">{formatCurrency(params.value || 0)}</Typography>
+          <Typography variant="body2" color={params.value == null ? "text.secondary" : undefined}>
+            {params.value == null ? t("materials_sin_precio", "Sin precio") : formatCurrency(params.value)}
+          </Typography>
         ),
       },
       {

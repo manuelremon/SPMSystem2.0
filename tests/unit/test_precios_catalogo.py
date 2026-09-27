@@ -94,6 +94,9 @@ def sqlite_dbs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(mig, "get_db_connection", _conn)
     monkeypatch.setattr(mig, "is_using_postgresql", lambda: False)
+    # El catalogo de prueba tiene 2 de 5 (40 %) con precio SAP: se baja el freno
+    # para estos casos; el freno real (50 %) se prueba aparte.
+    monkeypatch.setattr(mig, "UMBRAL_CON_PRECIO", 0.4)
     return mig, master
 
 
@@ -119,11 +122,26 @@ class TestMigracion104SQLite:
         assert _leer(master, "catalogo_materiales") == antes
         assert stats["actualizados"] == 0 and stats["anulados"] == 0 and not stats["relleno_copiado"]
 
+    def test_freno_bajo_umbral_no_modifica_nada(self, sqlite_dbs, monkeypatch):
+        mig, master = sqlite_dbs
+        monkeypatch.setattr(mig, "UMBRAL_CON_PRECIO", 0.5)  # 2 de 5 = 40 % < 50 %
+        c = db_module._connect_sqlite(master)
+        antes = c.execute("SELECT codigo, precio_usd FROM catalogo_materiales").fetchall()
+        c.close()
+        with pytest.raises(RuntimeError, match="2 de 5"):
+            mig.up()
+        c = db_module._connect_sqlite(master)
+        despues = c.execute("SELECT codigo, precio_usd FROM catalogo_materiales").fetchall()
+        columnas = {f[1] for f in c.execute("PRAGMA table_info(catalogo_materiales)").fetchall()}
+        c.close()
+        assert [tuple(f) for f in despues] == [tuple(f) for f in antes]
+        assert "precio_usd_relleno" not in columnas  # ni siquiera el ALTER TABLE
+
     def test_limpia_cache_de_precios(self, sqlite_dbs):
         import backend.core.item_schemas as items
 
         mig, _ = sqlite_dbs
-        items._materiales_validados_cache["5030000103"] = 27391.0
+        items._materiales_validados_cache["5030000103"] = (27391.0, float("inf"))
         mig.up()
         assert items._materiales_validados_cache == {}
 
@@ -198,6 +216,13 @@ class TestMigracion104PG:
         monkeypatch.setattr(mig, "is_using_postgresql", lambda: True)
         monkeypatch.setattr(mig, "_tabla_base_pg", lambda cur: "cat_materiales")
         monkeypatch.setattr(mig, "_columnas_pg", _columnas)
+
+        # freno real (50 %): 2 de 5 aborta sin escribir
+        with pytest.raises(RuntimeError, match="2 de 5"):
+            mig.up()
+        assert not any("ALTER" in s.upper() or "UPDATE" in s.upper() for s in conexion.cur.ejecutadas)
+        monkeypatch.setattr(mig, "UMBRAL_CON_PRECIO", 0.4)
+        conexion.cur.ejecutadas.clear()
 
         stats = mig.up()
         datos = _leer(path, "cat_materiales")

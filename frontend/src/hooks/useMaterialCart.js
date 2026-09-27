@@ -175,23 +175,36 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
   const handleAddSuggestedItems = useCallback((suggestedItems) => {
     if (!Array.isArray(suggestedItems) || suggestedItems.length === 0) return
 
+    // Sin precio de referencia (precio SAP) no se puede solicitar: se omiten y se avisa
+    const precioDe = (it) => it.precio_unitario ?? it.precio_usd ?? null
+    const conPrecio = suggestedItems.filter((it) => precioDe(it) != null)
+    const omitidos = suggestedItems.length - conPrecio.length
+    const avisoOmitidos = omitidos > 0
+      ? `${omitidos} ${t('materials_suggestions_sin_precio', 'omitido(s) por no tener precio de referencia')}`
+      : ''
+
     setItems((prev) => {
       const existingCodes = new Set(prev.map((it) => it.codigo))
-      const newItems = suggestedItems.filter((it) => !existingCodes.has(it.codigo || it.codigo_sap))
+      const newItems = conPrecio.filter((it) => !existingCodes.has(it.codigo || it.codigo_sap))
 
       if (newItems.length > 0) {
-        setActionMsg(`${newItems.length} ${t('materials_suggestions_loaded', 'material(es) sugeridos agregados')}`)
+        const agregados = `${newItems.length} ${t('materials_suggestions_loaded', 'material(es) sugeridos agregados')}`
+        setActionMsg(avisoOmitidos ? `${agregados} · ${avisoOmitidos}` : agregados)
         return [...prev, ...newItems.map((it) => ({
           codigo: it.codigo || it.codigo_sap,
           descripcion: it.descripcion,
           descripcion_larga: it.descripcion_larga,
           unidad: it.unidad || 'UNI',
           cantidad: it.cantidad || 1,
-          precio_unitario: it.precio_unitario || 0,
+          precio_unitario: precioDe(it),
         }))]
       }
 
-      setActionMsg(t('materials_suggestions_duplicates', 'Los materiales ya existen en el listado'))
+      setActionMsg(
+        avisoOmitidos && conPrecio.length === 0
+          ? avisoOmitidos
+          : t('materials_suggestions_duplicates', 'Los materiales ya existen en el listado')
+      )
       return prev
     })
 

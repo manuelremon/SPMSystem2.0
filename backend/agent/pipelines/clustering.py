@@ -219,7 +219,7 @@ class ClusteringPipeline:
         for material in materiales_data:
             feature_vec = [
                 len(material.get("descripcion", "")),  # longitud descripción
-                float(material.get("precio_usd", 0)),  # precio
+                float(material.get("precio_usd") or 0),  # precio
                 1.0 if material.get("activo", True) else 0.0,  # estado
                 hash(material.get("unidad", "UNI")) % 10,  # unidad (encoded)
             ]

@@ -271,6 +271,20 @@ class TestItemsSinPrecio:
         c.close()
         assert items._precio_catalogo("0206-0000398") == pytest.approx(12.5)
 
+    def test_precio_cacheado_vence_por_ttl(self, catalogo_bd, monkeypatch):
+        items, path = catalogo_bd
+        assert items._precio_catalogo("0503-0000103") == pytest.approx(0.43)
+        c = db_module._connect_sqlite(path)
+        c.execute("UPDATE catalogo_materiales SET precio_usd = 0.99 WHERE codigo = '0503-0000103'")
+        c.commit()
+        c.close()
+        # dentro del TTL sigue el precio cacheado
+        assert items._precio_catalogo("0503-0000103") == pytest.approx(0.43)
+        # vencida la entrada se vuelve a consultar la BD
+        ahora = items.time.monotonic()
+        monkeypatch.setattr(items.time, "monotonic", lambda: ahora + items._CACHE_TTL_SEGUNDOS + 1)
+        assert items._precio_catalogo("0503-0000103") == pytest.approx(0.99)
+
     def test_inexistente_mensaje_de_siempre(self, catalogo_bd):
         items, _ = catalogo_bd
         r = items.validar_items([{"codigo": "9999-9999999", "cantidad": 1, "unidad": "UNI"}])
