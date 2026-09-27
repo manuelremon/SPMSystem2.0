@@ -37,6 +37,7 @@ export const equivalencias = {
   crear: (payload) => api.post('/equivalencias', payload),
   actualizar: (id, payload) => api.put(`/equivalencias/${id}`, payload),
   eliminar: (id) => api.delete(`/equivalencias/${id}`),
+  asistente: (mensaje) => api.post('/equivalencias/asistente', { mensaje }),
 }
 
 export const planner = {
