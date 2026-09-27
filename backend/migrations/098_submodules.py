@@ -4,7 +4,7 @@ Migracion 098: Submodulos de Planificacion e Inventario (deshabilitados).
 Agrega submodulos toggleables con module_key "padre.hijo":
   planificacion.kanban, planificacion.mps,
   inventario.vmi, inventario.consignacion, inventario.lotes,
-  inventario.retiros, inventario.conteo_ciclico, inventario.ubicaciones, inventario.slob
+  inventario.retiros, inventario.conteo_ciclico, inventario.ubicaciones, inventario.slob, inventario.recepcion
 Se crean deshabilitados (simplificacion del sistema). Se reactivan desde
 Admin > Modulos.
 
@@ -43,6 +43,7 @@ SUBMODULES = [
     ("inventario.conteo_ciclico", "nav_cycle_count", "Conteo Ciclico", "Inventory", "Inventario: conteo ciclico", 45),
     ("inventario.ubicaciones", "nav_putaway", "Ubicaciones", "Inventory", "Inventario: ubicaciones (putaway)", 46),
     ("inventario.slob", "nav_slob", "Antiguedad e Inmovilizado", "Inventory", "Inventario: antiguedad e inmovilizado (SLOB)", 47),
+    ("inventario.recepcion", "nav_warehouse", "Recepcion", "Inventory", "Inventario: recepcion en almacen (docks)", 48),
 ]
 
 

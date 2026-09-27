@@ -77,24 +77,38 @@ def _pep(valor: str) -> str:
     return "PEP-" + hashlib.sha1(valor.encode()).hexdigest()[:8].upper()
 
 
+def _filas(cur_o_resultado):
+    """
+    Filas como tuplas de VALORES. En PostgreSQL el cursor devuelve DictRow (un dict):
+    desempaquetarlo o iterarlo da los NOMBRES de columna, no los valores.
+    """
+    return [tuple(r[i] for i in range(len(r))) for r in cur_o_resultado.fetchall()]
+
+
 def _cols(cur, tabla, is_pg):
     if is_pg:
         cur.execute(
             "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=?",
             (tabla,),
         )
-        return {r[0] for r in cur.fetchall()}
+        return {r[0] for r in _filas(cur)}
     cur.execute(f'PRAGMA table_info("{tabla}")')
-    return {r[1] for r in cur.fetchall()}
+    return {r[1] for r in _filas(cur)}
 
 
 def _base(cur, is_pg, *nombres):
-    """Primer nombre que exista como tabla base."""
+    """
+    Primer nombre que exista como relacion actualizable.
+
+    PostgreSQL (prod): stock, consumo_historico, pedidos_sap, materiales_bbdd,
+    catalogo_materiales... son VISTAS simples sobre sap_* / cat_* (auto-actualizables),
+    asi que se aceptan tablas y vistas. SQLite: solo tablas (sus vistas no son actualizables).
+    """
     for n in nombres:
         if is_pg:
             cur.execute(
                 "SELECT 1 FROM information_schema.tables WHERE table_schema='public' "
-                "AND table_type='BASE TABLE' AND table_name=?",
+                "AND table_type IN ('BASE TABLE', 'VIEW') AND table_name=?",
                 (n,),
             )
         else:
@@ -118,7 +132,7 @@ def _remap_total(cur, tabla, col, mapa, validos):
         f"AND \"{col}\" NOT IN ({ph})",
         validos,
     )
-    for (v,) in cur.fetchall():
+    for (v,) in _filas(cur):
         cur.execute(f'UPDATE "{tabla}" SET "{col}" = ? WHERE "{col}" = ?', (_fallback(v, validos), v))
         n += cur.rowcount or 0
     return n
@@ -164,7 +178,7 @@ def _sap(conn, is_pg, log):
 
         # Operadoras / UTEs
         cur.execute('SELECT "ypf/ute_desc", COUNT(*) FROM stock GROUP BY 1 ORDER BY 2 DESC')
-        operadoras = [r[0] for r in cur.fetchall() if r[0] and not str(r[0]).startswith(("ACME", "Operadora", "UTE Bloque"))]
+        operadoras = [r[0] for r in _filas(cur) if r[0] and not str(r[0]).startswith(("ACME", "Operadora", "UTE Bloque"))]
         for i, v in enumerate(operadoras):
             nuevo = "ACME Energy" if i == 0 else f"UTE Bloque {i:02d}"
             cur.execute('UPDATE stock SET "ypf/ute_desc" = ? WHERE "ypf/ute_desc" = ?', (nuevo, v))
@@ -178,7 +192,7 @@ def _sap(conn, is_pg, log):
             "WHERE acreedor_descripcion IS NOT NULL AND acreedor_descripcion <> '' GROUP BY 1 ORDER BY 3 DESC, 1"
         )
         proveedores = {}
-        for i, (nombre, _codigo, _n) in enumerate(cur.fetchall()):
+        for i, (nombre, _codigo, _n) in enumerate(_filas(cur)):
             if str(nombre).endswith("S.A.") and str(nombre).split(" ")[0] in _PREFIJOS:
                 continue  # ya anonimizado
             proveedores[nombre] = (_nombre_proveedor(i), f"P{i + 1:05d}")
@@ -195,7 +209,7 @@ def _sap(conn, is_pg, log):
 
         # Elemento PEP (codigos de proyecto)
         cur.execute("SELECT DISTINCT elemento_pep FROM stock WHERE elemento_pep IS NOT NULL AND elemento_pep NOT LIKE 'PEP-%'")
-        peps = [r[0] for r in cur.fetchall()]
+        peps = [r[0] for r in _filas(cur)]
         for v in peps:
             cur.execute("UPDATE stock SET elemento_pep = ? WHERE elemento_pep = ?", (_pep(v), v))
         log.append(f"stock elementos PEP anonimizados: {len(peps)}")
@@ -214,13 +228,13 @@ def _sap(conn, is_pg, log):
 
     if _base(cur, is_pg, "pedidos_sap"):
         cur.execute("SELECT DISTINCT nombre_1 FROM pedidos_sap WHERE nombre_1 IS NOT NULL AND nombre_1 <> ''")
-        nombres = sorted(r[0] for r in cur.fetchall())
+        nombres = sorted(r[0] for r in _filas(cur))
         for i, v in enumerate(nombres):
             if str(v).endswith("S.A.") and str(v).split(" ")[0] in _PREFIJOS:
                 continue
             cur.execute("UPDATE pedidos_sap SET nombre_1 = ? WHERE nombre_1 = ?", (_nombre_proveedor(150 + i), v))
         cur.execute("SELECT DISTINCT solicitante FROM pedidos_sap WHERE solicitante IS NOT NULL AND solicitante <> ''")
-        sols = sorted(r[0] for r in cur.fetchall() if not str(r[0]).startswith("USR"))
+        sols = sorted(r[0] for r in _filas(cur) if not str(r[0]).startswith("USR"))
         for i, v in enumerate(sols):
             cur.execute("UPDATE pedidos_sap SET solicitante = ? WHERE solicitante = ?", (f"USR{i + 1:03d}", v))
         log.append(f"pedidos_sap anonimizados: {len(nombres)} proveedores, {len(sols)} solicitantes")
@@ -278,7 +292,7 @@ def _descripciones(get_conn, is_pg, log):
             )
             params = tuple(f"%{t}%" for _c in columnas for t in _TERMINOS)
             cur.execute(f'SELECT {clave}, {", ".join(chr(34) + c + chr(34) for c in columnas)} FROM "{tabla}" WHERE {filtro}', params)
-            filas = cur.fetchall()
+            filas = _filas(cur)
             cambiadas = 0
             for fila in filas:
                 nuevos = [_anonimizar_texto(fila[i + 1]) for i in range(len(columnas))]
@@ -322,7 +336,7 @@ def _spm(conn, is_pg, log):
     # Centro vacio o invalido: primer centro valido del solicitante
     ph = ",".join("?" * len(CENTROS))
     cur.execute(f"SELECT id, id_usuario FROM {t_sol} WHERE centro IS NULL OR centro NOT IN ({ph})", CENTROS)
-    arreglar = cur.fetchall()
+    arreglar = _filas(cur)
     for sid, uid in arreglar:
         cur.execute(f"SELECT centros FROM {t_usr} WHERE id_spm = ?", (str(uid),))
         row = cur.fetchone()
@@ -336,9 +350,9 @@ def _spm(conn, is_pg, log):
         cur.execute(f"UPDATE {t_pi} SET centro = REPLACE(centro, 'SEED_', '') WHERE centro LIKE 'SEED_%'")
         log.append(f"{t_pi}.centro sin prefijo SEED_: {cur.rowcount}")
         cur.execute("SELECT codigo, nombre FROM catalogo_almacen")
-        nombres_alm = {r[0]: r[1] for r in cur.fetchall()}
+        nombres_alm = {r[0]: r[1] for r in _filas(cur)}
         cur.execute("SELECT codigo, nombre FROM catalogo_centro")
-        nombres_cen = {r[0]: r[1] for r in cur.fetchall()}
+        nombres_cen = {r[0]: r[1] for r in _filas(cur)}
         agregados = 0
         for centro in CENTROS:
             cur.execute(
@@ -347,7 +361,7 @@ def _spm(conn, is_pg, log):
                 (centro,),
             )
             base = cur.fetchone()
-            base = tuple(base) if base else ("Almacenes", None, None, None, None, None)
+            base = tuple(base[i] for i in range(len(base))) if base else ("Almacenes", None, None, None, None, None)
             for alm in ALMACENES:
                 cur.execute(f"SELECT 1 FROM {t_pi} WHERE centro = ? AND almacen = ?", (centro, alm))
                 if cur.fetchone():
@@ -393,7 +407,7 @@ def verificar(get_conn, is_pg):
                 f"AND \"{col}\" NOT IN ({ph}) GROUP BY 1",
                 validos,
             )
-            problemas += [(t, col, r[0], r[1]) for r in cur.fetchall()]
+            problemas += [(t, col, r[0], r[1]) for r in _filas(cur)]
     return problemas
 
 

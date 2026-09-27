@@ -105,6 +105,14 @@ UMBRAL_L2 = 1_000_000
 ESTADOS_LEGACY = {"Borrador": "draft", "borrador": "draft", "processing": "in_treatment", "closed": "completed"}
 
 
+def _filas(cur_o_resultado):
+    """
+    Filas como tuplas de VALORES. En PostgreSQL el cursor devuelve DictRow (un dict):
+    desempaquetarlo o iterarlo da los NOMBRES de columna, no los valores.
+    """
+    return [tuple(r[i] for i in range(len(r))) for r in cur_o_resultado.fetchall()]
+
+
 def perfil(rol: str) -> str:
     roles = {x.strip().strip('"[]').lower() for x in re.split(r"[,;]", rol or "") if x.strip()}
     if roles & {"admin", "administrador"}:
@@ -145,7 +153,7 @@ class Consolidador:
             )
         else:
             self.cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-        return [r[0] for r in self.cur.fetchall()]
+        return [r[0] for r in _filas(self.cur)]
 
     def columns(self, table: str) -> list:
         if self.pg:
@@ -153,9 +161,9 @@ class Consolidador:
                 "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=?",
                 (table,),
             )
-            return [r[0] for r in self.cur.fetchall()]
+            return [r[0] for r in _filas(self.cur)]
         self.cur.execute(f'PRAGMA table_info("{table}")')
-        return [r[1] for r in self.cur.fetchall()]
+        return [r[1] for r in _filas(self.cur)]
 
     def tabla(self, *candidatos) -> str:
         tablas = set(self.base_tables())
@@ -172,10 +180,10 @@ class Consolidador:
     def cargar_usuarios(self):
         self.t_usuario = self.tabla("usuarios", "usuario")
         self.t_solicitud = self.tabla("solicitudes", "solicitud")
-        rows = self.q(
+        rows = _filas(self.q(
             f"SELECT id_spm, nombre, apellido, rol, centros, sector, jefe, gerente1, gerente2, estado_registro "
             f"FROM {self.t_usuario}"
-        ).fetchall()
+        ))
         self.usuarios = {
             str(r[0]): dict(zip(
                 ("id_spm", "nombre", "apellido", "rol", "centros", "sector", "jefe", "gerente1", "gerente2", "estado"),
@@ -276,9 +284,9 @@ class Consolidador:
                     continue  # el organigrama se reconstruye aparte
                 valores = [
                     str(r[0]).strip()
-                    for r in self.q(
+                    for r in _filas(self.q(
                         f'SELECT DISTINCT CAST("{col}" AS TEXT) FROM "{tabla}" WHERE "{col}" IS NOT NULL'
-                    ).fetchall()
+                    ))
                 ]
                 for valor in valores:
                     if not valor.isdigit():
@@ -373,16 +381,16 @@ class Consolidador:
                 self.normalizados[f"{viejo}->{nuevo}"] += n
 
         # En tratamiento sin planificador: asignar uno del elenco
-        rows = self.q(
+        rows = _filas(self.q(
             f"SELECT id FROM {self.t_solicitud} WHERE status IN ('approved','in_treatment') "
             f"AND (planner_id IS NULL OR planner_id = '')"
-        ).fetchall()
+        ))
         for (sid,) in rows:
             self.q(f"UPDATE {self.t_solicitud} SET planner_id=? WHERE id=?", (self.elegir("planificador"), sid))
         self.normalizados["planner asignado a aprobadas/en tratamiento"] = len(rows)
 
         # Enviadas: recalcular aprobador segun la cadena del solicitante (bandejas de jefes con trabajo)
-        rows = self.q(f"SELECT id, id_usuario, total_monto FROM {self.t_solicitud} WHERE status='submitted'").fetchall()
+        rows = _filas(self.q(f"SELECT id, id_usuario, total_monto FROM {self.t_solicitud} WHERE status='submitted'"))
         cambiados = 0
         for sid, solicitante, total in rows:
             aprobador = self.aprobador_para(str(solicitante), float(total or 0))
