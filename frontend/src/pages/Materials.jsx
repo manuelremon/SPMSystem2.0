@@ -224,14 +224,14 @@ export default function Materials() {
           <Box
             sx={{
               display: "flex",
-              flexDirection: { xs: "column-reverse", sm: "row" },
+              flexDirection: { xs: "column-reverse", md: "row" },
               justifyContent: "flex-end",
-              flexWrap: { sm: "wrap" },
+              flexWrap: { md: "wrap" },
               gap: 1.5,
               "& .MuiButton-root": {
                 textTransform: "none",
                 minHeight: 40,
-                width: { xs: "100%", sm: "auto" },
+                width: { xs: "100%", md: "auto" },
               },
             }}
           >
@@ -426,7 +426,7 @@ function SearchSection({ m, t }) {
         ref={m.searchContainerRef}
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
+          flexDirection: { xs: "column", md: "row" },
           gap: 1.5,
         }}
       >
@@ -439,7 +439,7 @@ function SearchSection({ m, t }) {
           placeholder={t("materials_codigo_material", "Código de material")}
           size="small"
           sx={{
-            width: { xs: "100%", sm: 170 },
+            width: { xs: "100%", md: 170 },
             flexShrink: 0,
           }}
           aria-label={t("materials_codigo_material", "Código de material")}
@@ -453,7 +453,7 @@ function SearchSection({ m, t }) {
           onKeyDown={m.handleSearchKeyDown}
           placeholder={t("materials_buscar_desc", "Buscar por descripción...")}
           size="small"
-          sx={{ flex: 1, maxWidth: { sm: 320 } }}
+          sx={{ flex: { md: 1 }, maxWidth: { md: 320 } }}
           aria-label={t("materials_descripcion", "Descripción")}
           InputProps={{
             endAdornment: (
