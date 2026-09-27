@@ -44,8 +44,9 @@ def _contar(cur, tabla):
         f"SELECT COUNT(*), COALESCE(SUM(n - 1), 0) FROM "
         f"(SELECT COUNT(*) AS n FROM {tabla} GROUP BY {COLUMNAS_CLAVE} HAVING COUNT(*) > 1) d"
     )
-    grupos, sobrantes = cur.fetchone()
-    return total, grupos, sobrantes
+    # Acceso por indice: en PG la fila es un DictRow (desempaquetarla da los nombres)
+    fila = cur.fetchone()
+    return total, fila[0], fila[1]
 
 
 def _deduplicar(cur, tabla, columna_id):
@@ -86,12 +87,13 @@ def _recrear_vista(cur):
     cur.execute(sql_stock_vista())
     for sql in INDICES_VISTA:
         cur.execute(sql)
-    cur.execute("REFRESH MATERIALIZED VIEW stock_vista")
+    # CREATE MATERIALIZED VIEW ... AS ya la deja poblada: no hace falta REFRESH
     cur.execute(
         "SELECT COUNT(*), COUNT(*) FILTER (WHERE inmovilizado), "
         "COUNT(*) FILTER (WHERE inmovilizado_sap), MAX(fecha_corte) FROM stock_vista"
     )
-    claves, inmov, marca_sap, corte = cur.fetchone()
+    fila = cur.fetchone()
+    claves, inmov, marca_sap, corte = fila[0], fila[1], fila[2], fila[3]
     print(f"  - stock_vista: {claves} claves, {inmov} inmovilizadas (definicion unica), "
           f"{marca_sap} con marca SAP, corte {corte}")
 

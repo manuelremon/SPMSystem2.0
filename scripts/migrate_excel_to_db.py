@@ -10,6 +10,11 @@ Bases de datos generadas:
     - data/equivalentes.db  : Equivalencias de materiales
     - data/sap_data.db      : Stock, consumo histórico, pedidos SAP
 
+PostgreSQL: si DATABASE_URL apunta a PostgreSQL, al terminar se refresca la
+vista materializada stock_vista (REFRESH MATERIALIZED VIEW, si existe) para que
+/api/stock, /api/stock/resumen y el KPI de stock inmovilizado reflejen los datos
+importados (fecha de corte, inmovilizado, dias sin movimiento).
+
 Fecha: 2025-12-05
 """
 
@@ -255,6 +260,24 @@ def verify_databases():
         conn.close()
 
 
+def refrescar_stock_vista() -> bool:
+    """REFRESH MATERIALIZED VIEW stock_vista si se usa PostgreSQL y la vista existe."""
+    from backend.core.db import get_db_connection, is_using_postgresql
+    from backend.services.inmovilizado_service import tiene_stock_vista
+
+    if not is_using_postgresql():
+        return False
+    with get_db_connection("sap_data") as conn:
+        cur = conn.cursor()
+        if not tiene_stock_vista(cur):
+            print("stock_vista no existe: nada que refrescar")
+            return False
+        cur.execute("REFRESH MATERIALIZED VIEW stock_vista")
+        conn.commit()
+    print("stock_vista refrescada")
+    return True
+
+
 def main():
     """Función principal de migración."""
     print("=" * 60)
@@ -294,6 +317,9 @@ def main():
 
     # Verificar resultados
     verify_databases()
+
+    # PostgreSQL: recalcular stock_vista con los datos nuevos
+    refrescar_stock_vista()
 
     print("\n" + "=" * 60)
     print("Migracion completada!")

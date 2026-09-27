@@ -281,3 +281,164 @@ class TestMigracion103:
         assert "GROUP BY s.material, s.centro, s.almacen" in sql
         assert "inmovilizado_sap" in sql and "dias_sin_movimiento" in sql and "fecha_corte" in sql
         assert "CURRENT_DATE - INTERVAL" not in sql
+
+
+# ---------------------------------------------------------------------------
+# Filas estilo PostgreSQL (DictRow) y stock_vista
+# ---------------------------------------------------------------------------
+
+class _CursorDictRow:
+    """Cursor SQLite que devuelve DictRow como el wrapper de PG (desempaquetar da nombres)."""
+
+    OMITIR = ("DROP MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW", "CREATE INDEX")
+
+    def __init__(self, cur):
+        self._cur = cur
+        self.ejecutadas = []
+
+    def execute(self, sql, params=()):
+        self.ejecutadas.append(sql)
+        if sql.strip().upper().startswith(self.OMITIR):
+            return self  # SQL solo-PG: se registra pero no se ejecuta en SQLite
+        self._cur.execute(sql, params or ())
+        return self
+
+    def _fila(self, row):
+        return None if row is None else db_module.DictRow([d[0] for d in self._cur.description], tuple(row))
+
+    def fetchone(self):
+        return self._fila(self._cur.fetchone())
+
+    def fetchall(self):
+        return [self._fila(r) for r in self._cur.fetchall()]
+
+    @property
+    def rowcount(self):
+        return self._cur.rowcount
+
+
+class _ConexionDictRow:
+    def __init__(self, path):
+        self._conn = db_module._connect_sqlite(path)
+        self.cur = _CursorDictRow(self._conn.cursor())
+
+    def cursor(self):
+        return self.cur
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+
+def _crear_stock_vista(path):
+    """Materializa stock_vista en SQLite con la misma definicion que la migracion 103."""
+    conn = db_module._connect_sqlite(path)
+    corte = svc.fecha_corte(conn.cursor())
+    conn.execute(
+        f"CREATE TABLE stock_vista AS SELECT k.*, ? AS fecha_corte FROM ({svc.sql_stock_por_clave()}) k",
+        [corte.isoformat(), *svc.params_stock_por_clave(corte)],
+    )
+    conn.commit()
+    conn.close()
+
+
+class TestFilasDictRow:
+    def test_dictrow_desempaquetado_da_nombres(self):
+        fila = db_module.DictRow(["a", "b"], (1, 2))
+        assert tuple(fila) == ("a", "b") and (fila[0], fila[1]) == (1, 2)
+
+    def test_migracion_103_en_modo_pg_con_dictrow(self, tmp_path, monkeypatch):
+        path = str(tmp_path / "pg.db")
+        conn = db_module._connect_sqlite(path)
+        conn.execute(
+            "CREATE TABLE sap_consumo_historico (id INTEGER PRIMARY KEY, fecha TEXT, centro TEXT,"
+            " almacen TEXT, cantidad REAL, material TEXT, descripcion TEXT)"
+        )
+        filas = [CONSUMO[0], CONSUMO[0], CONSUMO[0], CONSUMO[1]]
+        conn.executemany(
+            "INSERT INTO sap_consumo_historico (fecha, centro, almacen, cantidad, material, descripcion)"
+            " VALUES (?, ?, ?, ?, ?, 'x')",
+            filas,
+        )
+        conn.execute(
+            "CREATE TABLE stock_vista (inmovilizado INTEGER, inmovilizado_sap INTEGER, fecha_corte TEXT)"
+        )
+        conn.executemany("INSERT INTO stock_vista VALUES (?, ?, ?)", [(1, 0, CORTE), (0, 1, CORTE), (1, 1, CORTE)])
+        conn.commit()
+        conn.close()
+
+        mig = _cargar_migracion()
+        conexion = _ConexionDictRow(path)
+
+        @contextmanager
+        def _conn(db_name="spm"):
+            yield conexion
+
+        monkeypatch.setattr(mig, "get_db_connection", _conn)
+        monkeypatch.setattr(mig, "is_using_postgresql", lambda: True)
+
+        assert mig._contar(conexion.cur, "sap_consumo_historico") == (4, 1, 2)
+        mig.up()
+        assert mig._contar(conexion.cur, "sap_consumo_historico") == (2, 0, 0)
+        conexion.cur.execute("SELECT MIN(id) FROM sap_consumo_historico")
+        assert conexion.cur.fetchone()[0] == 1  # se conserva el id minimo
+        sqls = " ".join(conexion.cur.ejecutadas)
+        assert "CREATE MATERIALIZED VIEW stock_vista" in sqls
+        assert "REFRESH MATERIALIZED VIEW" not in sqls  # CREATE ... AS ya la puebla
+        assert sum("CREATE INDEX" in s for s in conexion.cur.ejecutadas) == 7
+
+
+class TestStockVista:
+    """Ruta PG (stock_vista) contra el calculo en vivo: mismas cifras."""
+
+    @pytest.fixture
+    def con_vista(self, db_path, monkeypatch):
+        _crear_stock_vista(db_path)
+        import backend.routes.kpis as kpis
+        import backend.routes.stock as stock
+
+        monkeypatch.setattr(svc, "tiene_stock_vista", lambda cur: True)
+        monkeypatch.setattr(stock, "is_using_postgresql", lambda: True)
+        monkeypatch.setattr(kpis, "is_using_postgresql", lambda: True)
+        return db_path
+
+    def test_kpi_vista_igual_que_en_vivo(self, con_vista):
+        conn = db_module._connect_sqlite(con_vista)
+        cur = conn.cursor()
+        for filtros in ({}, {"centros": ["C1"]}, {"almacen": "W1"}):
+            vista = svc.kpi_stock_inmovilizado(cur, usar_vista=True, **filtros)
+            vivo = svc.kpi_stock_inmovilizado(cur, usar_vista=False, **filtros)
+            for k in ("total", "valorTotal", "globalTotal", "globalValorTotal", "fecha_corte", "filtros"):
+                assert vista[k] == vivo[k], (filtros, k)
+            assert {i["codigo"] for i in vista["items"]} == {i["codigo"] for i in vivo["items"]}
+        conn.close()
+
+    def test_kpi_periodo_mayor_a_un_ano_calcula_en_vivo(self, con_vista):
+        conn = db_module._connect_sqlite(con_vista)
+        r = svc.kpi_stock_inmovilizado(conn.cursor(), periodo_anos=2, usar_vista=True)
+        conn.close()
+        assert {i["codigo"] for i in r["items"]} == {"C", "D", "E"}
+
+    def test_rutas_pg_leen_la_vista_y_coinciden(self, con_vista):
+        from backend.routes import kpis, stock
+
+        app = Flask(__name__)
+        with app.test_request_context("/api/kpis/stock-inmovilizado"):
+            kpi = kpis.get_stock_inmovilizado.__wrapped__().get_json()
+        with app.test_request_context("/api/stock/resumen"):
+            resumen = stock.get_stock_resumen.__wrapped__().get_json()["data"]
+        with app.test_request_context("/api/stock?inmovilizado=true"):
+            listado = stock.get_stock.__wrapped__().get_json()
+        assert kpi["globalTotal"] == resumen["inmovilizado_items"] == listado["total"] == 4
+        assert kpi["globalValorTotal"] == pytest.approx(resumen["inmovilizado_valor"])
+        assert kpi["fecha_corte"] == resumen["fecha_corte"] == listado["fecha_corte"] == CORTE
+        m = _por_material(listado["data"])
+        assert m["C"]["dias_sin_movimiento"] is None and m["B"]["dias_sin_movimiento"] == 365
+
+
+class TestPrecioPorClave:
+    def test_precio_por_stock_igual_valorizado(self, cur):
+        for f in svc.listar_stock(cur)[0]:
+            assert f["precio"] * f["stock"] == pytest.approx(f["stock_valorizado"])

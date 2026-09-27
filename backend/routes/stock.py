@@ -24,13 +24,7 @@ bp = Blueprint("stock", __name__, url_prefix="/api/stock")
 
 def _has_stock_vista(cur):
     """Check if stock_vista materialized view exists."""
-    try:
-        cur.execute(
-            "SELECT 1 FROM pg_matviews WHERE matviewname = 'stock_vista' LIMIT 1"
-        )
-        return cur.fetchone() is not None
-    except Exception:
-        return False
+    return inmovilizado_service.tiene_stock_vista(cur)
 
 
 def _build_stock_where(centro, almacen, material, descripcion,
@@ -147,9 +141,7 @@ def get_stock():
 
 def _fecha_corte_vista(cur):
     """Fecha de corte con la que se calculo stock_vista (migracion 103)."""
-    cur.execute("SELECT MAX(fecha_corte) FROM stock_vista")
-    fila = cur.fetchone()
-    return inmovilizado_service.a_fecha(fila[0] if fila else None) or inmovilizado_service.fecha_corte(cur)
+    return inmovilizado_service.fecha_corte_vista(cur)
 
 
 def _get_stock_from_vista(cur, centro, almacen, material, descripcion,

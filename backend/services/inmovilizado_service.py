@@ -122,7 +122,8 @@ def sql_stock_por_clave(where_sql: str = "1=1", tabla_stock: str = "stock",
             s.almacen,
             SUM(s.stock) AS stock,
             MAX(s.um) AS um,
-            MAX(s.precio) AS precio,
+            -- precio medio de la clave: precio x stock = valorizado
+            SUM(s.stock_valorizado) / NULLIF(SUM(s.stock), 0) AS precio,
             SUM(s.stock_valorizado) AS stock_valorizado,
             CASE WHEN {sql_inmovilizado("s", tabla_consumo, desde, corte)} THEN 1 ELSE 0 END AS inmovilizado,
             MAX(CASE WHEN s.inmovilizado = 'INMOVILIZADO' THEN 1 ELSE 0 END) AS inmovilizado_sap,
@@ -250,3 +251,139 @@ def resumen_stock(cur, centro=None, almacen=None, corte: date | None = None) -> 
         "sin_consumo_365d": inm,
         "fecha_corte": corte.isoformat(),
     }
+
+
+# ---------------------------------------------------------------------------
+# stock_vista (PostgreSQL, migraciones 094/103)
+# ---------------------------------------------------------------------------
+
+def tiene_stock_vista(cur) -> bool:
+    """True si existe la vista materializada stock_vista (solo PostgreSQL)."""
+    try:
+        cur.execute("SELECT 1 FROM pg_matviews WHERE matviewname = 'stock_vista' LIMIT 1")
+        return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
+def fecha_corte_vista(cur) -> date:
+    """Fecha de corte con la que se calculo stock_vista (migracion 103)."""
+    cur.execute("SELECT MAX(fecha_corte) FROM stock_vista")
+    fila = cur.fetchone()
+    return a_fecha(fila[0] if fila else None) or fecha_corte(cur)
+
+
+# ---------------------------------------------------------------------------
+# KPI "Stock inmovilizado global" (/api/kpis/stock-inmovilizado)
+# ---------------------------------------------------------------------------
+
+def _item_kpi(fila) -> dict:
+    desc = fila[1] or fila[0] or ""
+    return {
+        "codigo": fila[0] or "",
+        "descripcion": desc[:40] + "..." if len(desc) > 40 else desc,
+        "lote": fila[2] or "",
+        "stock": float(fila[3] or 0),
+        "valor": float(fila[4] or 0),
+    }
+
+
+def _kpi_desde_vista(cur, centros, almacen, limit) -> dict:
+    """KPI leyendo stock_vista: mismas cifras que /api/stock y /resumen en PG."""
+    where, params = ["sv.inmovilizado = true"], []
+    if centros:
+        where.append(f"sv.centro IN ({','.join(['%s'] * len(centros))})")
+        params.extend(centros)
+    if almacen:
+        where.append("sv.almacen = %s")
+        params.append(almacen)
+    where_sql = " AND ".join(where)
+
+    cur.execute("SELECT COUNT(*), COALESCE(SUM(stock_valorizado), 0) FROM stock_vista sv WHERE sv.inmovilizado = true")
+    g = cur.fetchone()
+    # La vista no tiene lote: los items se agrupan por material
+    cur.execute(
+        f"""SELECT sv.material, MAX(sv.descripcion), NULL, SUM(sv.stock), SUM(sv.stock_valorizado) AS valor
+            FROM stock_vista sv WHERE {where_sql}
+            GROUP BY sv.material ORDER BY valor DESC LIMIT %s""",
+        params + [int(limit)],
+    )
+    items = [_item_kpi(f) for f in cur.fetchall()]
+    cur.execute(f"SELECT COUNT(*), COALESCE(SUM(sv.stock_valorizado), 0) FROM stock_vista sv WHERE {where_sql}", params)
+    t = cur.fetchone()
+    cur.execute("SELECT DISTINCT centro FROM stock_vista WHERE inmovilizado = true ORDER BY centro")
+    centros_disp = [r[0] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT almacen FROM stock_vista WHERE inmovilizado = true ORDER BY almacen")
+    almacenes_disp = [r[0] for r in cur.fetchall()]
+    return {
+        "items": items, "total": int(t[0] or 0), "valorTotal": float(t[1] or 0),
+        "globalTotal": int(g[0] or 0), "globalValorTotal": float(g[1] or 0),
+        "fecha_corte": fecha_corte_vista(cur).isoformat(),
+        "filtros": {"centros": centros_disp, "almacenes": almacenes_disp},
+    }
+
+
+def _kpi_en_vivo(cur, centros, almacen, periodo_anos, limit) -> dict:
+    """KPI calculado sobre las tablas crudas (SQLite dev, PG sin vista o periodo > 1 ano)."""
+    corte = fecha_corte(cur)
+    cond_12m = sql_inmovilizado("s")
+    params_12m = params_ventana(corte)
+    clave = "s.material || '-' || s.centro || '-' || s.almacen"
+
+    cur.execute(
+        f"SELECT COUNT(DISTINCT {clave}), COALESCE(SUM(s.stock_valorizado), 0) FROM stock s"
+        f" WHERE s.stock > 0 AND {cond_12m}",
+        params_12m,
+    )
+    g = cur.fetchone()
+
+    where = ["s.stock > 0", sql_inmovilizado("s")]
+    params = params_ventana(corte, VENTANA_DIAS * max(periodo_anos, 1))
+    if centros:
+        where.append(f"s.centro IN ({','.join(['%s'] * len(centros))})")
+        params.extend(centros)
+    if almacen:
+        where.append("s.almacen = %s")
+        params.append(almacen)
+    where_sql = " AND ".join(where)
+
+    cur.execute(
+        f"""SELECT s.material, s.material_descripcion, s.lote, SUM(s.stock), SUM(s.stock_valorizado) AS valor
+            FROM stock s WHERE {where_sql}
+            GROUP BY s.material, s.material_descripcion, s.lote
+            ORDER BY valor DESC LIMIT %s""",
+        params + [int(limit)],
+    )
+    items = [_item_kpi(f) for f in cur.fetchall()]
+    cur.execute(
+        f"SELECT COUNT(DISTINCT {clave}), COALESCE(SUM(s.stock_valorizado), 0) FROM stock s WHERE {where_sql}",
+        params,
+    )
+    t = cur.fetchone()
+    cur.execute(
+        f"SELECT DISTINCT s.centro FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.centro", params_12m
+    )
+    centros_disp = [r[0] for r in cur.fetchall()]
+    cur.execute(
+        f"SELECT DISTINCT s.almacen FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.almacen", params_12m
+    )
+    almacenes_disp = [r[0] for r in cur.fetchall()]
+    return {
+        "items": items, "total": int(t[0] or 0), "valorTotal": float(t[1] or 0),
+        "globalTotal": int(g[0] or 0), "globalValorTotal": float(g[1] or 0),
+        "fecha_corte": corte.isoformat(),
+        "filtros": {"centros": centros_disp, "almacenes": almacenes_disp},
+    }
+
+
+def kpi_stock_inmovilizado(cur, centros=(), almacen=None, periodo_anos=0, limit=50,
+                           usar_vista: bool = False) -> dict:
+    """KPI de stock inmovilizado.
+
+    Con `usar_vista` (PG con stock_vista) y ventana de 12 meses lee la vista, asi
+    coincide con /api/stock y /resumen aunque la vista no se haya refrescado.
+    Con periodo_anos > 1 la ventana es mayor que la de la vista: calculo en vivo.
+    """
+    if usar_vista and periodo_anos <= 1:
+        return _kpi_desde_vista(cur, list(centros), almacen, limit)
+    return _kpi_en_vivo(cur, list(centros), almacen, periodo_anos, limit)

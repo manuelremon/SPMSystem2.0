@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify
 from backend.core.cache import cached, kpi_cache
 from backend.core.db import (
     get_db_connection,
+    is_using_postgresql,
     sql_date_diff_days,
     sql_date_relative,
     sql_format_date,
@@ -49,7 +50,8 @@ def get_stock_inmovilizado():
         - limit: límite de resultados (default 50)
 
     Returns:
-        - items: materiales inmovilizados (agrupados por material y lote) con valor
+        - items: materiales inmovilizados con valor (por material y lote en vivo;
+          por material si se lee stock_vista)
         - total: claves (material+centro+almacen) inmovilizadas con los filtros
         - valorTotal: valor del stock inmovilizado con los filtros
         - globalTotal / globalValorTotal: sin filtros, ventana de 12 meses
@@ -74,7 +76,6 @@ def get_stock_inmovilizado():
         # Ventana sin consumo: 12 meses x N (por defecto 12 meses)
         periodo_anos = int(request.args.get("periodo_anos", 0))
         periodo_anos = min(max(periodo_anos, 0), 5)  # Entre 0 y 5
-        ventana_dias = inmovilizado_service.VENTANA_DIAS * max(periodo_anos, 1)
 
         # Límite de resultados
         limit = int(request.args.get("limit", 50))
@@ -82,118 +83,12 @@ def get_stock_inmovilizado():
 
         with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
-            corte = inmovilizado_service.fecha_corte(cursor)
-            cond_12m = inmovilizado_service.sql_inmovilizado("s")
-            params_12m = inmovilizado_service.params_ventana(corte)
-            clave = "s.material || '-' || s.centro || '-' || s.almacen"
-
-            # Totales globales (sin filtros, 12 meses)
-            cursor.execute(
-                f"""
-                SELECT
-                    COUNT(DISTINCT {clave}) as total,
-                    COALESCE(SUM(s.stock_valorizado), 0) as valor_total
-                FROM stock s
-                WHERE s.stock > 0 AND {cond_12m}
-            """,
-                params_12m,
-            )
-            global_row = cursor.fetchone()
-            global_total = global_row[0] if global_row else 0
-            global_valor = float(global_row[1]) if global_row and global_row[1] else 0
-
-            # Construir query con filtros
-            where_clauses = ["s.stock > 0", inmovilizado_service.sql_inmovilizado("s")]
-            params = inmovilizado_service.params_ventana(corte, ventana_dias)
-
-            if centros:
-                placeholders = ",".join(["?" for _ in centros])
-                where_clauses.append(f"s.centro IN ({placeholders})")
-                params.extend(centros)
-
-            if almacen_param:
-                where_clauses.append("s.almacen = ?")
-                params.append(almacen_param)
-
-            where_sql = " AND ".join(where_clauses)
-
-            # Query filtrada para items (agrupado por material)
-            query = f"""
-                SELECT
-                    s.material as codigo,
-                    s.material_descripcion as descripcion,
-                    s.lote,
-                    SUM(s.stock) as stock_total,
-                    SUM(s.stock_valorizado) as valor_total
-                FROM stock s
-                WHERE {where_sql}
-                GROUP BY s.material, s.material_descripcion, s.lote
-                ORDER BY valor_total DESC
-                LIMIT {limit}
-            """
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-
-            items = []
-            for row in rows:
-                row_dict = dict(row) if hasattr(row, "keys") else {
-                    "codigo": row[0],
-                    "descripcion": row[1],
-                    "lote": row[2],
-                    "stock_total": row[3],
-                    "valor_total": row[4],
-                }
-                desc = row_dict.get("descripcion") or row_dict.get("codigo") or ""
-                desc_corta = desc[:40] + "..." if len(desc) > 40 else desc
-                items.append({
-                    "codigo": row_dict.get("codigo", ""),
-                    "descripcion": desc_corta,
-                    "lote": row_dict.get("lote", ""),
-                    "stock": float(row_dict.get("stock_total") or 0),
-                    "valor": float(row_dict.get("valor_total") or 0),
-                })
-
-            # Total filtrado
-            cursor.execute(
-                f"""
-                SELECT
-                    COUNT(DISTINCT {clave}) as total,
-                    COALESCE(SUM(s.stock_valorizado), 0) as valor_total
-                FROM stock s
-                WHERE {where_sql}
-            """,
-                params,
-            )
-            totals_row = cursor.fetchone()
-            total_count = totals_row[0] if totals_row else 0
-            valor_total = float(totals_row[1]) if totals_row and totals_row[1] else 0
-
-            # Opciones de filtro (centros y almacenes con stock inmovilizado, 12 meses)
-            cursor.execute(
-                f"SELECT DISTINCT s.centro FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.centro",
-                params_12m,
-            )
-            centros_disponibles = [r[0] for r in cursor.fetchall()]
-
-            cursor.execute(
-                f"SELECT DISTINCT s.almacen FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.almacen",
-                params_12m,
-            )
-            almacenes_disponibles = [r[0] for r in cursor.fetchall()]
-
-            return jsonify({
-                "ok": True,
-                "items": items,
-                "total": total_count,
-                "valorTotal": valor_total,
-                "globalTotal": global_total,
-                "globalValorTotal": global_valor,
-                "fecha_corte": corte.isoformat(),
-                "filtros": {
-                    "centros": centros_disponibles,
-                    "almacenes": almacenes_disponibles,
-                },
-            })
+            # En PG se lee stock_vista (mismas cifras que /api/stock y /resumen);
+            # si no existe o periodo_anos > 1, se calcula en vivo
+            usar_vista = is_using_postgresql() and inmovilizado_service.tiene_stock_vista(cursor)
+            data = inmovilizado_service.kpi_stock_inmovilizado(
+                cursor, centros, almacen_param, periodo_anos, limit, usar_vista=usar_vista)
+            return jsonify({"ok": True, **data})
 
     except Exception as e:
         logger.error(f"Error obteniendo stock inmovilizado: {e}")
