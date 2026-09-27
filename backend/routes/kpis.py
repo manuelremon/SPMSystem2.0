@@ -5,7 +5,6 @@ Rutas para KPIs y métricas del sistema
 import json
 import logging
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify
 
@@ -18,6 +17,7 @@ from backend.core.db import (
 )
 from backend.core.helpers import row_to_dict as _row_to_dict
 from backend.core.roles import require_auth
+from backend.services import inmovilizado_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,29 +36,25 @@ def get_stock_inmovilizado():
     """
     Obtiene materiales inmovilizados con información de centro.
 
-    Stock inmovilizado se identifica por la columna 'inmovilizado' = 'INMOVILIZADO'
-    en la tabla stock de sap_data.db. Solo se incluyen filas con stock > 0.
-
-    Lotes típicos de stock inmovilizado:
-    - GAINSP-100: En inspección
-    - GREZAG-100: Rezago/obsoleto
-    - GREPAR-100: En reparación
-    - GAREPA-100: A reparar
-    - GSOBRA-100: Sobrantes
+    Definicion unica (backend/services/inmovilizado_service.py): una clave
+    material + centro + almacen con stock > 0 esta inmovilizada si no tuvo
+    consumo en los 12 meses previos a la fecha de corte del stock (MAX(dia)).
+    La marca SAP `inmovilizado` es solo informativa y no se usa aqui.
 
     Query params:
         - centros: lista de centros (códigos, ej: AA101,AA102)
         - centro: un solo centro (alternativa a centros)
         - almacen: filtrar por almacén específico
-        - periodo_anos: filtrar materiales sin consumo en N años (1, 2 o 3)
+        - periodo_anos: amplia la ventana sin consumo a 12 meses x N (1..5)
         - limit: límite de resultados (default 50)
 
     Returns:
-        - items: lista de materiales inmovilizados con codigo, descripcion, lote y valor
-        - total: cantidad total de materiales inmovilizados
-        - valorTotal: valor total del stock inmovilizado
-        - globalTotal: total global (sin filtros)
-        - globalValorTotal: valor total global (sin filtros)
+        - items: materiales inmovilizados (agrupados por material y lote) con valor
+        - total: claves (material+centro+almacen) inmovilizadas con los filtros
+        - valorTotal: valor del stock inmovilizado con los filtros
+        - globalTotal / globalValorTotal: sin filtros, ventana de 12 meses
+          (mismas cifras que /api/stock/resumen)
+        - fecha_corte: "YYYY-MM-DD"
     """
     from flask import request
 
@@ -75,12 +71,10 @@ def get_stock_inmovilizado():
         # Filtro de almacén
         almacen_param = request.args.get("almacen", "").strip()
 
-        # Filtro de período sin consumo (1, 2 o 3 años)
+        # Ventana sin consumo: 12 meses x N (por defecto 12 meses)
         periodo_anos = int(request.args.get("periodo_anos", 0))
         periodo_anos = min(max(periodo_anos, 0), 5)  # Entre 0 y 5
-        fecha_limite = None
-        if periodo_anos > 0:
-            fecha_limite = (datetime.now() - timedelta(days=periodo_anos * 365)).strftime("%Y-%m-%d")
+        ventana_dias = inmovilizado_service.VENTANA_DIAS * max(periodo_anos, 1)
 
         # Límite de resultados
         limit = int(request.args.get("limit", 50))
@@ -88,29 +82,29 @@ def get_stock_inmovilizado():
 
         with get_db_connection("sap_data") as conn:
             cursor = conn.cursor()
+            corte = inmovilizado_service.fecha_corte(cursor)
+            cond_12m = inmovilizado_service.sql_inmovilizado("s")
+            params_12m = inmovilizado_service.params_ventana(corte)
+            clave = "s.material || '-' || s.centro || '-' || s.almacen"
 
-            # Totales globales (sin filtros de centro)
+            # Totales globales (sin filtros, 12 meses)
             cursor.execute(
-                """
+                f"""
                 SELECT
-                    COUNT(DISTINCT material) as total,
-                    COALESCE(SUM(stock_valorizado), 0) as valor_total
-                FROM stock
-                WHERE inmovilizado = ? AND stock > 0
+                    COUNT(DISTINCT {clave}) as total,
+                    COALESCE(SUM(s.stock_valorizado), 0) as valor_total
+                FROM stock s
+                WHERE s.stock > 0 AND {cond_12m}
             """,
-                ("INMOVILIZADO",),
+                params_12m,
             )
             global_row = cursor.fetchone()
-            if isinstance(global_row, dict):
-                global_total = global_row.get("total") or 0
-                global_valor = float(global_row.get("valor_total") or 0)
-            else:
-                global_total = global_row[0] if global_row else 0
-                global_valor = float(global_row[1]) if global_row and global_row[1] else 0
+            global_total = global_row[0] if global_row else 0
+            global_valor = float(global_row[1]) if global_row and global_row[1] else 0
 
             # Construir query con filtros
-            where_clauses = ["s.inmovilizado = ?", "s.stock > 0"]
-            params = ["INMOVILIZADO"]
+            where_clauses = ["s.stock > 0", inmovilizado_service.sql_inmovilizado("s")]
+            params = inmovilizado_service.params_ventana(corte, ventana_dias)
 
             if centros:
                 placeholders = ",".join(["?" for _ in centros])
@@ -120,20 +114,6 @@ def get_stock_inmovilizado():
             if almacen_param:
                 where_clauses.append("s.almacen = ?")
                 params.append(almacen_param)
-
-            # Filtro de período: solo materiales sin consumo en los últimos N años
-            consumo_join = ""
-            if fecha_limite:
-                where_clauses.append(
-                    """NOT EXISTS (
-                        SELECT 1 FROM consumo_historico ch
-                        WHERE ch.material = s.material
-                        AND ch.centro = s.centro
-                        AND ch.almacen = s.almacen
-                        AND ch.fecha >= ?
-                    )"""
-                )
-                params.append(fecha_limite)
 
             where_sql = " AND ".join(where_clauses)
 
@@ -146,7 +126,6 @@ def get_stock_inmovilizado():
                     SUM(s.stock) as stock_total,
                     SUM(s.stock_valorizado) as valor_total
                 FROM stock s
-                {consumo_join}
                 WHERE {where_sql}
                 GROUP BY s.material, s.material_descripcion, s.lote
                 ORDER BY valor_total DESC
@@ -175,49 +154,32 @@ def get_stock_inmovilizado():
                 })
 
             # Total filtrado
-            count_query = f"""
+            cursor.execute(
+                f"""
                 SELECT
-                    COUNT(DISTINCT s.material) as total,
+                    COUNT(DISTINCT {clave}) as total,
                     COALESCE(SUM(s.stock_valorizado), 0) as valor_total
                 FROM stock s
-                {consumo_join}
                 WHERE {where_sql}
-            """
-            cursor.execute(count_query, params)
+            """,
+                params,
+            )
             totals_row = cursor.fetchone()
-            if isinstance(totals_row, dict):
-                total_count = totals_row.get("total") or 0
-                valor_total = float(totals_row.get("valor_total") or 0)
-            else:
-                total_count = totals_row[0] if totals_row else 0
-                valor_total = float(totals_row[1]) if totals_row and totals_row[1] else 0
+            total_count = totals_row[0] if totals_row else 0
+            valor_total = float(totals_row[1]) if totals_row and totals_row[1] else 0
 
-            # Opciones de filtro (centros y almacenes disponibles en stock inmovilizado)
+            # Opciones de filtro (centros y almacenes con stock inmovilizado, 12 meses)
             cursor.execute(
-                """
-                SELECT DISTINCT centro FROM stock
-                WHERE inmovilizado = ? AND stock > 0
-                ORDER BY centro
-            """,
-                ("INMOVILIZADO",),
+                f"SELECT DISTINCT s.centro FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.centro",
+                params_12m,
             )
-            centros_disponibles = [
-                r["centro"] if isinstance(r, dict) else r[0]
-                for r in cursor.fetchall()
-            ]
+            centros_disponibles = [r[0] for r in cursor.fetchall()]
 
             cursor.execute(
-                """
-                SELECT DISTINCT almacen FROM stock
-                WHERE inmovilizado = ? AND stock > 0
-                ORDER BY almacen
-            """,
-                ("INMOVILIZADO",),
+                f"SELECT DISTINCT s.almacen FROM stock s WHERE s.stock > 0 AND {cond_12m} ORDER BY s.almacen",
+                params_12m,
             )
-            almacenes_disponibles = [
-                r["almacen"] if isinstance(r, dict) else r[0]
-                for r in cursor.fetchall()
-            ]
+            almacenes_disponibles = [r[0] for r in cursor.fetchall()]
 
             return jsonify({
                 "ok": True,
@@ -226,6 +188,7 @@ def get_stock_inmovilizado():
                 "valorTotal": valor_total,
                 "globalTotal": global_total,
                 "globalValorTotal": global_valor,
+                "fecha_corte": corte.isoformat(),
                 "filtros": {
                     "centros": centros_disponibles,
                     "almacenes": almacenes_disponibles,

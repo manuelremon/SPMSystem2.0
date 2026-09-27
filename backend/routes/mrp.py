@@ -924,14 +924,6 @@ def get_kpis():
             except Exception:
                 pass
 
-            # Materiales inmovilizados (columna puede no existir)
-            try:
-                query_inmov = f"SELECT COUNT(DISTINCT material) as total FROM stock WHERE inmovilizado = 'INMOVILIZADO'{and_clause}"
-                cursor_sap.execute(query_inmov, and_params)
-                cursor_sap.fetchone()["total"]
-            except Exception:
-                pass
-
             # ----------------------------------------------------------------
             # KPIs REALES (reemplaza datos simulados con modulo)
             # ----------------------------------------------------------------
