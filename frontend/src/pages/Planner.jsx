@@ -547,8 +547,8 @@ export default function Planner({ filterMode }) {
       {
         field: "total_monto",
         headerName: t("common_monto", "Monto"),
-        flex: 0.6,
-        minWidth: 140,
+        flex: 0.7,
+        minWidth: 165,
         type: "rightAligned",
         valueFormatter: (params) => formatCurrency(params.value || 0),
       },
