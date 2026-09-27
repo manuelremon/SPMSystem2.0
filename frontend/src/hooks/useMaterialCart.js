@@ -29,6 +29,8 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
 
   // Load suggested items from NLP assistant (sessionStorage)
   useEffect(() => {
+    // Se aplica despues de cargar los items de la solicitud; si no, setItems(initialItems) la pisa
+    if (initialItems === null) return
     const suggestedJson = sessionStorage.getItem('suggested_items')
     if (suggestedJson) {
       try {
@@ -58,7 +60,7 @@ export function useMaterialCart({ initialItems, setActionMsg, setShowAssistant }
         sessionStorage.removeItem('suggested_items')
       }
     }
-  }, [t, setActionMsg])
+  }, [initialItems, t, setActionMsg])
 
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(items) !== JSON.stringify(lastSavedItems)
